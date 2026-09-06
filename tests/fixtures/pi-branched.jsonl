@@ -1,0 +1,8 @@
+{"type":"session","version":3,"id":"00000000-0000-0000-0000-000000000001","timestamp":"2026-01-01T00:00:00.000Z","cwd":"/tmp"}
+{"type":"model_change","id":"m1","parentId":null,"timestamp":"2026-01-01T00:00:01.000Z","provider":"openai-codex","modelId":"gpt-5.6-sol"}
+{"type":"message","id":"u1","parentId":"m1","timestamp":"2026-01-01T00:00:02.000Z","message":{"role":"user","content":[{"type":"text","text":"work"}],"timestamp":1767225602000}}
+{"type":"message","id":"a-old","parentId":"u1","timestamp":"2026-01-01T00:00:03.000Z","message":{"role":"assistant","content":[{"type":"text","text":"abandoned"}],"provider":"openai-codex","model":"gpt-5.6-sol","usage":{"input":300000,"output":1,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":300001,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"stopReason":"stop","timestamp":1767225603000}}
+{"type":"compaction","id":"c-old","parentId":"a-old","timestamp":"2026-01-01T00:00:04.000Z","summary":"old summary","firstKeptEntryId":"a-old","tokensBefore":300001}
+{"type":"custom_message","id":"x-old","parentId":"c-old","timestamp":"2026-01-01T00:00:05.000Z","customType":"fixture","content":"old custom","display":false}
+{"type":"model_change","id":"m2","parentId":"u1","timestamp":"2026-01-01T00:00:06.000Z","provider":"openai-codex","modelId":"gpt-5.6-sol"}
+{"type":"message","id":"a-new","parentId":"m2","timestamp":"2026-01-01T00:00:07.000Z","message":{"role":"assistant","content":[{"type":"text","text":"active"}],"provider":"openai-codex","model":"gpt-5.6-sol","usage":{"input":1200,"output":34,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":1234,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"stopReason":"stop","timestamp":1767225607000}}
