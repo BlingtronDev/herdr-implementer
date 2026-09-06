@@ -40,6 +40,7 @@ STATUS_ALIASES = {"resolved": "completed", "done": "completed"}
 SUPPORTED_KINDS = {"opencode", "codex", "pi"}
 THINKING_LEVELS = ("off", "minimal", "low", "medium", "high", "xhigh", "max")
 WAIT_TIMEOUT_MS = 3_600_000
+MIN_BATCH_TIMEOUT_MINUTES = 120
 PROMPT_RETRIES = 3
 PROMPT_RETRY_BASE_DELAY = 1.0
 READY_POLL_ATTEMPTS = 240
@@ -626,6 +627,7 @@ def create_state(
     jobs: int,
     fail_fast: bool,
     context_window: int | None,
+    batch_timeout_minutes: int | None,
     tickets: dict[str, Ticket],
     skipped: set[str],
 ) -> dict[str, Any]:
@@ -648,6 +650,7 @@ def create_state(
         "jobs": jobs,
         "fail_fast": fail_fast,
         "context_window": context_window,
+        "batch_timeout_minutes": batch_timeout_minutes,
         "phase": "preflight",
         "created_at": created,
         "updated_at": created,
@@ -1594,6 +1597,8 @@ def run_dispatch(
     selector = selectors.DefaultSelector()
     monitor: subprocess.Popen[str] | None = None
     monitor_log = (run_dir / "monitor.stderr.log").open("w", encoding="utf-8")
+    batch_timeout_minutes = state.get("batch_timeout_minutes")
+    deadline = time.monotonic() + batch_timeout_minutes * 60 if batch_timeout_minutes else None
     state["phase"] = "running"
     save_state(state_path, state)
 
@@ -1698,7 +1703,23 @@ def run_dispatch(
 
             if not running:
                 continue
-            events = selector.select(timeout=300)
+            if deadline is None:
+                select_timeout = 300.0
+            else:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    for timeout_number, timeout_attempt in list(running.items()):
+                        timeout_watcher, _, _ = remove_watcher(timeout_number)
+                        if timeout_watcher and timeout_watcher.poll() is None:
+                            timeout_watcher.terminate()
+                        if fail_attempt(
+                            repo, run_dir, state_path, state, tickets[timeout_number], timeout_attempt,
+                            f"batch-timeout-exceeded: batch budget of {batch_timeout_minutes} minutes elapsed",
+                        ):
+                            running.pop(timeout_number, None)
+                    raise DispatchError(f"batch timeout exceeded: {batch_timeout_minutes} minutes")
+                select_timeout = min(300.0, remaining)
+            events = selector.select(timeout=select_timeout)
             if not events:
                 continue
             for key, _ in events:
@@ -1944,6 +1965,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--catalog", choices=("providers", "models"), help="discover selectable values without starting a run")
     parser.add_argument("--jobs", type=int, default=3)
     parser.add_argument("--window", type=int, help="explicit model context window; observations become estimated")
+    parser.add_argument("--batch-timeout", type=int, help="per-batch wall-clock budget in minutes; minimum 120")
     parser.add_argument("--fail-fast", action="store_true")
     parser.add_argument("--skip-claimed", action="store_true", help="leave stale claimed tickets untouched instead of abandoning them")
     args = parser.parse_args()
@@ -1953,6 +1975,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--batch-number must be at least 1")
     if args.window is not None and args.window <= 0:
         parser.error("--window must be positive")
+    if args.batch_timeout is not None and args.batch_timeout < MIN_BATCH_TIMEOUT_MINUTES:
+        parser.error(f"--batch-timeout must be at least {MIN_BATCH_TIMEOUT_MINUTES} minutes")
     if args.expect_target_head and not SHA_RE.fullmatch(args.expect_target_head):
         parser.error("--expect-target-head must be a full 40-64 character lowercase SHA")
     return args
@@ -2029,7 +2053,7 @@ def main() -> int:
             state = create_state(
                 run_id, args.batch_number, args.slug, repo, common, branch, head, protected_status,
                 args.kind, args.provider, args.model, args.thinking, args.jobs, args.fail_fast,
-                args.window, tickets, skipped,
+                args.window, args.batch_timeout, tickets, skipped,
             )
             state_path = run_dir / "state.json"
             save_state(state_path, state)

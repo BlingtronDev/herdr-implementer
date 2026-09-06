@@ -33,10 +33,12 @@ Plan and execute one local `.scratch/<slug>/issues/` ticket set. The calling age
      --kind <kind> --provider <provider> --model <model> --thinking <thinking-level> \
      --slug <feature-slug> --batch-number <N> --batch "<ticket-id> <ticket-id> ..." \
      --target <current-branch> --expect-target-head <batch-base-head> \
-     [--jobs N] [--window TOKENS] [--fail-fast]
+     [--jobs N] [--window TOKENS] [--batch-timeout MINUTES] [--fail-fast]
    ```
 
-   `--batch` is mandatory. A command executes only those tickets and returns after all of them reach a terminal declaration. Keep the command in the foreground; timing, polling, wait-any, context rollover, and the batch barrier belong to the program. At 300K observed tokens (or the configured percentage safety threshold), the executor interrupts that worker, sends `/handoff` to save a Markdown continuation under the OS temporary directory, then starts a fresh worker in the same worktree and branch. A successful rollover is not a failed attempt; repeated rollovers remain within the same attempt and are recorded in run state.
+   `--batch-timeout` is optional; when set it is the per-batch wall-clock budget in minutes and must be at least 120.
+
+   `--batch` is mandatory. A command executes only those tickets and returns after all of them reach a terminal declaration. Keep the command in the foreground; timing, polling, wait-any, context rollover, and the batch barrier belong to the program. Batch execution may legitimately take hours: never impose a per-batch timeout shorter than 120 minutes, do not kill or background the foreground command early, and do not poll for completion outside the summary file. At 300K observed tokens (or the configured percentage safety threshold), the executor interrupts that worker, sends `/handoff` to save a Markdown continuation under the OS temporary directory, then starts a fresh worker in the same worktree and branch. A successful rollover is not a failed attempt; repeated rollovers remain within the same attempt and are recorded in run state.
 7. Read `results/batch-<N>-summary.json` from the emitted run directory. A worker declaration is final: `completed` means completed. `workers[].handoffs` lists any rollover documents. Do not inspect its diff, acceptance evidence, test output, commit messages, worktree cleanliness, or `.scratch/` changes as a second acceptance gate. Protocol/merge-input errors reported by the executor are failures, not quality judgments.
 8. Complete the batch before starting the next one:
    1. **Disposition:** for every `failed` or `needs-input` entry, show the exact reason and choose with the user whether to retry it in a new higher-numbered attempt, pause, or leave it failed. Never let a failed prerequisite silently unblock a later batch.

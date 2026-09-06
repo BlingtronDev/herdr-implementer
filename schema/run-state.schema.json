@@ -23,6 +23,7 @@
     "jobs": {"type": "integer", "minimum": 1},
     "fail_fast": {"type": "boolean"},
     "context_window": {"type": ["integer", "null"], "minimum": 1},
+    "batch_timeout_minutes": {"type": ["integer", "null"], "minimum": 120},
     "phase": {"enum": ["preflight", "running", "stopping", "completed", "failed", "stalled"]},
     "created_at": {"type": "string", "format": "date-time"},
     "updated_at": {"type": "string", "format": "date-time"},
