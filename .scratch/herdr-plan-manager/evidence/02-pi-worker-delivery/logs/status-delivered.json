@@ -1,0 +1,125 @@
+{
+  "branch": "hpm/w-smoke-1-15301e",
+  "branch_head": "ed36cbd6e6f49ca82ef569ae5bbbc3063b25c7eb",
+  "control": {},
+  "herdr": {
+    "agent": "w-smoke-1-15301e",
+    "agent_present": true,
+    "agent_status": "done",
+    "pane": "wJ:p6",
+    "tab": "wJ:t6",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "acked_at": null,
+      "code": "delivered",
+      "created_at": "2026-09-11T09:52:19.538391Z",
+      "details": {
+        "artifacts": [
+          "smoke.txt"
+        ],
+        "head": "ed36cbd6e6f49ca82ef569ae5bbbc3063b25c7eb"
+      },
+      "id": "i001",
+      "kind": "delivery",
+      "message": "Created smoke.txt at the worktree root containing exactly the line 'MATERIAL 7f3a9c' (with trailing newline) and committed it on branch hpm/w-smoke-1-15301e as commit ed36cbd6e6f49ca82ef569ae5bbbc3063b25c7eb. No other files were touched and the worktree is clean."
+    }
+  ],
+  "lifecycle": {
+    "reason": "result-recorded",
+    "started_at": "2026-09-11T09:51:47.234746Z",
+    "state": "delivered",
+    "updated_at": "2026-09-11T09:51:47.234746Z"
+  },
+  "paths": {
+    "contract": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/workers/w-smoke-1-15301e/contract.md",
+    "management": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/workers/w-smoke-1-15301e",
+    "result": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/workers/w-smoke-1-15301e/result.json",
+    "supervisor_log": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/workers/w-smoke-1-15301e/supervisor.log"
+  },
+  "repo": {
+    "base": "aac2997b6f649cc4540cd798887530fdf83d8702",
+    "common_dir": "/tmp/opencode/hpm-exp02/repo/.git",
+    "root": "/tmp/opencode/hpm-exp02/repo"
+  },
+  "result": {
+    "acceptance": [
+      {
+        "criterion": "`smoke.txt` exists at the worktree root and contains exactly the line `MATERIAL 7f3a9c`.",
+        "evidence": "smoke.txt:1 — content 'MATERIAL 7f3a9c' plus newline; byte-identical to the expected string per cmp check",
+        "met": true
+      },
+      {
+        "criterion": "The change is committed on the worker branch.",
+        "evidence": "git log: ed36cbd 'SMOKE-1: add smoke.txt with material line' on hpm/w-smoke-1-15301e; git status --porcelain output empty",
+        "met": true
+      },
+      {
+        "criterion": "The result file follows the worker contract protocol and includes the verification commands actually run.",
+        "evidence": "this result.json with status/summary/acceptance/verification/head/artifacts/remaining, listing the exact commands below",
+        "met": true
+      }
+    ],
+    "artifacts": [
+      "smoke.txt"
+    ],
+    "head": "ed36cbd6e6f49ca82ef569ae5bbbc3063b25c7eb",
+    "remaining": "",
+    "status": "delivered",
+    "summary": "Created smoke.txt at the worktree root containing exactly the line 'MATERIAL 7f3a9c' (with trailing newline) and committed it on branch hpm/w-smoke-1-15301e as commit ed36cbd6e6f49ca82ef569ae5bbbc3063b25c7eb. No other files were touched and the worktree is clean.",
+    "ticket_id": "SMOKE-1",
+    "verification": [
+      {
+        "command": "test \"$(cat smoke.txt)\" = \"MATERIAL 7f3a9c\" && test \"$(wc -l < smoke.txt)\" -eq 1 && echo PASS",
+        "exit_code": 0,
+        "summary": "PASS — file content matches and is exactly one line"
+      },
+      {
+        "command": "printf 'MATERIAL 7f3a9c\\n' | cmp -s - smoke.txt",
+        "exit_code": 0,
+        "summary": "byte-identical match (16 bytes); no trailing whitespace or extra content"
+      },
+      {
+        "command": "git status --porcelain",
+        "exit_code": 0,
+        "summary": "empty output — all changes committed, worktree clean"
+      },
+      {
+        "command": "git log --oneline -1",
+        "exit_code": 0,
+        "summary": "ed36cbd SMOKE-1: add smoke.txt with material line"
+      },
+      {
+        "command": "git rev-parse HEAD",
+        "exit_code": 0,
+        "summary": "ed36cbd6e6f49ca82ef569ae5bbbc3063b25c7eb"
+      }
+    ],
+    "worker_id": "w-smoke-1-15301e"
+  },
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "supervisor": {
+    "alive": false,
+    "exit_reason": "result-recorded",
+    "heartbeat_at": "2026-09-11T09:52:19.538462Z",
+    "host": "BlingtronPC",
+    "pid": 1510885,
+    "state": "exited",
+    "warnings": []
+  },
+  "ticket": {
+    "id": "SMOKE-1",
+    "title": "smoke delivery"
+  },
+  "worker_id": "w-smoke-1-15301e",
+  "worktree": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/worktrees/w-smoke-1-15301e",
+  "worktree_dirty": {
+    "entries": 0
+  }
+}

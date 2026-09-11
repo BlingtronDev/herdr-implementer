@@ -1,0 +1,19 @@
+{
+  "agent": "w-smoke-2-b2dae1",
+  "base": "aac2997b6f649cc4540cd798887530fdf83d8702",
+  "branch": "hpm/w-smoke-2-b2dae1",
+  "management_dir": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/workers/w-smoke-2-b2dae1",
+  "pane": "wJ:p7",
+  "result_path": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/workers/w-smoke-2-b2dae1/result.json",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "supervisor_pid": 1512050,
+  "tab": "wJ:t7",
+  "ticket_id": "SMOKE-2",
+  "worker_id": "w-smoke-2-b2dae1",
+  "worktree": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/worktrees/w-smoke-2-b2dae1"
+}

@@ -1,0 +1,16 @@
+{
+  "management_root": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager",
+  "workers": [
+    {
+      "branch": "hpm/w-smoke-1-15301e",
+      "items": 1,
+      "lifecycle": "delivered",
+      "ticket": {
+        "id": "SMOKE-1",
+        "title": "smoke delivery"
+      },
+      "worker_id": "w-smoke-1-15301e",
+      "worktree": "/tmp/opencode/hpm-exp02/repo/.git/herdr-plan-manager/worktrees/w-smoke-1-15301e"
+    }
+  ]
+}
