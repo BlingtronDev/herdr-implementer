@@ -1,0 +1,58 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                          ▄
+                                                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█
+                                                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀
+                                                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀
+
+
+                                                       ┃
+                                                       ┃  Ask anything… "What is the tech stack of this project?"
+                                                       ┃
+                                                       ┃  Build · GLM-5.2 (1M) Zhanlu 移动云 · max
+                                                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+                                                                                                       tab agents  ctrl+p commands
+
+
+
+                                                       ● Tip Use pgup , ctrl+alt+b/pgdn , ctrl+alt+f to navigate through
+                                                             conversation history
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /tmp/opencode/hpm-exp03/probe:main                                                                                                                                           1.18.30

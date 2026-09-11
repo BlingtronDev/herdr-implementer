@@ -1,0 +1,58 @@
+
+  ┃                                                                                                                                             Ticket 03-blocked worker contract
+  ┃  You are worker w-03-blocked-fe4ec4 for ticket 03-blocked. Read the contract at /tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-
+  ┃  fe4ec4/contract.md in full and follow it exactly. Do not start work before reading it.                                                     Context
+  ┃                                                                                                                                             0 tokens
+                                                                                                                                                0% used
+     + Thought: 158ms                                                                                                                           $0.00 spent
+
+     ⠏ Read /tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-fe4ec4/contract.md                                                              LSP
+                                                                                                                                                LSPs are disabled
+     ▣  Build · DeepSeek V4.1 Flash
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ┃
+  ┃  △ Permission required
+  ┃    ← Access external directory /tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-fe4ec4
+  ┃
+  ┃  Patterns
+  ┃
+  ┃  - /tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-fe4ec4/*                                                                             /tmp/hpm-exp03-blocked/manager/
+  ┃                                                                                                                                             worktrees/w-03-blocked-fe4ec4:hpm/w-
+  ┃                                                                                                                                             03-blocked-fe4ec4
+  ┃   Allow once   Allow always   Reject                                                       ctrl+f fullscreen  ⇆ select  enter confirm
+  ┃                                                                                                                                             • OpenCode 1.18.30

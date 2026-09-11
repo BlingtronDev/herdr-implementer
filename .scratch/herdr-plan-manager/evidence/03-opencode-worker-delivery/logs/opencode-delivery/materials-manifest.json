@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-09-11T11:13:07.449320Z",
+  "materials": [
+    {
+      "index": 1,
+      "kind": "file",
+      "sha256": "5f1f95ec11d315db4da990934f9fea550321d87d0809a993b7d9a3df14d91e02",
+      "snapshot": "/tmp/opencode/hpm-exp03b/manager/workers/w-03-smoke-2075cc/materials/01-ticket.md",
+      "source": "/tmp/opencode/hpm-exp03b/repo/.scratch/ticket.md"
+    }
+  ],
+  "worker_id": "w-03-smoke-2075cc"
+}

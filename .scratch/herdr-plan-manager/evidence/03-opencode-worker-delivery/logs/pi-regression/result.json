@@ -1,0 +1,63 @@
+{
+  "ticket_id": "03-pi-smoke",
+  "worker_id": "w-03-pi-smoke-afcb26",
+  "status": "delivered",
+  "summary": "Created pi-smoke.txt containing the single line PI-MATERIAL-de8b3dba in the worktree, committed it with message \"add pi smoke marker\", and captured the real branch HEAD. Worktree is clean with no uncommitted changes.",
+  "acceptance": [
+    {
+      "criterion": "在工作区创建 `pi-smoke.txt`，内容为一行：`PI-MATERIAL-de8b3dba`",
+      "met": true,
+      "evidence": "pi-smoke.txt:1 -> `PI-MATERIAL-de8b3dba` (verified: `cat -A` shows exactly one line 'PI-MATERIAL-de8b3dba$'; wc -l == 1)"
+    },
+    {
+      "criterion": "提交：`git add pi-smoke.txt && git commit -m \"add pi smoke marker\"`",
+      "met": true,
+      "evidence": "Commit 1f0f0d2ee60558aea4c370100b3f01cdba288164 on branch hpm/w-03-pi-smoke-afcb26: 'add pi smoke marker', 1 file changed, 1 insertion(+), create mode 100644 pi-smoke.txt"
+    },
+    {
+      "criterion": "运行 `git rev-parse HEAD`，把真实提交 SHA 作为结果里的 head。",
+      "met": true,
+      "evidence": "`git rev-parse HEAD` -> 1f0f0d2ee60558aea4c370100b3f01cdba288164, recorded as head"
+    },
+    {
+      "criterion": "按合同写出 delivered 结果。",
+      "met": true,
+      "evidence": "/tmp/opencode/hpm-exp03-pi/manager/workers/w-03-pi-smoke-afcb26/result.json (this file)"
+    }
+  ],
+  "verification": [
+    {
+      "command": "cat -A pi-smoke.txt",
+      "exit_code": 0,
+      "summary": "Output: PI-MATERIAL-de8b3dba$ — exactly one line with trailing newline, no stray whitespace"
+    },
+    {
+      "command": "test \"$(cat pi-smoke.txt)\" = \"PI-MATERIAL-de8b3dba\" && echo content-ok",
+      "exit_code": 0,
+      "summary": "content-ok — file content matches the required marker exactly"
+    },
+    {
+      "command": "test \"$(wc -l < pi-smoke.txt)\" -eq 1 && echo lines-ok",
+      "exit_code": 0,
+      "summary": "lines-ok — file has exactly one line"
+    },
+    {
+      "command": "git add pi-smoke.txt && git commit -m \"add pi smoke marker\"",
+      "exit_code": 0,
+      "summary": "[hpm/w-03-pi-smoke-afcb26 1f0f0d2] add pi smoke marker — 1 file changed, 1 insertion(+), create mode 100644 pi-smoke.txt"
+    },
+    {
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "summary": "1f0f0d2ee60558aea4c370100b3f01cdba288164"
+    },
+    {
+      "command": "git log --oneline -1 && git status --porcelain | wc -l",
+      "exit_code": 0,
+      "summary": "1f0f0d2 add pi smoke marker; 0 porcelain lines — worktree clean, nothing uncommitted or untracked"
+    }
+  ],
+  "head": "1f0f0d2ee60558aea4c370100b3f01cdba288164",
+  "artifacts": ["pi-smoke.txt"],
+  "remaining": ""
+}

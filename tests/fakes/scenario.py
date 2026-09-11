@@ -166,6 +166,11 @@ def main():
                 set_status("idle")
                 return
             time.sleep(0.1)
+    elif BEHAVIOR == "blocked":
+        set_status("blocked")
+        deadline = time.time() + 120
+        while time.time() < deadline and current_status() == "blocked":
+            time.sleep(0.1)
     elif BEHAVIOR == "slow":
         set_status("working")
         deadline = time.time() + 120

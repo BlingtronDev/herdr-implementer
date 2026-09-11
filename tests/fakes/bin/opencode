@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""Deterministic fake of the OpenCode CLI for plan_manager validation tests.
+
+Emits the `opencode models <provider> --verbose` shape used by the adapter:
+a `provider/model` marker line followed by a pretty-printed JSON block.
+"""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+CATALOG = {
+    "opencode-go/deepseek-v4.1-flash": {
+        "id": "deepseek-v4.1-flash",
+        "providerID": "opencode-go",
+        "name": "DeepSeek V4.1 Flash",
+        "status": "active",
+        "capabilities": {"reasoning": True},
+        "variants": {
+            "low": {"reasoningEffort": "low"},
+            "high": {"reasoningEffort": "high"},
+            "max": {"reasoningEffort": "max"},
+        },
+    },
+    "opencode-go/no-variant-model": {
+        "id": "no-variant-model",
+        "providerID": "opencode-go",
+        "name": "No Variant Model",
+        "status": "active",
+        "capabilities": {"reasoning": False},
+        "variants": {},
+    },
+}
+
+
+def record(argv):
+    root = os.environ.get("HPM_FAKE_DIR")
+    if not root:
+        return
+    log = Path(root) / "opencode.log.jsonl"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps({"argv": argv}) + "\n")
+
+
+def main(argv):
+    record(argv)
+    if "--version" in argv or "-v" in argv:
+        print("0.0.0-fake")
+        return 0
+    if argv[:1] == ["models"]:
+        provider = argv[1] if len(argv) > 1 and not argv[1].startswith("-") else ""
+        for key, entry in CATALOG.items():
+            if provider and not key.startswith(f"{provider}/"):
+                continue
+            print(key)
+            print(json.dumps(entry, indent=2))
+        return 0
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

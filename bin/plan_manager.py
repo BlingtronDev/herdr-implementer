@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Herdr Plan Manager: minimal single-worker lifecycle tool (ticket 02).
+"""Herdr Plan Manager: minimal single-worker lifecycle tool (tickets 02-03).
 
-Scope: start one isolated Pi worker from an explicit base SHA, register its
-resources, supervise it in the background, record a structured delivery or
-exception, and stop it while retaining the scene. Automatic handoff, OpenCode,
-concurrency, wait/ack and cleanup belong to later tickets.
+Scope: start one isolated Pi or OpenCode worker from an explicit base SHA,
+register its resources, supervise it in the background, record a structured
+delivery or exception, and stop it while retaining the scene. Automatic
+handoff, concurrency, wait/ack and cleanup belong to later tickets.
 """
 
 from __future__ import annotations
@@ -23,12 +23,13 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-MANAGER_VERSION = 1
+MANAGER_VERSION = 2
 MANAGER_PATH = Path(__file__).resolve()
 SKILL_DIR = MANAGER_PATH.parent.parent
 THINKING_LEVELS = ("off", "minimal", "low", "medium", "high", "xhigh", "max")
 SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
 TICKET_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+OPENCODE_MODEL_LINE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+@-]*/[A-Za-z0-9][A-Za-z0-9._:/+@-]*$")
 WORKER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 SELECTION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+@-]*$")
 AGENT_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
@@ -54,6 +55,8 @@ PROMPT_ATTEMPTS = 3
 PARSE_ATTEMPTS = 3
 SUPERVISOR_START_WAIT = 10.0
 DEFAULT_STOP_WAIT = 30.0
+PROMPT_CONFIRM_ATTEMPTS = 3
+DEFAULT_PROMPT_CONFIRM_TIMEOUT = 10.0
 
 
 class ManagerError(RuntimeError):
@@ -286,12 +289,12 @@ class Herdr:
         return rc, find_agent_status(payload) if rc == 0 else None
 
     def agent_start(self, name: str, kind: str, pane: str, argv: list[str]) -> dict[str, Any]:
+        command = ["herdr", "agent", "start", name, "--kind", kind, "--pane", pane]
+        if argv:
+            command += ["--", *argv]
         last: subprocess.CompletedProcess[str] | None = None
         for index in range(START_ATTEMPTS):
-            last = run(
-                ["herdr", "agent", "start", name, "--kind", kind, "--pane", pane, "--", *argv],
-                timeout=90,
-            )
+            last = run(command, timeout=90)
             if last.returncode == 0:
                 try:
                     payload = json.loads(last.stdout)
@@ -306,10 +309,10 @@ class Herdr:
         detail = last.stderr.strip() if last else "no attempt"
         raise ManagerError(f"agent start kept failing for {name}: {detail}")
 
-    def tab_create(self, cwd: Path, label: str) -> tuple[str, str]:
+    def tab_create(self, cwd: Path, label: str, env: dict[str, str] | None = None) -> tuple[str, str]:
         if not self.workspace:
             raise ManagerError("HERDR_WORKSPACE_ID is missing")
-        payload = self.json_command([
+        args = [
             "tab",
             "create",
             "--workspace",
@@ -318,8 +321,10 @@ class Herdr:
             str(cwd),
             "--label",
             label,
-            "--no-focus",
-        ])
+        ]
+        for key, value in (env or {}).items():
+            args += ["--env", f"{key}={value}"]
+        payload = self.json_command([*args, "--no-focus"])
         result = payload.get("result") or {}
         tab = result.get("tab")
         pane = result.get("root_pane")
@@ -381,17 +386,91 @@ def parse_pi_models(output: str) -> dict[tuple[str, str], dict[str, Any]]:
     return catalog
 
 
+def parse_opencode_models(output: str) -> dict[str, dict[str, Any]]:
+    """Parse `opencode models --verbose` output into {provider/model: metadata}."""
+    catalog: dict[str, dict[str, Any]] = {}
+    lines = output.splitlines()
+    index = 0
+    while index < len(lines):
+        marker = lines[index].strip()
+        if not OPENCODE_MODEL_LINE_RE.fullmatch(marker):
+            index += 1
+            continue
+        cursor = index + 1
+        while cursor < len(lines) and lines[cursor].strip() == "":
+            cursor += 1
+        if cursor >= len(lines) or not lines[cursor].lstrip().startswith("{"):
+            index += 1
+            continue
+        buffer: list[str] = []
+        depth = 0
+        parsed: Any = None
+        while cursor < len(lines):
+            line = lines[cursor]
+            buffer.append(line)
+            depth += line.count("{") - line.count("}")
+            cursor += 1
+            if depth <= 0:
+                try:
+                    parsed = json.loads("\n".join(buffer))
+                except json.JSONDecodeError:
+                    parsed = None
+                break
+        if isinstance(parsed, dict):
+            catalog[marker] = parsed
+        index = cursor
+    return catalog
+
+
 class RuntimeAdapter:
     kind = ""
 
     def start_args(self, provider: str, model: str, thinking: str) -> list[str]:
         raise NotImplementedError
 
+    def tab_env(self, provider: str, model: str, thinking: str) -> dict[str, str]:
+        return {}
+
     def interrupt_sequences(self) -> tuple[tuple[str, ...], ...]:
         raise NotImplementedError
 
     def validate(self, provider: str, model: str, thinking: str) -> None:
         raise NotImplementedError
+
+
+class OpenCodeAdapter(RuntimeAdapter):
+    kind = "opencode"
+
+    def start_args(self, provider: str, model: str, thinking: str) -> list[str]:
+        return []
+
+    def tab_env(self, provider: str, model: str, thinking: str) -> dict[str, str]:
+        content = {"agent": {"build": {"model": f"{provider}/{model}", "variant": thinking}}}
+        return {"OPENCODE_CONFIG_CONTENT": json.dumps(content, separators=(",", ":"), ensure_ascii=False)}
+
+    def interrupt_sequences(self) -> tuple[tuple[str, ...], ...]:
+        return (("escape", "escape"),)
+
+    def validate(self, provider: str, model: str, thinking: str) -> None:
+        proc = run(["opencode", "models", provider, "--verbose"], timeout=120)
+        if proc.returncode != 0:
+            raise ManagerError(f"cannot list OpenCode models: {proc.stderr.strip() or proc.stdout.strip()}")
+        catalog = parse_opencode_models(proc.stdout)
+        key = f"{provider}/{model}"
+        entry = catalog.get(key)
+        if entry is None:
+            raise ManagerError(f"OpenCode does not list model {key}; no default fallback is allowed")
+        variants = entry.get("variants")
+        available = sorted(variants) if isinstance(variants, dict) else []
+        if not available:
+            raise ManagerError(
+                f"OpenCode model {key} exposes no reasoning variants; thinking cannot be expressed explicitly"
+            )
+        if thinking not in available:
+            raise ManagerError(
+                f"OpenCode model {key} does not support variant {thinking!r}; "
+                f"available variants: {', '.join(available)}"
+            )
 
 
 class PiAdapter(RuntimeAdapter):
@@ -423,7 +502,7 @@ def get_adapter(kind: str) -> RuntimeAdapter:
     if kind == "pi":
         return PiAdapter()
     if kind == "opencode":
-        raise ManagerError("kind 'opencode' is not supported yet; ticket 03 adds it")
+        return OpenCodeAdapter()
     raise ManagerError(f"unsupported runtime kind: {kind!r}")
 
 
@@ -527,6 +606,7 @@ def initial_state(
             "exit_reason": None,
         },
         "recovery": {"re_report_sent_at": None, "settled_since": None, "parse_failures": 0},
+        "prompt": None,
         "items": [],
         "result": None,
         "created_at": timestamp,
@@ -791,7 +871,8 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                         supervisor_log("settled without a result; starting grace period")
                     elif time.time() - parse_iso(since) >= settle_grace:
                         try:
-                            proc = herdr.agent_prompt(
+                            deliver_prompt_confirmed(
+                                herdr,
                                 agent,
                                 "Your terminal is idle but no valid result file exists at "
                                 f"{state['paths']['result']}. If the ticket work is complete, write the result "
@@ -804,19 +885,6 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                             store.save_state(worker_id, state)
                             supervisor_log("failed to send result re-report")
                             return 0
-                        if proc.returncode != 0:
-                            rc2, status2 = herdr.agent_status(agent)
-                            if status2 != "working" and rc2 == 0:
-                                append_item(
-                                    state,
-                                    "exception",
-                                    "protocol-failure",
-                                    f"result re-report rejected: {proc.stderr.strip() or proc.stdout.strip()}",
-                                )
-                                finalize(state, "protocol-failure", "re-report-rejected")
-                                store.save_state(worker_id, state)
-                                supervisor_log("result re-report rejected")
-                                return 0
                         state["recovery"]["re_report_sent_at"] = utc_now()
                         state["recovery"]["settled_since"] = None
                         supervisor_log("sent one result re-report")
@@ -873,6 +941,51 @@ def deliver_prompt(herdr: Herdr, agent: str, text: str) -> None:
             continue
         raise ManagerError(f"prompt delivery failed: {last_error}")
     raise ManagerError(f"prompt delivery failed: {last_error}")
+
+
+def notify(message: str) -> None:
+    print(f"{utc_now()} {message}", file=sys.stderr, flush=True)
+
+
+def wait_agent_started(herdr: "Herdr", agent: str, timeout: float) -> tuple[bool, str | None]:
+    """Wait for the agent to leave a settled state after a prompt delivery.
+
+    Returns (agent_present, last_status). A settled status after the timeout
+    means the terminal never accepted the delivered prompt.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        rc, status = herdr.agent_status(agent)
+        if rc != 0:
+            return False, None
+        if status not in SETTLED_STATES:
+            return True, status
+        if time.monotonic() >= deadline:
+            return True, status
+        time.sleep(0.25)
+
+
+def deliver_prompt_confirmed(herdr: "Herdr", agent: str, text: str) -> int:
+    """Deliver one prompt and confirm the runtime actually started working.
+
+    TUI runtimes can report interactive readiness before their input editor
+    accepts keys, so a successful `agent prompt` alone does not prove the
+    prompt was submitted. When the agent stays settled for the confirmation
+    window, the delivery is repeated a bounded number of times.
+    """
+    attempts = max(1, int(env_float("HPM_PROMPT_ATTEMPTS", PROMPT_CONFIRM_ATTEMPTS)))
+    window = env_float("HPM_PROMPT_CONFIRM_SECONDS", DEFAULT_PROMPT_CONFIRM_TIMEOUT)
+    for attempt in range(1, attempts + 1):
+        deliver_prompt(herdr, agent, text)
+        present, status = wait_agent_started(herdr, agent, window)
+        if not present:
+            raise ManagerError(f"agent {agent} disappeared after prompt delivery")
+        if status not in SETTLED_STATES:
+            return attempt
+        notify(f"prompt attempt {attempt} to {agent} was not picked up (status {status}); retrying")
+    raise ManagerError(
+        f"prompt was delivered to {agent} {attempts} times but the runtime never left the settled state"
+    )
 
 
 def spawn_supervisor(store: Store, worker_id: str, worktree: Path) -> int:
@@ -946,6 +1059,7 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
         "worktree_dirty": dirty,
         "herdr": {**state["herdr"], "agent_status": status, "agent_present": rc == 0},
         "lifecycle": state["lifecycle"],
+        "prompt": state.get("prompt"),
         "supervisor": supervisor_facts(state, store.load_control(worker_id)),
         "items": state["items"],
         "result": state["result"],
@@ -956,8 +1070,6 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
 
 def cmd_start(args: argparse.Namespace) -> int:
     adapter = get_adapter(args.kind)
-    if args.thinking not in THINKING_LEVELS:
-        raise ManagerError(f"unsupported thinking level: {args.thinking!r}")
     for label, value in (("provider", args.provider), ("model", args.model)):
         if not SELECTION_RE.fullmatch(value):
             raise ManagerError(f"{label} contains unsupported characters: {value!r}")
@@ -1006,6 +1118,9 @@ def cmd_start(args: argparse.Namespace) -> int:
         raise ManagerError(f"a live Herdr agent is already named {agent!r}")
 
     runtime = {"kind": args.kind, "provider": args.provider, "model": args.model, "thinking": args.thinking}
+    tab_env = adapter.tab_env(args.provider, args.model, args.thinking)
+    if tab_env:
+        runtime["env"] = tab_env
     state = initial_state(
         worker_id, args.ticket_id, args.title or args.ticket_id, runtime, repo_root, common_dir, base,
         branch, worktree, store, workspace, agent,
@@ -1046,7 +1161,7 @@ def cmd_start(args: argparse.Namespace) -> int:
 
         worktree.parent.mkdir(parents=True, exist_ok=True)
         git(repo_root, "worktree", "add", "-b", branch, "--", str(worktree), base)
-        tab, pane = herdr.tab_create(worktree, agent)
+        tab, pane = herdr.tab_create(worktree, agent, tab_env)
         state["herdr"]["tab"] = tab
         state["herdr"]["pane"] = pane
         store.save_state(worker_id, state)
@@ -1057,12 +1172,13 @@ def cmd_start(args: argparse.Namespace) -> int:
             raise ManagerError(f"agent {agent} never reached an interactive state")
         state["lifecycle"]["state"] = "prompting"
         store.save_state(worker_id, state)
-        deliver_prompt(
+        attempts = deliver_prompt_confirmed(
             herdr,
             agent,
             f"You are worker {worker_id} for ticket {args.ticket_id}. Read the contract at {contract_path} "
             "in full and follow it exactly. Do not start work before reading it.",
         )
+        state["prompt"] = {"attempts": attempts, "confirmed_at": utc_now()}
         state["lifecycle"]["state"] = "running"
         store.save_state(worker_id, state)
         pid = spawn_supervisor(store, worker_id, worktree)
@@ -1084,6 +1200,7 @@ def cmd_start(args: argparse.Namespace) -> int:
                 "worktree": str(worktree),
                 "base": base,
                 "runtime": runtime,
+                "prompt_attempts": state["prompt"]["attempts"],
                 "result_path": str(store.result_path(worker_id)),
                 "management_dir": str(store.worker_dir(worker_id)),
                 "supervisor_pid": state["supervisor"].get("pid") or pid,
@@ -1238,11 +1355,13 @@ def cmd_stop(args: argparse.Namespace) -> int:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="plan_manager.py",
-        description="Minimal single-worker lifecycle manager for Herdr coding agents (ticket 02).",
+        description="Minimal single-worker lifecycle manager for Herdr coding agents (tickets 02-03).",
         epilog=(
             "Example:\n"
             "  plan_manager.py start --repo /repo --ticket-id 02 --base <full-sha> "
             "--material /path/spec.md --kind pi --provider <p> --model <m> --thinking <t>\n"
+            "  plan_manager.py start --repo /repo --ticket-id 03 --base <full-sha> "
+            "--material /path/spec.md --kind opencode --provider <p> --model <m> --thinking <variant>\n"
             "  plan_manager.py status --repo /repo --worker <worker-id>\n"
             "  plan_manager.py read --repo /repo --worker <worker-id>\n"
             "  plan_manager.py stop --repo /repo --worker <worker-id>"
@@ -1257,7 +1376,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     start.add_argument("--title", default="")
     start.add_argument("--base", required=True, help="full commit SHA the worker branch starts from")
     start.add_argument("--material", action="append", required=True, help="ticket material file or directory (repeatable)")
-    start.add_argument("--kind", required=True, choices=["pi"], help="worker runtime; opencode is added by ticket 03")
+    start.add_argument("--kind", required=True, choices=["pi", "opencode"], help="worker runtime")
     start.add_argument("--provider", required=True)
     start.add_argument("--model", required=True)
     start.add_argument("--thinking", required=True)

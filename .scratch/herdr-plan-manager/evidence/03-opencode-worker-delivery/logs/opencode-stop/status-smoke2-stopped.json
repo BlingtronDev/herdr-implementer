@@ -1,0 +1,66 @@
+{
+  "branch": "hpm/w-03-stop-02",
+  "branch_head": "4c209f2b05e0cac71db4044a3eab6b7e0d9b7640",
+  "control": {
+    "reason": "smoke 2 stop retention after fix",
+    "stop_requested_at": "2026-09-11T11:15:13.413737Z"
+  },
+  "herdr": {
+    "agent": "w-03-stop-02",
+    "agent_present": true,
+    "agent_status": "done",
+    "pane": "wJ:pD",
+    "tab": "wJ:tD",
+    "workspace": "wJ"
+  },
+  "items": [],
+  "lifecycle": {
+    "reason": "stop-requested",
+    "started_at": "2026-09-11T11:14:49.753573Z",
+    "state": "stopped",
+    "updated_at": "2026-09-11T11:14:49.753573Z"
+  },
+  "paths": {
+    "contract": "/tmp/opencode/hpm-exp03b/manager2/workers/w-03-stop-02/contract.md",
+    "management": "/tmp/opencode/hpm-exp03b/manager2/workers/w-03-stop-02",
+    "result": "/tmp/opencode/hpm-exp03b/manager2/workers/w-03-stop-02/result.json",
+    "supervisor_log": "/tmp/opencode/hpm-exp03b/manager2/workers/w-03-stop-02/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 2,
+    "confirmed_at": "2026-09-11T11:15:08.111342Z"
+  },
+  "repo": {
+    "base": "4c209f2b05e0cac71db4044a3eab6b7e0d9b7640",
+    "common_dir": "/tmp/opencode/hpm-exp03b/repo/.git",
+    "root": "/tmp/opencode/hpm-exp03b/repo"
+  },
+  "result": null,
+  "runtime": {
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{\"agent\":{\"build\":{\"model\":\"opencode-go/deepseek-v4.1-flash\",\"variant\":\"max\"}}}"
+    },
+    "kind": "opencode",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "supervisor": {
+    "alive": false,
+    "exit_reason": "stop-requested",
+    "heartbeat_at": "2026-09-11T11:15:18.254862Z",
+    "host": "BlingtronPC",
+    "pid": 1575230,
+    "state": "exited",
+    "warnings": []
+  },
+  "ticket": {
+    "id": "03-smoke",
+    "title": "OpenCode stop retention after fix"
+  },
+  "worker_id": "w-03-stop-02",
+  "worktree": "/tmp/opencode/hpm-exp03b/manager2/worktrees/w-03-stop-02",
+  "worktree_dirty": {
+    "entries": 0
+  }
+}

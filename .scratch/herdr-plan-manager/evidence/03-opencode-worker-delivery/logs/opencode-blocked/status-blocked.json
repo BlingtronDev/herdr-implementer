@@ -1,0 +1,73 @@
+{
+  "branch": "hpm/w-03-blocked-fe4ec4",
+  "branch_head": "a9b2ae50cf6b2bcf4d0a5141df9a686d6d7d7915",
+  "control": {},
+  "herdr": {
+    "agent": "w-03-blocked-fe4ec4",
+    "agent_present": true,
+    "agent_status": "blocked",
+    "pane": "wJ:pE",
+    "tab": "wJ:tE",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "acked_at": null,
+      "code": "blocked",
+      "created_at": "2026-09-11T11:16:09.933340Z",
+      "details": null,
+      "id": "i001",
+      "kind": "exception",
+      "message": "worker is blocked and may need a decision"
+    }
+  ],
+  "lifecycle": {
+    "reason": null,
+    "started_at": "2026-09-11T11:15:41.504236Z",
+    "state": "running",
+    "updated_at": "2026-09-11T11:15:41.504236Z"
+  },
+  "paths": {
+    "contract": "/tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-fe4ec4/contract.md",
+    "management": "/tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-fe4ec4",
+    "result": "/tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-fe4ec4/result.json",
+    "supervisor_log": "/tmp/hpm-exp03-blocked/manager/workers/w-03-blocked-fe4ec4/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 2,
+    "confirmed_at": "2026-09-11T11:15:58.841120Z"
+  },
+  "repo": {
+    "base": "a9b2ae50cf6b2bcf4d0a5141df9a686d6d7d7915",
+    "common_dir": "/tmp/hpm-exp03-blocked/repo/.git",
+    "root": "/tmp/hpm-exp03-blocked/repo"
+  },
+  "result": null,
+  "runtime": {
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{\"agent\":{\"build\":{\"model\":\"opencode-go/deepseek-v4.1-flash\",\"variant\":\"max\"}}}"
+    },
+    "kind": "opencode",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "supervisor": {
+    "alive": true,
+    "exit_reason": null,
+    "heartbeat_at": "2026-09-11T11:16:09.933405Z",
+    "host": "BlingtronPC",
+    "pid": 1576362,
+    "state": "running",
+    "warnings": []
+  },
+  "ticket": {
+    "id": "03-blocked",
+    "title": "OpenCode blocked probe"
+  },
+  "worker_id": "w-03-blocked-fe4ec4",
+  "worktree": "/tmp/hpm-exp03-blocked/manager/worktrees/w-03-blocked-fe4ec4",
+  "worktree_dirty": {
+    "entries": 0
+  }
+}

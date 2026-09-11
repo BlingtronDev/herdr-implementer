@@ -1,0 +1,23 @@
+{
+  "agent": "w-03-smoke-2075cc",
+  "base": "4c209f2b05e0cac71db4044a3eab6b7e0d9b7640",
+  "branch": "hpm/w-03-smoke-2075cc",
+  "management_dir": "/tmp/opencode/hpm-exp03b/manager/workers/w-03-smoke-2075cc",
+  "pane": "wJ:pC",
+  "prompt_attempts": 2,
+  "result_path": "/tmp/opencode/hpm-exp03b/manager/workers/w-03-smoke-2075cc/result.json",
+  "runtime": {
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{\"agent\":{\"build\":{\"model\":\"opencode-go/deepseek-v4.1-flash\",\"variant\":\"max\"}}}"
+    },
+    "kind": "opencode",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "supervisor_pid": 1573271,
+  "tab": "wJ:tC",
+  "ticket_id": "03-smoke",
+  "worker_id": "w-03-smoke-2075cc",
+  "worktree": "/tmp/opencode/hpm-exp03b/manager/worktrees/w-03-smoke-2075cc"
+}

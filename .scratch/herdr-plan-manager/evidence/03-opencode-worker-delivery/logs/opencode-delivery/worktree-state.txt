@@ -1,0 +1,8 @@
+-- log --
+bc7f872 (HEAD -> hpm/w-03-smoke-2075cc) add oc smoke b marker
+4c209f2 (main) initial
+-- content --
+OC-MATERIAL-B-8ae425b2
+-- status --
+-- head --
+bc7f8722d4d5c0fab401ed529bfe6a997a396d57

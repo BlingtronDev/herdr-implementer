@@ -15,6 +15,20 @@ PLAN_MANAGER = REPO_ROOT / "bin" / "plan_manager.py"
 FAKE_BIN = REPO_ROOT / "tests" / "fakes" / "bin"
 SCENARIO = REPO_ROOT / "tests" / "fakes" / "scenario.py"
 MATERIAL_TEXT = "SPEC MATERIAL 42\n"
+RUNTIMES = ["pi", "opencode"]
+
+
+def herdr_calls(harness: "Harness", prefix: tuple[str, ...]) -> list[list[str]]:
+    """Return recorded herdr argv entries beginning with the given prefix."""
+    entries = [
+        json.loads(line)
+        for line in (harness.fake / "herdr.log.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    return [entry["argv"] for entry in entries if tuple(entry["argv"][: len(prefix)]) == prefix]
+
+
+def env_flag_values(argv: list[str]) -> list[str]:
+    return [argv[index + 1] for index, value in enumerate(argv) if value == "--env"]
 
 
 class Harness:
@@ -50,6 +64,8 @@ class Harness:
                 "HPM_SETTLE_GRACE_SECONDS": "0.6",
                 "HPM_REPORT_WAIT_SECONDS": "1.5",
                 "HPM_SCENARIO_DELAY": "0.3",
+                "HPM_PROMPT_CONFIRM_SECONDS": "0.5",
+                "HPM_PROMPT_ATTEMPTS": "3",
             }
         )
 
@@ -154,10 +170,12 @@ def make_harness(tmp_path):
                 pass
 
 
-def test_delivered_code_ticket(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_delivered_code_ticket(make_harness, kind):
     h = make_harness("deliver-code")
-    proc = h.start()
+    proc = h.start(kind=kind)
     assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout)["prompt_attempts"] == 1
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"delivered"})
     assert facts["result"]["status"] == "delivered"
@@ -183,9 +201,10 @@ def test_delivered_code_ticket(make_harness):
     assert "supervisor started" in transcript.read_text(encoding="utf-8")
 
 
-def test_delivered_noncode_ticket(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_delivered_noncode_ticket(make_harness, kind):
     h = make_harness("deliver-noncode")
-    proc = h.start()
+    proc = h.start(kind=kind)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"delivered"})
@@ -196,9 +215,10 @@ def test_delivered_noncode_ticket(make_harness):
     assert (Path(facts["worktree"]) / "findings.md").is_file()
 
 
-def test_idle_without_result_is_not_delivery(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_idle_without_result_is_not_delivery(make_harness, kind):
     h = make_harness("missing-result")
-    proc = h.start()
+    proc = h.start(kind=kind)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"protocol-failure"})
@@ -209,9 +229,10 @@ def test_idle_without_result_is_not_delivery(make_harness):
     assert agent["prompt_count"] == 2, "exactly one result re-report may be sent"
 
 
-def test_wrong_head_is_protocol_failure(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_wrong_head_is_protocol_failure(make_harness, kind):
     h = make_harness("wrong-head")
-    proc = h.start()
+    proc = h.start(kind=kind)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"protocol-failure"})
@@ -229,9 +250,10 @@ def test_wrong_worker_identity_is_protocol_failure(make_harness):
     assert any("worker_id" in item["message"] for item in facts["items"])
 
 
-def test_needs_decision_is_an_exception(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_needs_decision_is_an_exception(make_harness, kind):
     h = make_harness("needs-decision")
-    proc = h.start()
+    proc = h.start(kind=kind)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"needs-decision"})
@@ -239,9 +261,10 @@ def test_needs_decision_is_an_exception(make_harness):
     assert facts["items"][0]["code"] == "needs-decision"
 
 
-def test_stop_retains_scene_and_is_idempotent(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_stop_retains_scene_and_is_idempotent(make_harness, kind):
     h = make_harness("slow")
-    proc = h.start()
+    proc = h.start(kind=kind)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
     h.wait_agent_status(worker_id, "working")
@@ -268,10 +291,11 @@ def test_start_retries_transient_pane_busy(make_harness):
     assert len(starts) == 2
 
 
-def test_uncertain_prompt_is_observed_not_resent(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_uncertain_prompt_is_observed_not_resent(make_harness, kind):
     h = make_harness("deliver-code")
     (h.fake / "prompt_uncertain").write_text("1", encoding="utf-8")
-    proc = h.start()
+    proc = h.start(kind=kind)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"delivered"})
@@ -323,3 +347,116 @@ def test_supervisor_missing_is_visible_and_stoppable(make_harness):
     stopped = h.stop(worker_id)
     assert stopped.returncode == 0, stopped.stderr
     assert h.status(worker_id)["lifecycle"]["state"] == "stopped"
+
+
+def test_opencode_injects_confirmed_config_without_touching_repo_config(make_harness):
+    h = make_harness("deliver-code")
+    repo_config = h.repo / "opencode.json"
+    original_config = json.dumps(
+        {"permission": {"webfetch": "deny"}, "agent": {"build": {"description": "repo local"}}}
+    ) + "\n"
+    repo_config.write_text(original_config, encoding="utf-8")
+    h.git("add", "opencode.json")
+    h.git("commit", "-m", "repo opencode config")
+    h.base = h.git("rev-parse", "HEAD")
+
+    proc = h.start(kind="opencode", worker_id="w-oc-cfg-01")
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"})
+
+    tabs = herdr_calls(h, ("tab", "create"))
+    assert len(tabs) == 1
+    expected = '{"agent":{"build":{"model":"opencode-go/deepseek-v4.1-flash","variant":"max"}}}'
+    assert env_flag_values(tabs[0]) == [f"OPENCODE_CONFIG_CONTENT={expected}"]
+
+    starts = herdr_calls(h, ("agent", "start"))
+    assert len(starts) == 1
+    assert "--" not in starts[0], "OpenCode agent start must not append runtime argv"
+
+    assert facts["runtime"] == {
+        "kind": "opencode",
+        "provider": "opencode-go",
+        "model": "deepseek-v4.1-flash",
+        "thinking": "max",
+        "env": {"OPENCODE_CONFIG_CONTENT": expected},
+    }
+    assert repo_config.read_text(encoding="utf-8") == original_config
+    assert h.git("status", "--porcelain") == ""
+
+    queries = [
+        json.loads(line)["argv"]
+        for line in (h.fake / "opencode.log.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert ["models", "opencode-go", "--verbose"] in queries
+
+    read = h.run("read", "--repo", str(h.repo), "--worker", worker_id)
+    assert read.returncode == 0, read.stderr
+
+
+def test_pi_start_passes_explicit_args_without_config_injection(make_harness):
+    h = make_harness("deliver-code")
+    proc = h.start(kind="pi", worker_id="w-pi-args-01")
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"})
+
+    tabs = herdr_calls(h, ("tab", "create"))
+    assert env_flag_values(tabs[0]) == []
+    starts = herdr_calls(h, ("agent", "start"))[0]
+    tail = starts[starts.index("--") + 1 :]
+    assert tail == ["--provider", "opencode-go", "--model", "deepseek-v4.1-flash", "--thinking", "max"]
+    assert "env" not in facts["runtime"]
+
+
+def test_opencode_rejects_unsupported_configuration_before_delivery(make_harness):
+    h = make_harness("deliver-code")
+
+    unknown_model = h.start(kind="opencode", model="does-not-exist")
+    assert unknown_model.returncode == 2
+    assert "does not list model" in unknown_model.stderr
+
+    bad_variant = h.start(kind="opencode", thinking="turbo")
+    assert bad_variant.returncode == 2
+    assert "does not support variant" in bad_variant.stderr
+
+    no_variant = h.start(kind="opencode", model="no-variant-model")
+    assert no_variant.returncode == 2
+    assert "no reasoning variants" in no_variant.stderr
+
+    assert not (h.fake / "herdr.log.jsonl").exists()
+    assert not list((h.repo / ".git" / "herdr-plan-manager").glob("workers/*"))
+
+
+def test_opencode_blocked_is_an_exception_not_delivery(make_harness):
+    h = make_harness("blocked")
+    proc = h.start(kind="opencode")
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+
+    deadline = time.time() + 15
+    facts = h.status(worker_id)
+    while time.time() < deadline and not any(item["code"] == "blocked" for item in facts["items"]):
+        time.sleep(0.2)
+        facts = h.status(worker_id)
+    assert any(item["code"] == "blocked" for item in facts["items"]), facts["items"]
+    assert facts["result"] is None
+    assert facts["lifecycle"]["state"] not in {"delivered", "failed", "needs-decision"}
+
+    stopped = h.stop(worker_id)
+    assert stopped.returncode == 0, stopped.stderr
+    assert h.status(worker_id)["lifecycle"]["state"] == "stopped"
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_dropped_prompt_is_redelivered_until_confirmed(make_harness, kind):
+    h = make_harness("deliver-code")
+    (h.fake / "drop_prompts").write_text("1", encoding="utf-8")
+    proc = h.start(kind=kind)
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout)["prompt_attempts"] == 2
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"})
+    assert facts["prompt"]["attempts"] == 2
+    agent = json.loads((h.fake / "agents" / f"{facts['herdr']['agent']}.json").read_text(encoding="utf-8"))
+    assert agent["prompt_count"] == 2

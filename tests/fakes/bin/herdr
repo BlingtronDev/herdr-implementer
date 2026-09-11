@@ -110,9 +110,17 @@ def main(argv):
         prompt_file = ROOT / "agents" / f"{name}.prompt.{count}.txt"
         prompt_file.write_text(text, encoding="utf-8")
         data["prompt_count"] = count
+        drops = ROOT / "drop_prompts"
+        remaining = int(drops.read_text()) if drops.is_file() else 0
+        if remaining > 0:
+            drops.write_text(str(remaining - 1))
+            write_agent(name, data)
+            emit({"result": {"agent": as_agent(name, data), "type": "agent_prompted"}})
         data["status"] = "working"
+        processed = int(data.get("processed_prompt_count", 0)) + 1
+        data["processed_prompt_count"] = processed
         write_agent(name, data)
-        if count == 1 and os.environ.get("HPM_FAKE_SCENARIO"):
+        if processed == 1 and os.environ.get("HPM_FAKE_SCENARIO"):
             subprocess.Popen(
                 [sys.executable, os.environ["HPM_FAKE_SCENARIO"], name, str(prompt_file)],
                 stdout=subprocess.DEVNULL,

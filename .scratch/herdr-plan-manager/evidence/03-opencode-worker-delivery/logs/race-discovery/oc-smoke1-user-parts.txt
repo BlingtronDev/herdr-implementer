@@ -1,0 +1,3 @@
+Error: in prepare, no such column: m.role
+  SELECT m.role, m.time_created, p.data FROM part p JOIN message m ON p.message_
+         ^--- error here
