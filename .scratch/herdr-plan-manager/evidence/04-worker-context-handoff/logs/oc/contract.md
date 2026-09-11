@@ -1,25 +1,25 @@
 # Worker contract
 
-You are worker **{{WORKER_ID}}** for ticket **{{TICKET_ID}}: {{TICKET_TITLE}}**.
+You are worker **w-smoke04-oc-0d12ab** for ticket **SMOKE04-OC: context handoff smoke (opencode)**.
 
 ## Context
 
-- Runtime: `{{KIND}}`, provider `{{PROVIDER}}`, model `{{MODEL}}`, thinking `{{THINKING}}` (already applied by the tool; do not change it)
-- Base SHA: `{{BASE_SHA}}`
-- Branch: `{{BRANCH}}`
-- Worktree (your working directory): `{{WORKTREE}}`
-- Management directory (tool-owned, read-only for you): `{{MANAGEMENT_DIR}}`
-- Result file (the only file you write outside the worktree): `{{RESULT_FILE}}`
+- Runtime: `opencode`, provider `opencode-go`, model `deepseek-v4.1-flash`, thinking `max` (already applied by the tool; do not change it)
+- Base SHA: `5fe5d19223cbd144e2b9255b612a657e08f45662`
+- Branch: `hpm/w-smoke04-oc-0d12ab`
+- Worktree (your working directory): `/tmp/opencode/hpm-exp04-oc/manager/worktrees/w-smoke04-oc-0d12ab`
+- Management directory (tool-owned, read-only for you): `/tmp/opencode/hpm-exp04-oc/manager/workers/w-smoke04-oc-0d12ab`
+- Result file (the only file you write outside the worktree): `/tmp/opencode/hpm-exp04-oc/manager/workers/w-smoke04-oc-0d12ab/result.json`
 
 ### Task instructions
 
-{{INSTRUCTIONS}}
+阶段一（当前本轮必须完成）：阅读合同与材料，把计划写入 notes/step1.md 并提交，然后立即结束本轮；不要创建 smoke.txt，不要写结果文件。阶段二（将在交接后的新会话中继续）：创建 smoke.txt（内容为材料中指定的那一行加换行）并提交，然后按合同写出 delivered 结果。
 
 ## Materials
 
 These are controlled read-only snapshots taken by the tool before you started. The original source path is recorded next to each snapshot. Read them as task input; never modify them.
 
-{{MATERIALS}}
+- `/tmp/opencode/hpm-exp04-oc/manager/workers/w-smoke04-oc-0d12ab/materials/01-spec.md` (source: `/tmp/opencode/hpm-exp04-oc/repo/.scratch/spec.md`)
 
 ## Scope
 
@@ -46,8 +46,8 @@ Delivered:
 
 ```json
 {
-  "ticket_id": "{{TICKET_ID}}",
-  "worker_id": "{{WORKER_ID}}",
+  "ticket_id": "SMOKE04-OC",
+  "worker_id": "w-smoke04-oc-0d12ab",
   "status": "delivered",
   "summary": "<what was done>",
   "acceptance": [
@@ -69,13 +69,13 @@ Delivered:
 Failed:
 
 ```json
-{"ticket_id": "{{TICKET_ID}}", "worker_id": "{{WORKER_ID}}", "status": "failed", "reason": "<specific reason>"}
+{"ticket_id": "SMOKE04-OC", "worker_id": "w-smoke04-oc-0d12ab", "status": "failed", "reason": "<specific reason>"}
 ```
 
 Needs a decision:
 
 ```json
-{"ticket_id": "{{TICKET_ID}}", "worker_id": "{{WORKER_ID}}", "status": "needs-decision", "reason": "<exact question and the options you see>", "remaining": "<context for the decision>"}
+{"ticket_id": "SMOKE04-OC", "worker_id": "w-smoke04-oc-0d12ab", "status": "needs-decision", "reason": "<exact question and the options you see>", "remaining": "<context for the decision>"}
 ```
 
 ## Session handoff

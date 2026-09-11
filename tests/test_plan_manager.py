@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import signal
@@ -16,6 +17,14 @@ FAKE_BIN = REPO_ROOT / "tests" / "fakes" / "bin"
 SCENARIO = REPO_ROOT / "tests" / "fakes" / "scenario.py"
 MATERIAL_TEXT = "SPEC MATERIAL 42\n"
 RUNTIMES = ["pi", "opencode"]
+
+
+def load_plan_manager():
+    spec = importlib.util.spec_from_file_location("plan_manager_under_test", PLAN_MANAGER)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(module)
+    return module
 
 
 def herdr_calls(harness: "Harness", prefix: tuple[str, ...]) -> list[list[str]]:
@@ -52,6 +61,8 @@ class Harness:
         self.material = scratch / "spec.md"
         self.material.write_text(MATERIAL_TEXT, encoding="utf-8")
         self.env = os.environ.copy()
+        os_temp = tmp_path / "os-temp"
+        os_temp.mkdir()
         self.env.update(
             {
                 "PATH": f"{FAKE_BIN}{os.pathsep}{self.env.get('PATH', '')}",
@@ -60,12 +71,19 @@ class Harness:
                 "HPM_FAKE_DIR": str(self.fake),
                 "HPM_FAKE_SCENARIO": str(SCENARIO),
                 "HPM_FAKE_SCENARIO_BEHAVIOR": behavior,
+                "HPM_CONTEXT_HELPER": str(FAKE_BIN / "get_context.py"),
+                "HPM_CONTEXT_POLL_SECONDS": "0.2",
+                "HPM_HANDOFF_SETTLE_SECONDS": "0.5",
+                "HPM_HANDOFF_SETTLE_TIMEOUT_SECONDS": "1.0",
+                "HPM_HANDOFF_WAIT_SECONDS": "6",
+                "HPM_HANDOFF_CORRECTION_SECONDS": "1.5",
                 "HPM_POLL_SECONDS": "0.2",
                 "HPM_SETTLE_GRACE_SECONDS": "0.6",
                 "HPM_REPORT_WAIT_SECONDS": "1.5",
                 "HPM_SCENARIO_DELAY": "0.3",
                 "HPM_PROMPT_CONFIRM_SECONDS": "0.5",
                 "HPM_PROMPT_ATTEMPTS": "3",
+                "TMPDIR": str(os_temp),
             }
         )
 
@@ -110,10 +128,29 @@ class Harness:
             args += ["--worker-id", overrides["worker_id"]]
         if overrides.get("branch"):
             args += ["--branch", overrides["branch"]]
+        if overrides.get("handoff_tokens") is not None:
+            args += ["--handoff-tokens", str(overrides["handoff_tokens"])]
+        if overrides.get("handoff_pct") is not None:
+            args += ["--handoff-pct", str(overrides["handoff_pct"])]
+        if overrides.get("context_window") is not None:
+            args += ["--context-window", str(overrides["context_window"])]
         proc = self.run(*args)
         if proc.returncode == 0:
             self.started.append(json.loads(proc.stdout)["worker_id"])
         return proc
+
+    def handoff(self, worker_id: str, reason: str = "", *, timeout: float = 30) -> subprocess.CompletedProcess[str]:
+        return self.run("handoff", "--repo", str(self.repo), "--worker", worker_id, "--reason", reason, timeout=timeout)
+
+    def agent(self, name: str) -> dict:
+        return json.loads((self.fake / "agents" / f"{name}.json").read_text(encoding="utf-8"))
+
+    def prompts(self, name: str) -> list[str]:
+        files = sorted(
+            (self.fake / "agents").glob(f"{name}.prompt.*.txt"),
+            key=lambda path: int(path.stem.rsplit(".", 1)[1]),
+        )
+        return [path.read_text(encoding="utf-8") for path in files]
 
     def status(self, worker_id: str) -> dict:
         proc = self.run("status", "--repo", str(self.repo), "--worker", worker_id)
@@ -460,3 +497,314 @@ def test_dropped_prompt_is_redelivered_until_confirmed(make_harness, kind):
     assert facts["prompt"]["attempts"] == 2
     agent = json.loads((h.fake / "agents" / f"{facts['herdr']['agent']}.json").read_text(encoding="utf-8"))
     assert agent["prompt_count"] == 2
+
+
+def test_context_observation_records_interpretable_sample(make_harness):
+    h = make_harness("slow")
+    proc = h.start()
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    deadline = time.time() + 10
+    facts = h.status(worker_id)
+    while time.time() < deadline and not (facts["session"] or {}).get("context"):
+        time.sleep(0.2)
+        facts = h.status(worker_id)
+    sample = facts["session"]["context"]
+    assert sample["state"] == "current"
+    assert sample["total"] == 10
+    assert sample["window"] == 1000
+    assert sample["freshness"] == "completed-call"
+    assert sample["source"] == "precise"
+    assert sample["session"] == 1
+    assert sample["context_ref"]
+    assert facts["handoff"]["history"] == []
+    assert facts["session"]["index"] == 1
+    assert h.stop(worker_id).returncode == 0
+
+
+def test_stale_context_sample_never_triggers_a_handoff(make_harness):
+    h = make_harness("deliver-code")
+    h.env["HPM_FAKE_CONTEXT_MODE"] = "stale"
+    proc = h.start(handoff_tokens=1, handoff_pct=0.001)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"})
+    assert facts["handoff"]["history"] == []
+    assert facts["sessions"][0]["context"]["state"] == "stale"
+    assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 1
+
+
+def test_unobservable_context_is_an_exception_not_zero_usage(make_harness):
+    h = make_harness("missing-result")
+    h.env["HPM_FAKE_CONTEXT_MODE"] = "error"
+    proc = h.start(handoff_tokens=1, handoff_pct=0.001)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"protocol-failure"})
+    codes = [item["code"] for item in facts["items"]]
+    assert "context-unobservable" in codes
+    assert facts["handoff"]["history"] == []
+    assert facts["session"]["context"]["state"] == "unobservable"
+    assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 2, "only the result re-report may be sent"
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_context_threshold_triggers_automatic_handoff(make_harness, kind):
+    h = make_harness("handoff")
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    proc = h.start(kind=kind, handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"}, timeout=60)
+    sessions = facts["sessions"]
+    assert [session["index"] for session in sessions] == [1, 2]
+    assert sessions[0]["status"] == "replaced"
+    assert sessions[0]["handoff"]["status"] == "completed"
+    assert sessions[0]["agent"] != sessions[1]["agent"]
+    assert facts["herdr"]["agent"] == sessions[1]["agent"]
+    history = facts["handoff"]["history"]
+    assert len(history) == 1
+    assert history[0]["trigger"] == "tokens"
+    doc = Path(history[0]["doc"])
+    assert doc.is_file()
+    assert doc.parent == Path(facts["paths"]["management"]) / "handoffs"
+    marker = f"NEXT-STEP-MARKER-{doc.stem}"
+    assert marker in doc.read_text(encoding="utf-8")
+    continuation = (Path(facts["worktree"]) / "continuation.txt").read_text(encoding="utf-8")
+    assert marker in continuation
+    assert facts["result"]["head"] == facts["branch_head"]
+    assert not (h.fake / "agents" / f"{sessions[0]['agent']}.json").exists()
+    assert len(herdr_calls(h, ("tab", "create"))) == 2
+    old_prompts = h.prompts(sessions[0]["agent"])
+    new_prompts = h.prompts(sessions[1]["agent"])
+    if kind == "pi":
+        assert old_prompts[1].startswith("/skill:handoff")
+    else:
+        assert "`skill`" in old_prompts[1] and "/skill:handoff" not in old_prompts[1]
+    assert str(doc) in new_prompts[0]
+
+
+def test_multiple_handoffs_stay_one_worker(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "2"
+    (h.fake / "handoff_repeat").write_text("1", encoding="utf-8")
+    proc = h.start(handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"}, timeout=90)
+    sessions = facts["sessions"]
+    assert [session["index"] for session in sessions] == [1, 2, 3]
+    assert len(facts["handoff"]["history"]) == 2
+    assert len({session["agent"] for session in sessions}) == 3
+    assert facts["herdr"]["agent"] == sessions[2]["agent"]
+    assert facts["worktree"] and Path(facts["worktree"]).is_dir()
+    assert len({session["handoff"]["doc"] for session in sessions[:2]}) == 2
+    final_doc = Path(facts["handoff"]["history"][1]["doc"])
+    assert f"NEXT-STEP-MARKER-{final_doc.stem}" in (Path(facts["worktree"]) / "continuation.txt").read_text(encoding="utf-8")
+
+
+def test_handoff_document_is_copied_from_os_temp(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "temp"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    proc = h.start(handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"}, timeout=60)
+    doc = Path(facts["handoff"]["history"][0]["doc"])
+    assert doc.is_file()
+    assert facts["sessions"][0]["handoff"]["document_source"] == "temp-copy"
+
+
+def test_invalid_handoff_document_gets_one_correction(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "invalid-first"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    proc = h.start(handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"delivered"}, timeout=60)
+    old_agent = facts["sessions"][0]["agent"]
+    prompts = h.prompts(old_agent)
+    assert len(prompts) == 3, "contract, handoff request and one correction"
+    assert "cannot be used yet" in prompts[2]
+    assert len(facts["handoff"]["history"]) == 1
+
+
+def test_handoff_document_failure_is_a_pending_exception(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "invalid"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    proc = h.start(handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"handoff-failed"}, timeout=60)
+    assert any(item["code"] == "handoff-document-invalid" for item in facts["items"])
+    assert len(facts["sessions"]) == 1
+    assert facts["sessions"][0]["handoff"]["status"] == "failed"
+    old_agent = facts["sessions"][0]["agent"]
+    assert (h.fake / "agents" / f"{old_agent}.json").is_file(), "the old session is retained"
+    assert h.agent(old_agent)["prompt_count"] == 3, "exactly one correction is sent"
+    assert Path(facts["worktree"]).is_dir()
+    stopped = h.stop(worker_id)
+    assert stopped.returncode == 0, stopped.stderr
+    assert h.status(worker_id)["lifecycle"]["state"] == "stopped"
+
+
+def test_handoff_document_timeout_retains_scene(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "working"
+    h.env["HPM_SCENARIO_HANDOFF_BUSY_SECONDS"] = "3"
+    h.env["HPM_HANDOFF_WAIT_SECONDS"] = "2"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    proc = h.start(handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"handoff-failed"}, timeout=60)
+    assert any(item["code"] == "handoff-document-timeout" for item in facts["items"])
+    assert len(facts["sessions"]) == 1
+    assert h.status(worker_id)["supervisor"]["alive"] is True
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_replacement_start_failure_retains_scene_and_old_session(make_harness, kind):
+    h = make_harness("handoff")
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    (h.fake / "start_hard_fail_at").write_text("2", encoding="utf-8")
+    proc = h.start(kind=kind, handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"handoff-failed"}, timeout=60)
+    assert any(item["code"] == "handoff-replacement-failed" for item in facts["items"])
+    assert len(facts["sessions"]) == 1
+    old_agent = facts["sessions"][0]["agent"]
+    assert (h.fake / "agents" / f"{old_agent}.json").is_file()
+    doc = Path(facts["sessions"][0]["handoff"]["doc"])
+    assert doc.is_file()
+    assert Path(facts["worktree"]).is_dir()
+    stopped = h.stop(worker_id)
+    assert stopped.returncode == 0, stopped.stderr
+    assert h.status(worker_id)["lifecycle"]["state"] == "stopped"
+
+
+def test_stop_during_handoff_aborts_without_replacement(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_SCENARIO_HANDOFF_DELAY"] = "3"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    proc = h.start(handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    h.wait_state(worker_id, {"handing-off"}, timeout=30)
+    stopped = h.stop(worker_id)
+    assert stopped.returncode == 0, stopped.stderr
+    facts = h.status(worker_id)
+    assert facts["lifecycle"]["state"] == "stopped"
+    assert len(facts["sessions"]) == 1
+    assert len(herdr_calls(h, ("tab", "create"))) == 1
+    assert Path(facts["worktree"]).is_dir()
+
+
+def test_explicit_handoff_request_is_not_repeated(make_harness):
+    h = make_harness("handoff")
+    proc = h.start()
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    requested = h.handoff(worker_id, reason="manual check")
+    assert requested.returncode == 0, requested.stderr
+    assert json.loads(requested.stdout)["requested"] is True
+    facts = h.wait_state(worker_id, {"delivered"}, timeout=60)
+    history = facts["handoff"]["history"]
+    assert len(history) == 1
+    assert history[0]["trigger"] == "requested"
+    time.sleep(2)
+    assert len(h.status(worker_id)["handoff"]["history"]) == 1
+
+
+def test_handoff_request_rejected_for_terminal_worker(make_harness):
+    h = make_harness("deliver-code")
+    proc = h.start()
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    h.wait_state(worker_id, {"delivered"})
+    requested = h.handoff(worker_id)
+    assert requested.returncode == 2
+    assert "cannot be requested" in requested.stderr
+
+
+def test_context_trigger_and_staleness_rules():
+    module = load_plan_manager()
+    config = {"tokens": 300_000, "pct": 0.8}
+    assert module.handoff_trigger_reason({"state": "current", "total": 300_000, "window": 1_000_000}, config) == "tokens"
+    assert module.handoff_trigger_reason({"state": "current", "total": 800, "window": 1_000}, config) == "pct"
+    assert module.handoff_trigger_reason({"state": "stale", "total": 900_000, "window": 1_000}, config) is None
+    assert module.handoff_trigger_reason({"state": "pending", "total": 0, "window": 1_000}, config) is None
+    assert module.handoff_trigger_reason({"state": "unobservable", "error": "x"}, config) is None
+    assert module.classify_context({"error": "x"}, agent_status="working")["state"] == "pending"
+    assert module.classify_context({"error": "x"}, agent_status="idle")["state"] == "unobservable"
+    stale = module.classify_context({"total": 1, "window": 2, "freshness": "stale-model-change"}, agent_status="idle")
+    assert stale["state"] == "stale"
+    current = module.classify_context({"total": 1, "window": 2, "freshness": "completed-call"}, agent_status="idle")
+    assert current["state"] == "current"
+
+
+def test_stale_sample_guard_ignores_old_sessions():
+    module = load_plan_manager()
+    state = {"sessions": [{"index": 2, "context_ref": "ref-2"}]}
+    assert module.sample_is_current({"session": 1, "context_ref": "ref-1"}, state) is False
+    assert module.sample_is_current({"session": 2, "context_ref": "ref-3"}, state) is False
+    assert module.sample_is_current({"session": 2, "context_ref": "ref-2"}, state) is True
+    state["sessions"].append({"index": 3, "context_ref": "ref-3"})
+    assert module.sample_is_current({"session": 2, "context_ref": "ref-2"}, state) is False
+
+
+def test_handoff_document_validation_requires_structure(tmp_path):
+    module = load_plan_manager()
+    valid = tmp_path / "valid.md"
+    valid.write_text(
+        "# Handoff\n\n## Progress\nwork\n## Decisions\ndecision\n## Verification\nnone\n"
+        "## Commits\nnone\n## Uncommitted work\npartial\n## Next steps\ndone\n",
+        encoding="utf-8",
+    )
+    ok, missing, _ = module.validate_handoff_document(valid)
+    assert ok is True
+    assert missing == []
+    incomplete = tmp_path / "incomplete.md"
+    incomplete.write_text(
+        "# Handoff\n\n## Progress\n" + "x" * 100 + "\n",
+        encoding="utf-8",
+    )
+    ok, missing, problem = module.validate_handoff_document(incomplete)
+    assert ok is False
+    assert "Decisions" in missing
+    assert "missing required sections" in problem
+    assert module.validate_handoff_document(tmp_path / "absent.md")[0] is False
+
+
+def test_handoff_retry_reuses_valid_document(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    (h.fake / "start_hard_fail_at").write_text("2", encoding="utf-8")
+    proc = h.start(handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    worker_id = json.loads(proc.stdout)["worker_id"]
+    facts = h.wait_state(worker_id, {"handoff-failed"}, timeout=60)
+    old_agent = facts["sessions"][0]["agent"]
+    doc = Path(facts["sessions"][0]["handoff"]["doc"])
+    assert doc.is_file()
+
+    (h.fake / "start_hard_fail_at").unlink()
+    requested = h.handoff(worker_id, reason="retry after replacement failure")
+    assert requested.returncode == 0, requested.stderr
+    facts = h.wait_state(worker_id, {"delivered"}, timeout=60)
+    assert [session["index"] for session in facts["sessions"]] == [1, 2]
+    assert len(facts["handoff"]["history"]) == 1
+    assert len(h.prompts(old_agent)) == 2, "the retry must reuse the valid document without re-requesting"

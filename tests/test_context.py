@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sqlite3
 import subprocess
 import tempfile
 import unittest
+import unittest.mock
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -93,6 +95,53 @@ class PiHelperTests(unittest.TestCase):
         result = json.loads(proc.stdout)
         self.assertEqual(result["total"], 1234)
         self.assertEqual(result["freshness"], "completed-call")
+
+
+class PiWindowTests(unittest.TestCase):
+    def test_parses_human_readable_sizes(self):
+        self.assertEqual(context.parse_model_size("1M"), 1024 * 1024)
+        self.assertEqual(context.parse_model_size("128K"), 128 * 1024)
+        self.assertEqual(context.parse_model_size("272K"), 272 * 1024)
+        self.assertEqual(context.parse_model_size("1.5M"), int(1.5 * 1024 * 1024))
+        self.assertIsNone(context.parse_model_size("large"))
+        self.assertIsNone(context.parse_model_size(""))
+
+    def test_uses_pi_catalog_when_the_session_registry_has_no_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session = root / "session.jsonl"
+            session.write_text("{}\n", encoding="utf-8")
+            fake_bin = root / "bin"
+            fake_bin.mkdir()
+            fake_pi = fake_bin / "pi"
+            fake_pi.write_text(
+                "#!/usr/bin/env python3\n"
+                "print('provider      model                         context  max-out  thinking  images')\n"
+                "print('opencode-go   deepseek-v4.1-flash           1M       384K     yes       yes')\n",
+                encoding="utf-8",
+            )
+            fake_pi.chmod(0o755)
+            helper = root / "helper.mjs"
+            helper.write_text(
+                "process.stdout.write(JSON.stringify({total: 10, window: null, "
+                "freshness: 'completed-call', observed_at: '2026-01-01T00:00:00Z', "
+                "provider: 'opencode-go', model: 'deepseek-v4.1-flash'}));\n",
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}{os.pathsep}{env.get('PATH', '')}"
+            env["PI_SESSION_DIR"] = str(root)
+            with unittest.mock.patch.dict(os.environ, env, clear=True):
+                result = context.get_pi(str(session), helper, None)
+            self.assertEqual(result["window"], 1024 * 1024)
+            self.assertEqual(result["window_source"], "pi --list-models")
+            self.assertEqual(result["source"], "precise")
+
+            with unittest.mock.patch.dict(os.environ, env, clear=True):
+                explicit = context.get_pi(str(session), helper, 5000)
+            self.assertEqual(explicit["window"], 5000)
+            self.assertEqual(explicit["window_source"], "explicit --window")
+            self.assertEqual(explicit["source"], "estimated")
 
 
 if __name__ == "__main__":

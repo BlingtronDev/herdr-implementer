@@ -1,0 +1,30 @@
+2026-09-11T11:59:52.547066Z supervisor started
+2026-09-11T12:00:10.838850Z context threshold (tokens) reached for session 1
+2026-09-11T12:00:10.846318Z handoff (tokens) requested for session 1 (w-smoke04-pi-a5885f): context threshold reached (tokens)
+2026-09-11T12:00:25.939808Z handoff document validated for session 1: /tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/handoffs/handoff-001.md
+2026-09-11T12:00:36.343805Z handoff complete: session 1 -> 2 agent w-smoke04-pi-a5885f-s2
+2026-09-11T12:00:56.054434Z context threshold (tokens) reached for session 2
+2026-09-11T12:00:56.067429Z handoff (tokens) requested for session 2 (w-smoke04-pi-a5885f-s2): context threshold reached (tokens)
+2026-09-11T12:01:12.070801Z handoff document validated for session 2: /tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/handoffs/handoff-002.md
+2026-09-11T12:01:22.431384Z handoff complete: session 2 -> 3 agent w-smoke04-pi-a5885f-s3
+2026-09-11T12:01:42.228421Z context threshold (tokens) reached for session 3
+2026-09-11T12:01:42.237045Z handoff (tokens) requested for session 3 (w-smoke04-pi-a5885f-s3): context threshold reached (tokens)
+2026-09-11T12:02:18.817544Z handoff document validated for session 3: /tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/handoffs/handoff-003.md
+2026-09-11T12:02:30.788983Z handoff complete: session 3 -> 4 agent w-smoke04-pi-a5885f-s4
+2026-09-11T12:02:50.705021Z context threshold (tokens) reached for session 4
+2026-09-11T12:02:50.713402Z handoff (tokens) requested for session 4 (w-smoke04-pi-a5885f-s4): context threshold reached (tokens)
+2026-09-11T12:03:22.278907Z handoff document validated for session 4: /tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/handoffs/handoff-004.md
+2026-09-11T12:03:45.458597Z handoff complete: session 4 -> 5 agent w-smoke04-pi-a5885f-s5
+2026-09-11T12:04:03.834744Z context threshold (tokens) reached for session 5
+2026-09-11T12:04:03.846217Z handoff (tokens) requested for session 5 (w-smoke04-pi-a5885f-s5): context threshold reached (tokens)
+2026-09-11T12:04:39.244822Z handoff document validated for session 5: /tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/handoffs/handoff-005.md
+2026-09-11T12:04:52.359200Z handoff complete: session 5 -> 6 agent w-smoke04-pi-a5885f-s6
+2026-09-11T12:05:11.000694Z context threshold (tokens) reached for session 6
+2026-09-11T12:05:11.008859Z handoff (tokens) requested for session 6 (w-smoke04-pi-a5885f-s6): context threshold reached (tokens)
+2026-09-11T12:05:38.738555Z handoff document validated for session 6: /tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/handoffs/handoff-006.md
+2026-09-11T12:05:48.497512Z handoff complete: session 6 -> 7 agent w-smoke04-pi-a5885f-s7
+2026-09-11T12:06:08.281423Z context threshold (tokens) reached for session 7
+2026-09-11T12:06:08.288855Z handoff (tokens) requested for session 7 (w-smoke04-pi-a5885f-s7): context threshold reached (tokens)
+2026-09-11T12:06:42.738147Z handoff document validated for session 7: /tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/handoffs/handoff-007.md
+2026-09-11T12:06:56.077845Z handoff complete: session 7 -> 8 agent w-smoke04-pi-a5885f-s8
+2026-09-11T12:07:12.774563Z terminal settled; result recorded

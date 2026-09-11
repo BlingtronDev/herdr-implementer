@@ -54,7 +54,7 @@ def write_agent(name, data):
 
 
 def as_agent(name, data):
-    return {
+    value = {
         "name": name,
         "agent": data.get("kind", "pi"),
         "agent_status": data.get("status", "idle"),
@@ -62,6 +62,15 @@ def as_agent(name, data):
         "tab_id": data.get("tab", ""),
         "interactive_ready": True,
     }
+    if data.get("session"):
+        kind = data.get("kind", "pi")
+        value["agent_session"] = {
+            "agent": kind,
+            "kind": "id" if kind == "opencode" else "path",
+            "source": f"herdr:{kind}",
+            "value": data["session"],
+        }
+    return value
 
 
 def main(argv):
@@ -90,6 +99,12 @@ def main(argv):
     if sub == "start":
         if data is not None:
             fail("agent_exists")
+        counter = ROOT / "start_count"
+        number = int(counter.read_text()) + 1 if counter.is_file() else 1
+        counter.write_text(str(number))
+        hard = ROOT / "start_hard_fail_at"
+        if hard.is_file() and int(hard.read_text()) == number:
+            fail("agent_start_failed", "simulated permanent start failure")
         failures = ROOT / "start_failures"
         remaining = int(failures.read_text()) if failures.is_file() else 0
         if remaining > 0:
@@ -98,8 +113,11 @@ def main(argv):
         kind = argv[argv.index("--kind") + 1]
         pane = argv[argv.index("--pane") + 1]
         separator = argv.index("--") if "--" in argv else len(argv)
-        write_agent(name, {"status": "idle", "kind": kind, "pane": pane, "agent_args": argv[separator + 1:], "prompt_count": 0})
-        emit({"result": {"agent": {**as_agent(name, {"kind": kind, "pane": pane}), "agent_session": {"value": f"fake-session-{name}"}}}})
+        data = {"status": "idle", "kind": kind, "pane": pane, "agent_args": argv[separator + 1:], "prompt_count": 0}
+        if kind == "pi":
+            data["session"] = f"fake-session-{name}"
+        write_agent(name, data)
+        emit({"result": {"agent": as_agent(name, data)}})
     if sub == "prompt":
         if data is None:
             fail("agent_not_found")
@@ -117,6 +135,8 @@ def main(argv):
             write_agent(name, data)
             emit({"result": {"agent": as_agent(name, data), "type": "agent_prompted"}})
         data["status"] = "working"
+        if data.get("kind") == "opencode" and not data.get("session"):
+            data["session"] = f"fake-session-{name}"
         processed = int(data.get("processed_prompt_count", 0)) + 1
         data["processed_prompt_count"] = processed
         write_agent(name, data)
@@ -140,7 +160,10 @@ def main(argv):
         if data is None:
             fail("agent_not_found")
         keys = argv[3:]
-        if "escape" in keys or "ctrl+c" in keys:
+        if "ctrl+c" in keys:
+            agent_file(name).unlink(missing_ok=True)
+            emit({"result": {"agent": None, "exited": True}})
+        if "escape" in keys:
             data["status"] = "idle"
             write_agent(name, data)
         emit({"result": {"agent": as_agent(name, data)}})

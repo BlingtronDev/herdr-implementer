@@ -1,0 +1,21 @@
+{
+  "agent": "w-smoke04-pi-a5885f",
+  "base": "bc16f0ebda5d8b6915ba73dd75ab2fb859de83c0",
+  "branch": "hpm/w-smoke04-pi-a5885f",
+  "management_dir": "/tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f",
+  "pane": "wJ:pH",
+  "prompt_attempts": 1,
+  "result_path": "/tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-a5885f/result.json",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session": 1,
+  "supervisor_pid": 1627451,
+  "tab": "wJ:tH",
+  "ticket_id": "SMOKE04-PI",
+  "worker_id": "w-smoke04-pi-a5885f",
+  "worktree": "/tmp/opencode/hpm-exp04-pi/manager/worktrees/w-smoke04-pi-a5885f"
+}

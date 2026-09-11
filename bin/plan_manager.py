@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Herdr Plan Manager: minimal single-worker lifecycle tool (tickets 02-03).
+"""Herdr Plan Manager: single-worker lifecycle tool (tickets 02-04).
 
 Scope: start one isolated Pi or OpenCode worker from an explicit base SHA,
-register its resources, supervise it in the background, record a structured
-delivery or exception, and stop it while retaining the scene. Automatic
-handoff, concurrency, wait/ack and cleanup belong to later tickets.
+register its resources, supervise it in the background, observe its context,
+hand the ticket to a fresh session of the same worker at the configured
+threshold, record a structured delivery or exception, and stop it while
+retaining the scene. Concurrency, wait/ack and cleanup belong to later
+tickets.
 """
 
 from __future__ import annotations
@@ -18,12 +20,13 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from pathlib import Path
 from typing import Any
 
-MANAGER_VERSION = 2
+MANAGER_VERSION = 3
 MANAGER_PATH = Path(__file__).resolve()
 SKILL_DIR = MANAGER_PATH.parent.parent
 THINKING_LEVELS = ("off", "minimal", "low", "medium", "high", "xhigh", "max")
@@ -34,6 +37,11 @@ WORKER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 SELECTION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+@-]*$")
 AGENT_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 RESULT_STATUSES = ("delivered", "failed", "needs-decision")
+HANDOFF_SECTIONS = ("Progress", "Decisions", "Verification", "Commits", "Uncommitted work", "Next steps")
+DEFAULT_HANDOFF_TOKENS = 300_000
+DEFAULT_HANDOFF_PCT = 0.8
+DEFAULT_CONTEXT_POLL_SECONDS = 15.0
+DEFAULT_HANDOFF_WAIT_SECONDS = 900.0
 TERMINAL_STATES = {
     "delivered",
     "failed",
@@ -47,6 +55,7 @@ INTERACTIVE_STATES = {"idle", "done", "working", "blocked"}
 SETTLED_STATES = {"idle", "done"}
 STATUS_PRIORITY = ("blocked", "done", "idle", "unknown", "working")
 MAX_RESULT_BYTES = 1024 * 1024
+MAX_HANDOFF_DOC_BYTES = 512 * 1024
 START_ATTEMPTS = 40
 START_DELAY = 0.25
 READY_ATTEMPTS = 240
@@ -61,6 +70,18 @@ DEFAULT_PROMPT_CONFIRM_TIMEOUT = 10.0
 
 class ManagerError(RuntimeError):
     pass
+
+
+class HandoffError(ManagerError):
+    """A standard handoff step failed; the scene is retained for the caller."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+class HandoffAbort(Exception):
+    """A stop request arrived while a handoff was in progress."""
 
 
 def utc_now() -> str:
@@ -165,6 +186,25 @@ def repo_context(repo: Path) -> tuple[Path, Path]:
     return root, common
 
 
+def find_agent_session(payload: Any) -> str | None:
+    """Return the runtime session reference published by `herdr agent get`."""
+    found: list[str] = []
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            session = value.get("agent_session")
+            if isinstance(session, dict) and isinstance(session.get("value"), str):
+                found.append(session["value"])
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    walk(payload)
+    return found[0] if found else None
+
+
 def find_agent_status(payload: Any) -> str | None:
     found: list[str] = []
 
@@ -233,6 +273,12 @@ class Store:
 
     def contract_path(self, worker_id: str) -> Path:
         return self.worker_dir(worker_id) / "contract.md"
+
+    def handoffs_dir(self, worker_id: str) -> Path:
+        return self.worker_dir(worker_id) / "handoffs"
+
+    def handoff_path(self, worker_id: str, session_index: int) -> Path:
+        return self.handoffs_dir(worker_id) / f"handoff-{session_index:03d}.md"
 
     def log_path(self, worker_id: str) -> Path:
         return self.worker_dir(worker_id) / "supervisor.log"
@@ -353,6 +399,33 @@ class Herdr:
         rc, _ = self.agent_get(name)
         return rc == 0
 
+    def agent_session_ref(self, name: str) -> str | None:
+        rc, payload = self.agent_get(name)
+        if rc != 0:
+            return None
+        return find_agent_session(payload)
+
+    def wait_agent_session(self, name: str, *, attempts: int = 20, delay: float = 0.5) -> str | None:
+        """Poll for the runtime session reference; fresh sessions register it late."""
+        for index in range(attempts):
+            ref = self.agent_session_ref(name)
+            if ref:
+                return ref
+            if index + 1 < attempts:
+                time.sleep(delay)
+        return None
+
+    def wait_agent_gone(self, name: str, *, timeout: float = 15.0) -> bool:
+        """Wait until the runtime no longer knows the agent (TUI exited)."""
+        deadline = time.monotonic() + timeout
+        while True:
+            rc, _ = self.agent_get(name)
+            if rc != 0:
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.25)
+
     def wait_settled(self, name: str, timeout: float) -> tuple[int, str | None]:
         deadline = time.monotonic() + timeout
         rc, status = self.agent_status(name)
@@ -434,6 +507,30 @@ class RuntimeAdapter:
     def interrupt_sequences(self) -> tuple[tuple[str, ...], ...]:
         raise NotImplementedError
 
+    def exit_sequences(self) -> tuple[tuple[str, ...], ...]:
+        raise NotImplementedError
+
+    def handoff_prefix(self, ticket_id: str, ticket_title: str) -> str:
+        raise NotImplementedError
+
+    def handoff_request_prompt(
+        self,
+        worker_id: str,
+        ticket_id: str,
+        ticket_title: str,
+        doc_path: Path,
+        reason: str,
+        sample: Any,
+    ) -> str:
+        return handoff_instruction(
+            self.handoff_prefix(ticket_id, ticket_title), worker_id, ticket_id, doc_path, reason, sample
+        )
+
+    def handoff_correction_prompt(self, ticket_id: str, ticket_title: str, doc_path: Path, problem: str) -> str:
+        return handoff_correction_instruction(
+            self.handoff_prefix(ticket_id, ticket_title), doc_path, problem
+        )
+
     def validate(self, provider: str, model: str, thinking: str) -> None:
         raise NotImplementedError
 
@@ -450,6 +547,15 @@ class OpenCodeAdapter(RuntimeAdapter):
 
     def interrupt_sequences(self) -> tuple[tuple[str, ...], ...]:
         return (("escape", "escape"),)
+
+    def exit_sequences(self) -> tuple[tuple[str, ...], ...]:
+        return (("ctrl+c",),)
+
+    def handoff_prefix(self, ticket_id: str, ticket_title: str) -> str:
+        return (
+            f"Use the `skill` tool to load and run the `handoff` skill now and follow it. "
+            f"Continue ticket {ticket_id}: {ticket_title} in a new session of the same worker. "
+        )
 
     def validate(self, provider: str, model: str, thinking: str) -> None:
         proc = run(["opencode", "models", provider, "--verbose"], timeout=120)
@@ -481,6 +587,15 @@ class PiAdapter(RuntimeAdapter):
 
     def interrupt_sequences(self) -> tuple[tuple[str, ...], ...]:
         return (("escape",), ("escape",))
+
+    def exit_sequences(self) -> tuple[tuple[str, ...], ...]:
+        return (("ctrl+c", "ctrl+c"),)
+
+    def handoff_prefix(self, ticket_id: str, ticket_title: str) -> str:
+        return (
+            f"/skill:handoff Continue ticket {ticket_id}: {ticket_title} in a new session of the same worker. "
+            "Run the handoff skill now and follow its instructions. "
+        )
 
     def validate(self, provider: str, model: str, thinking: str) -> None:
         if thinking not in THINKING_LEVELS:
@@ -609,6 +724,16 @@ def initial_state(
         "prompt": None,
         "items": [],
         "result": None,
+        "session_index": 0,
+        "sessions": [],
+        "handoff": {
+            "tokens": DEFAULT_HANDOFF_TOKENS,
+            "pct": DEFAULT_HANDOFF_PCT,
+            "window": None,
+            "history": [],
+            "auto_suppressed": False,
+            "handled_request_id": None,
+        },
         "created_at": timestamp,
         "updated_at": timestamp,
     }
@@ -626,6 +751,636 @@ def append_item(state: dict[str, Any], kind: str, code: str, message: str, detai
     }
     state["items"].append(item)
     return item
+
+
+def session_agent_name(worker_id: str, index: int) -> str:
+    """Derive a per-session Herdr agent name from the worker id."""
+    suffix = f"-s{index}"
+    base = re.sub(r"[^a-z0-9_-]+", "-", worker_id.lower()).strip("-")
+    if not base or not base[0].isalpha():
+        base = "hpm-" + base.lstrip("-")
+    base = base[: 32 - len(suffix)].rstrip("-")
+    name = f"{base}{suffix}"
+    if not AGENT_RE.fullmatch(name):
+        raise ManagerError(f"cannot derive a Herdr agent name for session {index} of worker {worker_id!r}")
+    return name
+
+
+def new_session_record(
+    index: int, agent: str, tab: str | None, pane: str | None, runtime: dict[str, Any]
+) -> dict[str, Any]:
+    return {
+        "index": index,
+        "agent": agent,
+        "tab": tab,
+        "pane": pane,
+        "runtime": {key: runtime[key] for key in ("kind", "provider", "model", "thinking") if key in runtime},
+        "status": "active",
+        "started_at": utc_now(),
+        "ended_at": None,
+        "end_state": None,
+        "context_ref": None,
+        "context": None,
+        "prompt": None,
+        "handoff": None,
+    }
+
+
+def ensure_session_state(state: dict[str, Any]) -> None:
+    """Backfill session bookkeeping for states written before ticket 04."""
+    handoff = state.setdefault("handoff", {})
+    handoff.setdefault("tokens", DEFAULT_HANDOFF_TOKENS)
+    handoff.setdefault("pct", DEFAULT_HANDOFF_PCT)
+    handoff.setdefault("window", None)
+    handoff.setdefault("history", [])
+    handoff.setdefault("auto_suppressed", False)
+    handoff.setdefault("handled_request_id", None)
+    if isinstance(state.get("sessions"), list) and state["sessions"]:
+        return
+    herdr = state.get("herdr") or {}
+    state["sessions"] = [
+        new_session_record(
+            1,
+            str(herdr.get("agent") or ""),
+            herdr.get("tab"),
+            herdr.get("pane"),
+            state.get("runtime") or {},
+        )
+    ]
+    state["session_index"] = 1
+
+
+def current_session(state: dict[str, Any]) -> dict[str, Any] | None:
+    sessions = state.get("sessions")
+    if isinstance(sessions, list) and sessions:
+        return sessions[-1]
+    return None
+
+
+def current_agent(state: dict[str, Any]) -> str:
+    session = current_session(state)
+    if session and session.get("agent"):
+        return str(session["agent"])
+    return str((state.get("herdr") or {}).get("agent") or "")
+
+
+def mark_session_ended(state: dict[str, Any], end_state: str) -> None:
+    session = current_session(state)
+    if session is not None and session.get("status") in {"active", "handing-off"}:
+        session["status"] = "ended"
+        session["ended_at"] = utc_now()
+        session["end_state"] = end_state
+
+
+def context_helper_path() -> Path:
+    override = os.environ.get("HPM_CONTEXT_HELPER")
+    if override:
+        return Path(override)
+    return MANAGER_PATH.with_name("get_context.py")
+
+
+def context_snapshot(kind: str, ref: str, window: int | None = None, timeout: float = 60.0) -> dict[str, Any]:
+    """Run the context adapter once; failures become an explicit unobservable sample."""
+    args = [sys.executable, str(context_helper_path()), kind, ref, "--json"]
+    if window:
+        args += ["--window", str(int(window))]
+    try:
+        proc = run(args, timeout=timeout)
+    except ManagerError as exc:
+        return {"error": str(exc), "observed_at": utc_now()}
+    payload: Any = None
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        payload = None
+    if proc.returncode != 0:
+        message = payload.get("error") if isinstance(payload, dict) else None
+        if not isinstance(message, str) or not message.strip():
+            message = proc.stderr.strip() or "context adapter failed"
+        return {"error": message, "observed_at": utc_now()}
+    if not isinstance(payload, dict) or not isinstance(payload.get("total"), (int, float)):
+        return {"error": "context adapter returned an unusable payload", "observed_at": utc_now()}
+    return payload
+
+
+def classify_context(payload: dict[str, Any], *, agent_status: str | None) -> dict[str, Any]:
+    """Name what an observation means: current call, stale sample, pending or unobservable."""
+    sample = dict(payload)
+    sample.setdefault("observed_at", utc_now())
+    if sample.get("error"):
+        sample["state"] = "pending" if agent_status not in SETTLED_STATES else "unobservable"
+    elif sample.get("freshness") and sample["freshness"] != "completed-call":
+        sample["state"] = "stale"
+    else:
+        sample["state"] = "current"
+    return sample
+
+
+def mark_context_unobservable(state: dict[str, Any], session: dict[str, Any], sample: dict[str, Any]) -> None:
+    for item in state["items"]:
+        if item.get("code") == "context-unobservable" and (item.get("details") or {}).get("session") == session["index"]:
+            return
+    append_item(
+        state,
+        "exception",
+        "context-unobservable",
+        f"current context cannot be observed: {sample.get('error')}",
+        {"session": session["index"], "context_ref": session.get("context_ref"), "error": sample.get("error")},
+    )
+
+
+def sample_current_session(
+    state: dict[str, Any], herdr: Herdr, agent: str, agent_status: str | None
+) -> dict[str, Any]:
+    session = current_session(state)
+    if session is None:
+        return {"state": "unobservable", "error": "worker has no session record", "observed_at": utc_now()}
+    ref = session.get("context_ref")
+    if not ref:
+        ref = herdr.wait_agent_session(agent, attempts=1, delay=0.0)
+        if ref:
+            session["context_ref"] = ref
+    if not ref:
+        sample: dict[str, Any] = {
+            "state": "pending" if agent_status not in SETTLED_STATES else "unobservable",
+            "error": "herdr has not published a runtime session reference yet",
+            "observed_at": utc_now(),
+        }
+    else:
+        sample = classify_context(
+            context_snapshot(state["runtime"]["kind"], ref, (state.get("handoff") or {}).get("window")),
+            agent_status=agent_status,
+        )
+        sample["context_ref"] = ref
+    sample["session"] = session["index"]
+    sample["sampled_at"] = utc_now()
+    session["context"] = sample
+    if sample["state"] == "unobservable":
+        mark_context_unobservable(state, session, sample)
+    return sample
+
+
+def handoff_trigger_reason(sample: Any, config: dict[str, Any]) -> str | None:
+    if not isinstance(sample, dict) or sample.get("state") != "current":
+        return None
+    total = sample.get("total")
+    if not isinstance(total, (int, float)):
+        return None
+    tokens = config.get("tokens", DEFAULT_HANDOFF_TOKENS)
+    if isinstance(tokens, (int, float)) and total >= tokens:
+        return "tokens"
+    window = sample.get("window")
+    pct = config.get("pct", DEFAULT_HANDOFF_PCT)
+    if isinstance(window, (int, float)) and window > 0 and isinstance(pct, (int, float)) and total / window >= pct:
+        return "pct"
+    return None
+
+
+def sample_is_current(sample: Any, state: dict[str, Any]) -> bool:
+    """A sample may only trigger the session it belongs to; old samples are stale."""
+    session = current_session(state)
+    if session is None or not isinstance(sample, dict):
+        return False
+    if sample.get("session") != session.get("index"):
+        return False
+    ref = sample.get("context_ref")
+    if ref and session.get("context_ref") and ref != session["context_ref"]:
+        return False
+    return True
+
+
+_SECTION_PATTERNS: dict[str, re.Pattern[str]] = {}
+
+
+def section_pattern(section: str) -> re.Pattern[str]:
+    pattern = _SECTION_PATTERNS.get(section)
+    if pattern is None:
+        pattern = re.compile(
+            rf"(?im)^\s*(?:[-*]\s*)?(?:\#{{1,6}}|\*\*)\s*\**\s*{re.escape(section)}\b"
+        )
+        _SECTION_PATTERNS[section] = pattern
+    return pattern
+
+
+def validate_handoff_document(path: Path) -> tuple[bool, list[str], str]:
+    """Check structure, not prose quality: every required section must be present."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return False, list(HANDOFF_SECTIONS), "no file at the requested path"
+    except (OSError, UnicodeDecodeError) as exc:
+        return False, list(HANDOFF_SECTIONS), f"the file cannot be read: {exc}"
+    if len(text.encode("utf-8", "replace")) > MAX_HANDOFF_DOC_BYTES:
+        return False, list(HANDOFF_SECTIONS), "the document exceeds the size limit"
+    if len(text.strip()) < 80:
+        return False, list(HANDOFF_SECTIONS), "the document has no meaningful content"
+    missing = [section for section in HANDOFF_SECTIONS if not section_pattern(section).search(text)]
+    if missing:
+        return False, missing, f"missing required sections: {', '.join(missing)}"
+    return True, [], ""
+
+
+def locate_handoff_document(
+    state: dict[str, Any], doc_path: Path, record: dict[str, Any]
+) -> tuple[Path | None, str]:
+    """Prefer the requested path; fall back to copying a skill temp-directory document."""
+    if doc_path.is_file():
+        return doc_path, "requested-path"
+    try:
+        requested_at = parse_iso(str(record.get("requested_at") or utc_now()))
+    except ValueError:
+        requested_at = time.time()
+    tempdir = Path(tempfile.gettempdir())
+    if not tempdir.is_dir():
+        return None, "missing"
+    worker_id = str(state.get("worker_id") or "")
+    ticket_id = str((state.get("ticket") or {}).get("id") or "")
+    newest: Path | None = None
+    newest_mtime = 0.0
+    for item in sorted(set(tempdir.glob("*.md")) | set(tempdir.glob("handoff*.md"))):
+        try:
+            stat = item.stat()
+        except OSError:
+            continue
+        if not item.is_file() or stat.st_mtime < requested_at - 5:
+            continue
+        try:
+            text = item.read_text(encoding="utf-8", errors="replace")[:MAX_HANDOFF_DOC_BYTES]
+        except OSError:
+            continue
+        identified = (worker_id and worker_id in text) or (ticket_id and ticket_id in text)
+        if identified and stat.st_mtime > newest_mtime:
+            newest = item
+            newest_mtime = stat.st_mtime
+    if newest is None:
+        return None, "missing"
+    atomic_text(doc_path, newest.read_text(encoding="utf-8", errors="replace"))
+    return doc_path, "temp-copy"
+
+
+def handoff_instruction(
+    prefix: str, worker_id: str, ticket_id: str, doc_path: Path, reason: str, sample: Any
+) -> str:
+    sample_note = ""
+    if isinstance(sample, dict) and isinstance(sample.get("total"), (int, float)):
+        sample_note = f" Observed context use: {int(sample['total'])} tokens"
+        window = sample.get("window")
+        if isinstance(window, (int, float)) and window > 0:
+            sample_note += f" of {int(window)} ({sample['total'] / window:.0%})"
+        sample_note += "."
+    sections = "\n".join(f"## {section}" for section in HANDOFF_SECTIONS)
+    return (
+        f"{prefix}"
+        f"Reason for the handoff: {reason}.{sample_note}\n"
+        f"Save the handoff document exactly to `{doc_path}` (absolute path). This overrides any default "
+        "temporary-directory location from the handoff skill; do not write it anywhere else.\n"
+        "The document must contain these exact section headings, each with concrete content for this ticket:\n"
+        f"{sections}\n"
+        "Record progress, decisions, commits and uncommitted work, verification already run, and the precise "
+        "remaining work so the next session can continue without repeating anything or asking the caller.\n"
+        "Do not make further business edits after the document is saved; end your turn then."
+    )
+
+
+def handoff_correction_instruction(prefix: str, doc_path: Path, problem: str) -> str:
+    sections = "\n".join(f"## {section}" for section in HANDOFF_SECTIONS)
+    return (
+        f"{prefix}"
+        f"The handoff document at `{doc_path}` cannot be used yet: {problem}.\n"
+        "Rewrite it now at the same absolute path with every required section heading and concrete content:\n"
+        f"{sections}\n"
+        "Then end your turn."
+    )
+
+
+def continuation_prompt(state: dict[str, Any], doc_path: Path) -> str:
+    ticket = state["ticket"]
+    return (
+        "A previous session of this worker reached the context-handoff threshold and wrote a handoff document. "
+        f"Read `{doc_path}` in full before doing anything else. Then read your worker contract at "
+        f"`{state['paths']['contract']}` in full. "
+        f"You are worker {state['worker_id']} for ticket {ticket['id']}: {ticket['title']}, continuing the same "
+        f"ticket in the same worktree `{state['worktree']}` on branch `{state['branch']}` with the same runtime "
+        "configuration. Treat the handoff document as progress context; the contract, ticket and materials remain "
+        "authoritative. Continue the unfinished work, preserve committed and uncommitted changes, and finish by "
+        "writing the result file exactly as the contract requires."
+    )
+
+
+def wait_for_settled(
+    herdr: Herdr, agent: str, timeout: float, poll: float = 0.25
+) -> tuple[int, str | None]:
+    deadline = time.monotonic() + timeout
+    rc, status = herdr.agent_status(agent)
+    while True:
+        if rc != 0 or status in SETTLED_STATES:
+            return rc, status
+        if time.monotonic() >= deadline:
+            return rc, status
+        time.sleep(poll)
+        rc, status = herdr.agent_status(agent)
+
+
+def settle_session_for_handoff(herdr: Herdr, agent: str, adapter: RuntimeAdapter) -> bool:
+    """Pause business execution so the session can accept the handoff instruction."""
+    grace = env_float("HPM_HANDOFF_SETTLE_SECONDS", 15.0)
+    timeout = env_float("HPM_HANDOFF_SETTLE_TIMEOUT_SECONDS", 20.0)
+    rc, status = wait_for_settled(herdr, agent, grace)
+    if rc != 0:
+        return False
+    if status in SETTLED_STATES:
+        return True
+    for keys in adapter.interrupt_sequences():
+        try:
+            herdr.send_keys(agent, keys)
+        except ManagerError:
+            return False
+        rc, status = wait_for_settled(herdr, agent, timeout)
+        if rc != 0:
+            return False
+        if status in SETTLED_STATES:
+            return True
+    return False
+
+
+def end_session(herdr: Herdr, adapter: RuntimeAdapter, session: dict[str, Any]) -> bool:
+    """End the replaced TUI session so it can no longer write to the worktree."""
+    agent = str(session.get("agent") or "")
+    if not agent or not herdr.agent_exists(agent):
+        return True
+    for keys in adapter.exit_sequences():
+        try:
+            herdr.send_keys(agent, keys)
+        except ManagerError:
+            break
+        if herdr.wait_agent_gone(agent, timeout=10.0):
+            return True
+    return not herdr.agent_exists(agent)
+
+
+def handoff_checkpoint(store: Store, worker_id: str) -> None:
+    control = store.load_control(worker_id)
+    if control.get("stop_requested_at"):
+        raise HandoffAbort()
+
+
+def start_replacement_session(
+    store: Store,
+    state: dict[str, Any],
+    herdr: Herdr,
+    adapter: RuntimeAdapter,
+    source_session: dict[str, Any],
+    doc_path: Path,
+) -> dict[str, Any]:
+    """Start and confirm the continuation session before the old one is ended."""
+    worker_id = state["worker_id"]
+    runtime = state["runtime"]
+    index = int(source_session["index"]) + 1
+    agent = session_agent_name(worker_id, index)
+    if herdr.agent_exists(agent):
+        raise HandoffError("handoff-replacement-failed", f"a live Herdr agent already uses the name {agent!r}")
+    worktree = Path(state["worktree"])
+    tab = ""
+    pane = ""
+    try:
+        tab, pane = herdr.tab_create(worktree, agent, runtime.get("env") or {})
+        herdr.agent_start(
+            agent,
+            runtime["kind"],
+            pane,
+            adapter.start_args(runtime["provider"], runtime["model"], runtime["thinking"]),
+        )
+        if not herdr.wait_interactive(agent):
+            raise ManagerError(f"replacement agent {agent} never reached an interactive state")
+        attempts = deliver_prompt_confirmed(herdr, agent, continuation_prompt(state, doc_path))
+        session = new_session_record(index, agent, tab, pane, runtime)
+        session["context_ref"] = herdr.wait_agent_session(agent, attempts=20, delay=0.5)
+        session["prompt"] = {"continuation_attempts": attempts, "confirmed_at": utc_now()}
+        return session
+    except ManagerError as exc:
+        if tab:
+            herdr.tab_close(tab)
+        raise HandoffError(
+            "handoff-replacement-failed", f"could not start and confirm the replacement session: {exc}"
+        ) from exc
+
+
+def wait_for_handoff_document(
+    store: Store,
+    state: dict[str, Any],
+    herdr: Herdr,
+    adapter: RuntimeAdapter,
+    session: dict[str, Any],
+    doc_path: Path,
+    record: dict[str, Any],
+) -> Path:
+    """Wait for a structurally usable handoff document, allowing one correction."""
+    worker_id = state["worker_id"]
+    wait_seconds = env_float("HPM_HANDOFF_WAIT_SECONDS", DEFAULT_HANDOFF_WAIT_SECONDS)
+    correction_grace = env_float("HPM_HANDOFF_CORRECTION_SECONDS", 30.0)
+    deadline = time.monotonic() + wait_seconds
+    corrected_at: float | None = None
+    settled_since: float | None = None
+    last_problem = "no handoff document at the requested path"
+    while True:
+        handoff_checkpoint(store, worker_id)
+        doc, source = locate_handoff_document(state, doc_path, record)
+        if doc is not None:
+            ok, missing, problem = validate_handoff_document(doc)
+            if ok:
+                record["document_source"] = source
+                record["document_validated_at"] = utc_now()
+                store.save_state(worker_id, state)
+                supervisor_log(f"handoff document validated for session {session['index']}: {doc}")
+                return doc
+            last_problem = problem or f"missing required sections: {', '.join(missing)}"
+        rc, status = herdr.agent_status(session["agent"])
+        if rc != 0:
+            raise HandoffError(
+                "handoff-session-exited",
+                "the session ended before a readable handoff document was produced",
+            )
+        if status in SETTLED_STATES:
+            if corrected_at is None:
+                corrected_at = time.monotonic()
+                record["phase"] = "correcting-document"
+                record["correction_sent_at"] = utc_now()
+                store.save_state(worker_id, state)
+                problem = last_problem if doc is not None else "no handoff document was found at the requested path"
+                correction = adapter.handoff_correction_prompt(
+                    state["ticket"]["id"], state["ticket"]["title"], doc_path, problem
+                )
+                deliver_prompt_confirmed(herdr, session["agent"], correction)
+                continue
+            if settled_since is None:
+                settled_since = time.monotonic()
+            if time.monotonic() - settled_since >= correction_grace:
+                raise HandoffError(
+                    "handoff-document-invalid",
+                    f"the handoff document is still not usable after one correction ({last_problem})",
+                )
+        else:
+            settled_since = None
+        if time.monotonic() >= deadline:
+            if doc is None:
+                raise HandoffError(
+                    "handoff-document-timeout",
+                    "no handoff document appeared within the handoff wait window",
+                )
+            raise HandoffError(
+                "handoff-document-invalid", f"the handoff document is not usable ({last_problem})"
+            )
+        time.sleep(1.0)
+
+
+def attempt_handoff(
+    store: Store,
+    state: dict[str, Any],
+    herdr: Herdr,
+    adapter: RuntimeAdapter,
+    *,
+    reason: str,
+    trigger: str,
+    sample: Any,
+) -> str:
+    """Run the standard session handoff; never raises, always retains the scene."""
+    worker_id = state["worker_id"]
+    session = current_session(state)
+    if session is None:
+        raise HandoffError("handoff-failed", "worker has no current session record")
+    doc_path = store.handoff_path(worker_id, int(session["index"]))
+    record: dict[str, Any] = {
+        "index": session["index"],
+        "agent": session["agent"],
+        "trigger": trigger,
+        "reason": reason,
+        "sample": sample,
+        "requested_at": utc_now(),
+        "status": "running",
+        "phase": "settling",
+        "doc": str(doc_path),
+        "document_source": None,
+        "request_attempts": None,
+        "correction_sent_at": None,
+        "completed_at": None,
+        "error": None,
+    }
+    session["handoff"] = record
+    session["status"] = "handing-off"
+    state["lifecycle"].update(state="handing-off", reason=f"handoff: {trigger}")
+    store.save_state(worker_id, state)
+    supervisor_log(f"handoff ({trigger}) requested for session {session['index']} ({session['agent']}): {reason}")
+    try:
+        handoff_checkpoint(store, worker_id)
+        if not settle_session_for_handoff(herdr, session["agent"], adapter):
+            raise HandoffError("handoff-settle-failed", "the current session could not be paused for the handoff")
+        handoff_checkpoint(store, worker_id)
+        record["phase"] = "requesting-document"
+        store.save_state(worker_id, state)
+        handoff_document: Path | None = None
+        if doc_path.is_file() and validate_handoff_document(doc_path)[0]:
+            # A retry after a failed replacement may already have a usable document.
+            handoff_document = doc_path
+            record["document_source"] = "requested-path"
+            record["document_validated_at"] = utc_now()
+            record["phase"] = "awaiting-document"
+            store.save_state(worker_id, state)
+            supervisor_log(f"handoff document already usable for session {session['index']}: {doc_path}")
+        else:
+            prompt = adapter.handoff_request_prompt(
+                state["worker_id"], state["ticket"]["id"], state["ticket"]["title"], doc_path, reason, sample
+            )
+            record["request_attempts"] = deliver_prompt_confirmed(herdr, session["agent"], prompt)
+            record["phase"] = "awaiting-document"
+            store.save_state(worker_id, state)
+            handoff_document = wait_for_handoff_document(store, state, herdr, adapter, session, doc_path, record)
+        handoff_checkpoint(store, worker_id)
+        if not settle_session_for_handoff(herdr, session["agent"], adapter):
+            raise HandoffError(
+                "handoff-settle-failed",
+                "the session did not stop business work after writing the handoff document",
+            )
+        record["phase"] = "starting-replacement"
+        store.save_state(worker_id, state)
+        replacement = start_replacement_session(store, state, herdr, adapter, session, handoff_document)
+        record["phase"] = "ending-old-session"
+        record["status"] = "completed"
+        record["completed_at"] = utc_now()
+        session["status"] = "replaced"
+        session["ended_at"] = record["completed_at"]
+        session["end_state"] = "replaced"
+        replacement["handoff_from"] = session["index"]
+        state["sessions"].append(replacement)
+        state["session_index"] = replacement["index"]
+        state["herdr"].update(agent=replacement["agent"], tab=replacement["tab"], pane=replacement["pane"])
+        state["handoff"]["history"].append(
+            {
+                "from": session["index"],
+                "to": replacement["index"],
+                "trigger": trigger,
+                "reason": reason,
+                "doc": str(handoff_document),
+                "at": record["completed_at"],
+                "sample": sample,
+            }
+        )
+        state["handoff"]["auto_suppressed"] = False
+        state["lifecycle"].update(
+            state="running", reason=f"session {session['index']} handed off to {replacement['index']}"
+        )
+        store.save_state(worker_id, state)
+        if not end_session(herdr, adapter, session):
+            append_item(
+                state,
+                "exception",
+                "handoff-old-session-exit-failed",
+                "the replaced session is still alive; stop or clean it up deliberately",
+                {"session": session["index"], "agent": session["agent"], "tab": session["tab"]},
+            )
+            store.save_state(worker_id, state)
+        supervisor_log(
+            f"handoff complete: session {session['index']} -> {replacement['index']} agent {replacement['agent']}"
+        )
+        return "completed"
+    except HandoffAbort:
+        record.update(status="aborted", phase="aborted-stop", error="stop requested during handoff")
+        session["status"] = "active"
+        state["lifecycle"].update(state="running", reason="handoff aborted by stop request")
+        store.save_state(worker_id, state)
+        supervisor_log(f"handoff aborted by stop request for session {session['index']}")
+        return "aborted-stop"
+    except HandoffError as exc:
+        return record_handoff_failure(store, state, session, record, exc.code, str(exc), trigger, doc_path)
+    except ManagerError as exc:
+        return record_handoff_failure(store, state, session, record, "handoff-failed", str(exc), trigger, doc_path)
+
+
+def record_handoff_failure(
+    store: Store,
+    state: dict[str, Any],
+    session: dict[str, Any],
+    record: dict[str, Any],
+    code: str,
+    message: str,
+    trigger: str,
+    doc_path: Path,
+) -> str:
+    """Record a failed handoff as a pending exception and keep the scene."""
+    record.update(status="failed", phase=record.get("phase"), error=f"{code}: {message}")
+    if session.get("status") == "handing-off":
+        session["status"] = "active"
+    append_item(
+        state,
+        "exception",
+        code,
+        message,
+        {"session": session["index"], "agent": session["agent"], "trigger": trigger, "doc": str(doc_path)},
+    )
+    state["handoff"]["auto_suppressed"] = True
+    state["lifecycle"].update(state="handoff-failed", reason=code)
+    store.save_state(state["worker_id"], state)
+    supervisor_log(f"handoff failed ({code}) for session {session['index']}: {message}")
+    return "failed"
 
 
 def pid_alive(state: dict[str, Any]) -> bool:
@@ -758,6 +1513,7 @@ def record_result(store: Store, state: dict[str, Any]) -> str:
         if state["recovery"]["parse_failures"] >= PARSE_ATTEMPTS:
             append_item(state, "exception", "protocol-failure", "result file exists but cannot be read as JSON")
             state["lifecycle"]["state"] = "protocol-failure"
+            mark_session_ended(state, "protocol-failure")
             return "protocol-failure"
         return "transient"
     try:
@@ -765,6 +1521,7 @@ def record_result(store: Store, state: dict[str, Any]) -> str:
     except ManagerError as exc:
         append_item(state, "exception", "protocol-failure", f"result protocol check failed: {exc}")
         state["lifecycle"]["state"] = "protocol-failure"
+        mark_session_ended(state, "protocol-failure")
         return "protocol-failure"
     state["recovery"]["parse_failures"] = 0
     state["result"] = normalized
@@ -786,6 +1543,7 @@ def record_result(store: Store, state: dict[str, Any]) -> str:
             {"remaining": normalized.get("remaining")},
         )
         state["lifecycle"]["state"] = normalized["status"]
+    mark_session_ended(state, normalized["status"])
     return "recorded"
 
 
@@ -796,6 +1554,7 @@ def finalize(state: dict[str, Any], lifecycle_state: str, exit_reason: str) -> N
     supervisor["state"] = "exited"
     supervisor["exit_reason"] = exit_reason
     supervisor["heartbeat_at"] = utc_now()
+    mark_session_ended(state, lifecycle_state)
 
 
 def supervisor_log(message: str) -> None:
@@ -809,6 +1568,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     if state is None:
         supervisor_log(f"no registered worker {worker_id}")
         return 1
+    ensure_session_state(state)
     state["supervisor"].update(
         pid=os.getpid(),
         host=os.uname().nodename,
@@ -823,7 +1583,8 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     poll = env_float("HPM_POLL_SECONDS", 5.0)
     settle_grace = env_float("HPM_SETTLE_GRACE_SECONDS", 30.0)
     report_wait = env_float("HPM_REPORT_WAIT_SECONDS", 120.0)
-    agent = state["herdr"]["agent"]
+    sample_interval = env_float("HPM_CONTEXT_POLL_SECONDS", DEFAULT_CONTEXT_POLL_SECONDS)
+    last_sample = 0.0
 
     while True:
         control = store.load_control(worker_id)
@@ -838,13 +1599,45 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             store.save_state(worker_id, state)
             return 0
 
+        session = current_session(state)
+        agent = current_agent(state)
+        if session is None or not agent:
+            append_item(state, "exception", "agent-exited", "the worker has no usable session record")
+            finalize(state, "agent-exited", "no-session")
+            store.save_state(worker_id, state)
+            supervisor_log("worker has no usable session record")
+            return 0
+        adapter = get_adapter(state["runtime"]["kind"])
+
+        request_id = control.get("handoff_request_id")
+        if isinstance(request_id, str) and request_id and request_id != state["handoff"].get("handled_request_id"):
+            attempt_handoff(
+                store,
+                state,
+                herdr,
+                adapter,
+                reason=str(control.get("handoff_reason") or "requested by caller"),
+                trigger="requested",
+                sample=session.get("context"),
+            )
+            state["handoff"]["handled_request_id"] = request_id
+            store.save_state(worker_id, state)
+            last_sample = time.monotonic()
+            continue
+
         rc, status = herdr.agent_status(agent)
         if rc != 0:
             outcome = record_result(store, state)
             if outcome in {"recorded", "protocol-failure"}:
                 supervisor_log(f"agent gone; result {outcome}")
             else:
-                append_item(state, "exception", "agent-exited", "agent disappeared before writing a valid result")
+                append_item(
+                    state,
+                    "exception",
+                    "agent-exited",
+                    "agent disappeared before writing a valid result",
+                    {"session": session["index"], "agent": agent},
+                )
                 finalize(state, "agent-exited", "agent-exited-without-result")
                 supervisor_log("agent exited without a result")
             store.save_state(worker_id, state)
@@ -862,7 +1655,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                 return 0
             if outcome == "transient":
                 supervisor_log("result file present but not readable yet; will retry")
-            else:
+            elif state["lifecycle"]["state"] == "running":
                 sent = state["recovery"].get("re_report_sent_at")
                 if not sent:
                     since = state["recovery"].get("settled_since")
@@ -903,11 +1696,44 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             state["recovery"]["settled_since"] = state["recovery"].get("settled_since") or utc_now()
         elif status == "blocked":
             state["recovery"]["settled_since"] = None
-            if not any(item.get("code") == "blocked" for item in state["items"]):
-                append_item(state, "exception", "blocked", "worker is blocked and may need a decision")
+            blocked_item = any(
+                item.get("code") == "blocked" and (item.get("details") or {}).get("session") == session["index"]
+                for item in state["items"]
+            )
+            if not blocked_item:
+                append_item(
+                    state,
+                    "exception",
+                    "blocked",
+                    "worker is blocked and may need a decision",
+                    {"session": session["index"], "agent": agent},
+                )
                 supervisor_log("worker blocked")
         else:
             state["recovery"]["settled_since"] = None
+
+        if state["lifecycle"]["state"] == "running" and not state["handoff"].get("auto_suppressed"):
+            now = time.monotonic()
+            if now - last_sample >= sample_interval:
+                last_sample = now
+                sample = sample_current_session(state, herdr, agent, status)
+                store.save_state(worker_id, state)
+                if sample_is_current(sample, state):
+                    trigger = handoff_trigger_reason(sample, state["handoff"])
+                    if trigger:
+                        supervisor_log(f"context threshold ({trigger}) reached for session {session['index']}")
+                        attempt_handoff(
+                            store,
+                            state,
+                            herdr,
+                            adapter,
+                            reason=f"context threshold reached ({trigger})",
+                            trigger=trigger,
+                            sample=sample,
+                        )
+                        last_sample = time.monotonic()
+                        store.save_state(worker_id, state)
+                        continue
 
         state["supervisor"]["heartbeat_at"] = utc_now()
         store.save_state(worker_id, state)
@@ -1030,7 +1856,8 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
     if state is None:
         raise ManagerError(f"worker {worker_id!r} is not registered under {store.root}")
     herdr = Herdr(state.get("herdr", {}).get("workspace"))
-    rc, status = herdr.agent_status(state["herdr"]["agent"])
+    agent = current_agent(state) or state["herdr"].get("agent", "")
+    rc, status = herdr.agent_status(agent)
     worktree = Path(state["worktree"])
     repo = Path(state["repo"]["root"])
     branch_head = None
@@ -1060,6 +1887,9 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
         "herdr": {**state["herdr"], "agent_status": status, "agent_present": rc == 0},
         "lifecycle": state["lifecycle"],
         "prompt": state.get("prompt"),
+        "session": current_session(state),
+        "sessions": state.get("sessions") or [],
+        "handoff": state.get("handoff") or {},
         "supervisor": supervisor_facts(state, store.load_control(worker_id)),
         "items": state["items"],
         "result": state["result"],
@@ -1090,6 +1920,12 @@ def cmd_start(args: argparse.Namespace) -> int:
     for source in sources:
         if not source.exists():
             raise ManagerError(f"material does not exist: {source}")
+    if args.handoff_tokens < 1:
+        raise ManagerError("--handoff-tokens must be a positive token count")
+    if not 0 < args.handoff_pct <= 1:
+        raise ManagerError("--handoff-pct must be within (0, 1]")
+    if args.context_window < 0:
+        raise ManagerError("--context-window must not be negative")
     adapter.validate(args.provider, args.model, args.thinking)
 
     worker_id = args.worker_id or worker_id_for(args.ticket_id)
@@ -1124,6 +1960,11 @@ def cmd_start(args: argparse.Namespace) -> int:
     state = initial_state(
         worker_id, args.ticket_id, args.title or args.ticket_id, runtime, repo_root, common_dir, base,
         branch, worktree, store, workspace, agent,
+    )
+    state["handoff"].update(
+        tokens=args.handoff_tokens,
+        pct=args.handoff_pct,
+        window=args.context_window or None,
     )
     tab = ""
     pane = ""
@@ -1170,6 +2011,7 @@ def cmd_start(args: argparse.Namespace) -> int:
         agent_started = True
         if not herdr.wait_interactive(agent):
             raise ManagerError(f"agent {agent} never reached an interactive state")
+        ensure_session_state(state)
         state["lifecycle"]["state"] = "prompting"
         store.save_state(worker_id, state)
         attempts = deliver_prompt_confirmed(
@@ -1179,6 +2021,10 @@ def cmd_start(args: argparse.Namespace) -> int:
             "in full and follow it exactly. Do not start work before reading it.",
         )
         state["prompt"] = {"attempts": attempts, "confirmed_at": utc_now()}
+        session = current_session(state)
+        if session is not None:
+            session["prompt"] = {"attempts": attempts, "confirmed_at": utc_now()}
+            session["context_ref"] = herdr.wait_agent_session(agent, attempts=8, delay=0.5)
         state["lifecycle"]["state"] = "running"
         store.save_state(worker_id, state)
         pid = spawn_supervisor(store, worker_id, worktree)
@@ -1201,6 +2047,7 @@ def cmd_start(args: argparse.Namespace) -> int:
                 "base": base,
                 "runtime": runtime,
                 "prompt_attempts": state["prompt"]["attempts"],
+                "session": state.get("session_index"),
                 "result_path": str(store.result_path(worker_id)),
                 "management_dir": str(store.worker_dir(worker_id)),
                 "supervisor_pid": state["supervisor"].get("pid") or pid,
@@ -1245,6 +2092,7 @@ def cmd_status(args: argparse.Namespace) -> int:
                 "worker_id": state["worker_id"],
                 "ticket": state["ticket"],
                 "lifecycle": state["lifecycle"]["state"],
+                "session": state.get("session_index"),
                 "items": len(state["items"]),
                 "branch": state["branch"],
                 "worktree": state["worktree"],
@@ -1259,11 +2107,53 @@ def cmd_read(args: argparse.Namespace) -> int:
     state = store.load_state(args.worker)
     if state is None:
         raise ManagerError(f"worker {args.worker!r} is not registered under {store.root}")
+    agent = current_agent(state)
+    if not agent:
+        raise ManagerError(f"worker {args.worker!r} has no current session agent")
     herdr = Herdr(state.get("herdr", {}).get("workspace"))
-    proc = herdr.agent_read(state["herdr"]["agent"], args.lines)
+    proc = herdr.agent_read(agent, args.lines)
     if proc.returncode != 0:
-        raise ManagerError(f"cannot read agent {state['herdr']['agent']}: {proc.stderr.strip() or proc.stdout.strip()}")
+        raise ManagerError(f"cannot read agent {agent}: {proc.stderr.strip() or proc.stdout.strip()}")
     sys.stdout.write(proc.stdout)
+    return 0
+
+
+def cmd_handoff(args: argparse.Namespace) -> int:
+    """Request the standard session handoff; the supervisor performs it."""
+    store = resolve_store(args)
+    state = store.load_state(args.worker)
+    if state is None:
+        raise ManagerError(f"worker {args.worker!r} is not registered under {store.root}")
+    life = state["lifecycle"]["state"]
+    if life in TERMINAL_STATES:
+        raise ManagerError(f"worker is in lifecycle {life!r}; a handoff cannot be requested")
+    if not pid_alive(state):
+        raise ManagerError("the worker supervisor is not running; a handoff cannot be requested")
+    session = current_session(state)
+    if session is None:
+        raise ManagerError("the worker has no current session record")
+    request_id = uuid.uuid4().hex
+    control = store.load_control(args.worker)
+    control.update(
+        {
+            "handoff_request_id": request_id,
+            "handoff_requested_at": utc_now(),
+            "handoff_requested_session": session["index"],
+            "handoff_reason": args.reason or "requested by the calling agent",
+        }
+    )
+    store.save_control(args.worker, control)
+    print_json(
+        {
+            "requested": True,
+            "worker_id": args.worker,
+            "session": session["index"],
+            "agent": session["agent"],
+            "request_id": request_id,
+            "reason": control["handoff_reason"],
+            "note": "the supervisor performs the standard handoff process; inspect status for progress",
+        }
+    )
     return 0
 
 
@@ -1294,7 +2184,7 @@ def cmd_stop(args: argparse.Namespace) -> int:
     store.save_control(args.worker, control)
 
     herdr = Herdr(state.get("herdr", {}).get("workspace"))
-    agent = state["herdr"]["agent"]
+    agent = current_agent(state) or state["herdr"].get("agent", "")
     adapter = get_adapter(state["runtime"]["kind"])
     rc, status = herdr.agent_status(agent)
     if rc == 0 and status in {"working", "blocked"}:
@@ -1341,6 +2231,7 @@ def cmd_stop(args: argparse.Namespace) -> int:
         {
             "stopped": True,
             "worker_id": args.worker,
+            "session": state.get("session_index"),
             "lifecycle": state["lifecycle"]["state"],
             "reason": state["lifecycle"].get("reason"),
             "branch": state["branch"],
@@ -1355,15 +2246,17 @@ def cmd_stop(args: argparse.Namespace) -> int:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="plan_manager.py",
-        description="Minimal single-worker lifecycle manager for Herdr coding agents (tickets 02-03).",
+        description="Single-worker lifecycle manager for Herdr coding agents (tickets 02-04).",
         epilog=(
             "Example:\n"
-            "  plan_manager.py start --repo /repo --ticket-id 02 --base <full-sha> "
-            "--material /path/spec.md --kind pi --provider <p> --model <m> --thinking <t>\n"
-            "  plan_manager.py start --repo /repo --ticket-id 03 --base <full-sha> "
+            "  plan_manager.py start --repo /repo --ticket-id 04 --base <full-sha> "
+            "--material /path/spec.md --kind pi --provider <p> --model <m> --thinking <t> "
+            "--handoff-tokens 300000 --handoff-pct 0.8\n"
+            "  plan_manager.py start --repo /repo --ticket-id 04 --base <full-sha> "
             "--material /path/spec.md --kind opencode --provider <p> --model <m> --thinking <variant>\n"
             "  plan_manager.py status --repo /repo --worker <worker-id>\n"
             "  plan_manager.py read --repo /repo --worker <worker-id>\n"
+            "  plan_manager.py handoff --repo /repo --worker <worker-id> --reason <why>\n"
             "  plan_manager.py stop --repo /repo --worker <worker-id>"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -1385,6 +2278,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     start.add_argument("--worktree", default="")
     start.add_argument("--management-root", default="")
     start.add_argument("--instructions", default="", help="optional extra task instructions for the worker contract")
+    start.add_argument(
+        "--handoff-tokens",
+        type=int,
+        default=DEFAULT_HANDOFF_TOKENS,
+        help="absolute context-token threshold for an automatic session handoff",
+    )
+    start.add_argument(
+        "--handoff-pct",
+        type=float,
+        default=DEFAULT_HANDOFF_PCT,
+        help="context-window occupancy threshold for an automatic session handoff",
+    )
+    start.add_argument(
+        "--context-window",
+        type=int,
+        default=0,
+        help="optional explicit context window override; observations become estimated",
+    )
     start.set_defaults(func=cmd_start)
 
     status = sub.add_parser("status", help="show execution facts for one or all workers")
@@ -1399,6 +2310,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     read.add_argument("--worker", required=True)
     read.add_argument("--lines", type=int, default=120)
     read.set_defaults(func=cmd_read)
+
+    handoff = sub.add_parser("handoff", help="request the standard session handoff for a running worker")
+    handoff.add_argument("--repo", default="")
+    handoff.add_argument("--management-root", default="")
+    handoff.add_argument("--worker", required=True)
+    handoff.add_argument("--reason", default="")
+    handoff.set_defaults(func=cmd_handoff)
 
     stop = sub.add_parser("stop", help="stop business execution and supervision, retaining the scene")
     stop.add_argument("--repo", default="")

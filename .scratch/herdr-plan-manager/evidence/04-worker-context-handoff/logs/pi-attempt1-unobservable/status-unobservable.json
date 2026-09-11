@@ -1,0 +1,144 @@
+{
+  "branch": "hpm/w-smoke04-pi-9b62e6",
+  "branch_head": "aa8b7f40d29300db4eb6d1153798be4877d0acca",
+  "control": {},
+  "handoff": {
+    "auto_suppressed": false,
+    "handled_request_id": null,
+    "history": [],
+    "pct": 0.8,
+    "tokens": 1,
+    "window": null
+  },
+  "herdr": {
+    "agent": "w-smoke04-pi-9b62e6",
+    "agent_present": true,
+    "agent_status": "done",
+    "pane": "wJ:pG",
+    "tab": "wJ:tG",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "acked_at": null,
+      "code": "context-unobservable",
+      "created_at": "2026-09-11T11:56:11.570317Z",
+      "details": {
+        "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp04-pi-manager-worktrees-w-smoke04-pi-9b62e6--/2026-09-11T11-55-34-510Z_01a09052-b4ed-703f-bf21-2af6ab0ba4b9.jsonl",
+        "error": "Pi model registry has no context window; provide --window explicitly",
+        "session": 1
+      },
+      "id": "i001",
+      "kind": "exception",
+      "message": "current context cannot be observed: Pi model registry has no context window; provide --window explicitly"
+    }
+  ],
+  "lifecycle": {
+    "reason": null,
+    "started_at": "2026-09-11T11:55:31.289748Z",
+    "state": "running",
+    "updated_at": "2026-09-11T11:55:31.289748Z"
+  },
+  "paths": {
+    "contract": "/tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-9b62e6/contract.md",
+    "management": "/tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-9b62e6",
+    "result": "/tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-9b62e6/result.json",
+    "supervisor_log": "/tmp/opencode/hpm-exp04-pi/manager/workers/w-smoke04-pi-9b62e6/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 1,
+    "confirmed_at": "2026-09-11T11:55:37.109137Z"
+  },
+  "repo": {
+    "base": "5d460bec417ac9c29602700f3f4f125ab0a88283",
+    "common_dir": "/tmp/opencode/hpm-exp04-pi/repo/.git",
+    "root": "/tmp/opencode/hpm-exp04-pi/repo"
+  },
+  "result": null,
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session": {
+    "agent": "w-smoke04-pi-9b62e6",
+    "context": {
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp04-pi-manager-worktrees-w-smoke04-pi-9b62e6--/2026-09-11T11-55-34-510Z_01a09052-b4ed-703f-bf21-2af6ab0ba4b9.jsonl",
+      "error": "Pi model registry has no context window; provide --window explicitly",
+      "observed_at": "2026-09-11T11:57:04.058237Z",
+      "sampled_at": "2026-09-11T11:57:04.058266Z",
+      "session": 1,
+      "state": "pending"
+    },
+    "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp04-pi-manager-worktrees-w-smoke04-pi-9b62e6--/2026-09-11T11-55-34-510Z_01a09052-b4ed-703f-bf21-2af6ab0ba4b9.jsonl",
+    "end_state": null,
+    "ended_at": null,
+    "handoff": null,
+    "index": 1,
+    "pane": "wJ:pG",
+    "prompt": {
+      "attempts": 1,
+      "confirmed_at": "2026-09-11T11:55:37.109163Z"
+    },
+    "runtime": {
+      "kind": "pi",
+      "model": "deepseek-v4.1-flash",
+      "provider": "opencode-go",
+      "thinking": "max"
+    },
+    "started_at": "2026-09-11T11:55:36.573725Z",
+    "status": "active",
+    "tab": "wJ:tG"
+  },
+  "sessions": [
+    {
+      "agent": "w-smoke04-pi-9b62e6",
+      "context": {
+        "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp04-pi-manager-worktrees-w-smoke04-pi-9b62e6--/2026-09-11T11-55-34-510Z_01a09052-b4ed-703f-bf21-2af6ab0ba4b9.jsonl",
+        "error": "Pi model registry has no context window; provide --window explicitly",
+        "observed_at": "2026-09-11T11:57:04.058237Z",
+        "sampled_at": "2026-09-11T11:57:04.058266Z",
+        "session": 1,
+        "state": "pending"
+      },
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp04-pi-manager-worktrees-w-smoke04-pi-9b62e6--/2026-09-11T11-55-34-510Z_01a09052-b4ed-703f-bf21-2af6ab0ba4b9.jsonl",
+      "end_state": null,
+      "ended_at": null,
+      "handoff": null,
+      "index": 1,
+      "pane": "wJ:pG",
+      "prompt": {
+        "attempts": 1,
+        "confirmed_at": "2026-09-11T11:55:37.109163Z"
+      },
+      "runtime": {
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-11T11:55:36.573725Z",
+      "status": "active",
+      "tab": "wJ:tG"
+    }
+  ],
+  "supervisor": {
+    "alive": true,
+    "exit_reason": null,
+    "heartbeat_at": "2026-09-11T11:57:04.065218Z",
+    "host": "BlingtronPC",
+    "pid": 1623930,
+    "state": "running",
+    "warnings": []
+  },
+  "ticket": {
+    "id": "SMOKE04-PI",
+    "title": "context handoff smoke (pi)"
+  },
+  "worker_id": "w-smoke04-pi-9b62e6",
+  "worktree": "/tmp/opencode/hpm-exp04-pi/manager/worktrees/w-smoke04-pi-9b62e6",
+  "worktree_dirty": {
+    "entries": 0
+  }
+}

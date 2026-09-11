@@ -17,6 +17,7 @@ import sys
 from typing import Any
 
 KINDS = {"opencode", "codex", "pi"}
+PI_SIZE_RE = re.compile(r"^([0-9]+(?:\.[0-9]+)?)([KkMm])$")
 
 
 class ContextError(RuntimeError):
@@ -203,6 +204,45 @@ def get_codex(ref: str, db_path: Path, window_override: int | None) -> dict[str,
     }
 
 
+def parse_model_size(value: str) -> int | None:
+    match = PI_SIZE_RE.fullmatch(value.strip())
+    if not match:
+        return None
+    number = float(match.group(1))
+    factor = 1024 if match.group(2).lower() == "k" else 1024 * 1024
+    return int(number * factor)
+
+
+def pi_model_window(provider: str, model: str) -> int | None:
+    """Read the declared context window from the Pi model catalog.
+
+    The Pi session helper reads the active session's model registry, which can
+    lack a context window for custom providers; `pi --list-models` is the same
+    catalog the launcher validates against, so use it as the explicit fallback.
+    """
+    try:
+        proc = subprocess.run(
+            ["pi", "--list-models"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=60,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    for line in proc.stdout.splitlines():
+        columns = line.split()
+        if len(columns) < 3 or columns[0].lower() == "provider":
+            continue
+        if columns[0] != provider or columns[1] != model:
+            continue
+        return parse_model_size(columns[2])
+    return None
+
+
 def allowed_pi_roots() -> list[Path]:
     roots = [Path.home() / ".pi/agent/sessions"]
     configured = os.environ.get("PI_SESSION_DIR")
@@ -243,11 +283,20 @@ def get_pi(ref: str, helper: Path, window_override: int | None) -> dict[str, Any
         data = json.loads(proc.stdout)
     except json.JSONDecodeError as exc:
         raise ContextError(f"Pi helper returned invalid JSON: {exc}") from exc
+    if not window_override and not isinstance(data.get("window"), (int, float)):
+        provider = data.get("provider")
+        model_id = data.get("model")
+        if isinstance(provider, str) and isinstance(model_id, str):
+            catalog_window = pi_model_window(provider, model_id)
+            if catalog_window:
+                data["window"] = catalog_window
+                data["window_source"] = "pi --list-models"
     window = window_override or data.get("window")
     if not isinstance(window, (int, float)) or window <= 0:
         raise ContextError("Pi model registry has no context window; provide --window explicitly")
     data["window"] = int(window)
     data["source"] = "estimated" if window_override else "precise"
+    data.setdefault("window_source", "explicit --window" if window_override else "pi model registry")
     return data
 
 

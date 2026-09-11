@@ -1,0 +1,5 @@
+2026-09-11T12:08:22.906989Z supervisor started
+2026-09-11T12:08:33.247152Z handoff (requested) requested for session 1 (w-smoke04-pi2-5d1f27): single proactive handoff demo
+2026-09-11T12:09:04.620170Z handoff document validated for session 1: /tmp/opencode/hpm-exp04-pi2/manager/workers/w-smoke04-pi2-5d1f27/handoffs/handoff-001.md
+2026-09-11T12:09:18.387885Z handoff complete: session 1 -> 2 agent w-smoke04-pi2-5d1f27-s2
+2026-09-11T12:09:41.841220Z terminal settled; result recorded

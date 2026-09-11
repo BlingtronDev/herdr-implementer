@@ -1,0 +1,22 @@
+{
+  "ticket_id": "SMOKE04-PI2",
+  "worker_id": "w-smoke04-pi2-5d1f27",
+  "status": "delivered",
+  "summary": "Wrote notes/plan.md and committed it, then created smoke.txt containing exactly 'SMOKE04-PI2-PROACTIVE-4c1d' plus a trailing newline and committed it on branch hpm/w-smoke04-pi2-5d1f27.",
+  "acceptance": [
+    {"criterion": "Create smoke.txt with content SMOKE04-PI2-PROACTIVE-4c1d plus newline and commit it to the current branch, then write the delivered result.", "met": true, "evidence": "smoke.txt:1 (27 bytes; od -c shows 'S M O K E 0 4 - P I 2 - P R O A C T I V E - 4 c 1 d \\n'); commits 7f6b9f8 and c969194 on hpm/w-smoke04-pi2-5d1f27; HEAD c969194bc9e7d0339c922981620ede6bacc8a6d1"}
+  ],
+  "verification": [
+    {"command": "od -c smoke.txt", "exit_code": 0, "summary": "exact bytes: SMOKE04-PI2-PROACTIVE-4c1d followed by \\n (27 bytes per wc -c)"},
+    {"command": "wc -c smoke.txt", "exit_code": 0, "summary": "27 smoke.txt"},
+    {"command": "git status --porcelain", "exit_code": 0, "summary": "empty output; working tree clean"},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "c969194bc9e7d0339c922981620ede6bacc8a6d1"},
+    {"command": "git branch --show-current", "exit_code": 0, "summary": "hpm/w-smoke04-pi2-5d1f27"},
+    {"command": "git show --stat --oneline HEAD", "exit_code": 0, "summary": "c969194 feat: add smoke.txt for SMOKE04-PI2 proactive handoff smoke; smoke.txt | 1 +"},
+    {"command": "git show --stat --oneline HEAD~1", "exit_code": 0, "summary": "7f6b9f8 docs: add SMOKE04-PI2 implementation plan; notes/plan.md | 20 ++"},
+    {"command": "git merge-base HEAD 942e0c2efe3997a6dcdc294eaa8fc9c3b1e1cc52", "exit_code": 0, "summary": "942e0c2efe3997a6dcdc294eaa8fc9c3b1e1cc52 (base confirmed)"}
+  ],
+  "head": "c969194bc9e7d0339c922981620ede6bacc8a6d1",
+  "artifacts": ["smoke.txt", "notes/plan.md"],
+  "remaining": ""
+}

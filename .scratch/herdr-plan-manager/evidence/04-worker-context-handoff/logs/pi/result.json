@@ -1,0 +1,28 @@
+{
+  "ticket_id": "SMOKE04-PI",
+  "worker_id": "w-smoke04-pi-a5885f",
+  "status": "delivered",
+  "summary": "Phase 2 completed after context handoff. Created smoke.txt in the worktree containing exactly the line 'SMOKE04-PI-CONTENT-9f3a' followed by one LF (23 characters/24 bytes), committed it as 65470fb on branch hpm/w-smoke04-pi-a5885f, verified content and clean tree, and wrote this delivered result. Phase 1 (plan commit bac798a) was preserved.",
+  "acceptance": [
+    {
+      "criterion": "smoke.txt 包含下面这一行（不含引号）并已提交，且按合同写出 delivered 结果。",
+      "met": true,
+      "evidence": "smoke.txt:1 is 'SMOKE04-PI-CONTENT-9f3a' with a single trailing LF (verified by cat/od -c: ... 9 f 3 a \\n, no extra whitespace); committed in 65470fb 'feat(smoke04): add smoke.txt content marker' on hpm/w-smoke04-pi-a5885f (git status --short empty); this result.json records status delivered per contract."
+    }
+  ],
+  "verification": [
+    {"command": "printf 'SMOKE04-PI-CONTENT-9f3a\\n' > smoke.txt && git add smoke.txt && git commit -m \"feat(smoke04): add smoke.txt content marker\"", "exit_code": 0, "summary": "Created and committed smoke.txt; commit 65470fb, 1 file changed, 1 insertion"},
+    {"command": "cat smoke.txt", "exit_code": 0, "summary": "Outputs exactly the line SMOKE04-PI-CONTENT-9f3a"},
+    {"command": "wc -c smoke.txt", "exit_code": 0, "summary": "24 bytes = 23 characters + 1 LF"},
+    {"command": "od -c smoke.txt", "exit_code": 0, "summary": "Content is 'SMOKE04-PI-CONTENT-9f3a\\n' with exactly one trailing newline and no other whitespace"},
+    {"command": "git status --short | wc -l", "exit_code": 0, "summary": "0 lines: worktree clean, all changes committed"},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "65470fbdb0641011b8b0b6cb9144b1fb776a3210"},
+    {"command": "git show --stat --oneline HEAD", "exit_code": 0, "summary": "65470fb feat(smoke04): add smoke.txt content marker; smoke.txt | 1 +"}
+  ],
+  "head": "65470fbdb0641011b8b0b6cb9144b1fb776a3210",
+  "artifacts": [
+    "/tmp/opencode/hpm-exp04-pi/manager/worktrees/w-smoke04-pi-a5885f/smoke.txt",
+    "/tmp/opencode/hpm-exp04-pi/manager/worktrees/w-smoke04-pi-a5885f/notes/step1.md"
+  ],
+  "remaining": ""
+}
