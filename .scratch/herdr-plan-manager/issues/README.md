@@ -65,4 +65,14 @@
 
 ## 计划外情况记录
 
-当前尚无已登记的计划外情况。首次登记时，用实际记录替换此句。
+### E01：Pi 的阻塞对话框不被 Herdr 标记为 `blocked`
+
+- 发现时间：2026-09-11
+- 关联工单：[01 验证最小执行链路](01-verify-runtime-chain.md)
+- 状态：待决策（根因已确认，处置方案待定）
+- 预期与实际：预期 `blocked` 信号能覆盖所有等待人工输入的 worker UI。实际在 Pi 中调用 `ask_user_question` 后，对话框真实阻塞，但 `herdr agent get` 持续报告 `working`，`herdr agent wait --until blocked` 超时（exit 1）。根因：Herdr 0.8.2 在 Pi 官方集成报活时以生命周期 hook 为唯一权威、跳过屏幕检测；集成仅在收到 `herdr:blocked` 事件时才上报 blocked，而 `rpiv-ask-user-question` 只发出自身命名空间的 `rpiv:ask-user:blocked`，未桥接。对照 `pi-subagents` 显式桥接了 `herdr:blocked`，其等待人工会被正确上报。
+- 证据：[`evidence/01-verify-runtime-chain/logs/09-pi-blocked.txt`](../evidence/01-verify-runtime-chain/logs/09-pi-blocked.txt)、[`09-pi-blocked-current.txt`](../evidence/01-verify-runtime-chain/logs/09-pi-blocked-current.txt)、[`evidence/01-verify-runtime-chain/README.md` 附录 A](../evidence/01-verify-runtime-chain/README.md)；`~/.pi/agent/extensions/herdr-agent-state.ts:207`；`@juicesharp/rpiv-ask-user-question/events.ts:33`；Herdr 0.8.2 `agents.mdx`（Status authority / Blocked state）与 `pi-subagents/src/integrations/herdr-status.ts:267-280`。
+- 影响：工单 02（单 worker 生命周期监督）与 04（异常上报／自动交接）不能仅靠 `blocked` 识别 Pi 的人工介入信号；OpenCode 权限询问仍可靠映射为 `blocked`。工单 01 的验收结论不受影响（语义已实测并记录）。作为推论，卸载 `rpiv-ask-user-question` 不会改变该行为；只有卸载 Herdr 的 Pi 集成并回退屏幕 manifest 检测，才可能将可见审批／提问 UI 判为 `blocked`，但会丢失精确生命周期与会话身份。
+- 处置与负责人：待主脑决策。候选：A. 增加桥接扩展，监听 `rpiv:ask-user:blocked` 并转发 `herdr:blocked`（放在 `herdr-agent-state.ts` 旁）；B. 监督层对 Pi 采用 `working` 长时间无输出 + pane 读取兜底；C. 卸载 Pi 集成回退屏幕检测（不推荐）。
+- 后续工单／计划变更：暂无新增工单；建议在工单 02／04 的验收中明确 Pi 阻塞 UI 的识别路径。
+- 解决与验证：待补充。

@@ -12,7 +12,7 @@
 - OpenCode 的推理配置可通过 `OPENCODE_CONFIG_CONTENT` 在新建 tab 时注入：业务仓库零改写、未覆盖权限配置。
 - Pi、OpenCode 都能调用 `handoff` skill，且新会话能在同一 worktree／branch 读取交接文档继续执行，配置保持一致。
 - `idle／done` 只是终端生命周期信号，不能证明工单完成；`wait` 超时也不代表 worker 失败。
-- 关键限制：Pi 的 `ask_user_question` 对话框在 pane 中真实阻塞，但 Herdr 仍报告 `working`，`wait --until blocked` 会超时。需要人工决策的 Pi UI 不能只靠 `blocked` 信号发现。
+- 关键限制：Pi 的 `ask_user_question` 对话框在 pane 中真实阻塞，但 Herdr 仍报告 `working`，`wait --until blocked` 会超时。需要人工决策的 Pi UI 不能只靠 `blocked` 信号发现；根因与处置选项见附录 A。
 
 ## 2. 环境与版本（只读发现）
 
@@ -149,7 +149,7 @@ OpenCode 在 `blocked` 状态下发送一次 `escape` 会清除阻塞并终止�
 
 ## 10. 已知限制与未验证假设
 
-- 已验证事实：Pi `ask_user_question` UI 显示时 Herdr 状态为 `working`，`wait --until blocked` 超时；OpenCode 权限询问为 `blocked`。
+- 已验证事实：Pi `ask_user_question` UI 显示时 Herdr 状态为 `working`，`wait --until blocked` 超时；OpenCode 权限询问为 `blocked`。根因见附录 A。
 - 未验证：无人值守下自动应答 OpenCode 权限询问的流程（工单 01 只验证语义）。
 - 未验证：上下文用量读取、300K／80% 阈值与自动交接（工单 04）。
 - 未验证：多 worker 并发额度、wait-any 与 ack（工单 05）。
@@ -179,3 +179,16 @@ OpenCode 在 `blocked` 状态下发送一次 `escape` 会清除阻塞并终止�
 - 2026-09-11 17:33（本地）：停止实验 agent（`exp01pi2`、`exp01oc2` 及此前实例），关闭实验 tab（`wJ:t4`、`wJ:t5`），删除一次性仓库与 `/tmp/opencode/hpm-exp01`。
 - 未操作其他 tab、workspace 或用户会话；实验证据已复制到本目录后删除原始临时目录。
 - 清理后 `herdr agent list` 中无 `exp01*` agent，`wJ` workspace 仅剩原有 tab。
+
+## 附录 A：Pi `blocked` 分类的根因与处置选项（2026-09-11 补充）
+
+- 状态权威：Herdr 0.8.2 对 Pi 的官方集成（`~/.pi/agent/extensions/herdr-agent-state.ts`，v8）在运行且报活时是完整生命周期权威，Herdr 明确不再为其运行屏幕 manifest 检测（官方文档 `agents.mdx` 的 Status authority；实测 `agent get` 含 `screen_detection_skipped: true`）。
+- 集成逻辑：`agent_start` 置 `working`，`agent_settled` 置 `idle`；只有收到 `herdr:blocked` 事件时才上报 `blocked`（herdr-agent-state.ts:207 的 `pi.events.on("herdr:blocked", …)`）。
+- 本次现象根因：`@juicesharp/rpiv-ask-user-question` 只发出自身命名空间的 `rpiv:ask-user:blocked`（events.ts:33），没有转发 `herdr:blocked`，所以问卷等待回答期间 Herdr 一直是 `working`，`wait --until blocked` 超时。
+- 对照：`pi-subagents` 在 `src/integrations/herdr-status.ts:267-280` 显式桥接了 `herdr:blocked`，其等待人工的异步子任务会被正确上报为 blocked。
+- 用户问题的结论：卸载 `rpiv-ask-user-question` 本身不改变分类行为——只是该问卷不再出现；其他 Pi 内置或第三方阻塞 UI 同样只有在发出 `herdr:blocked` 时才变为 `blocked`。只有把 Herdr 的 Pi 集成也卸载、回退到屏幕 manifest 检测时，Herdr 才可能把可见的审批／提问 UI 判为 `blocked`，但会丢失精确生命周期与会话身份。
+- 处置选项（工单 02／04 需选定并验证）：
+  - A. 桥接扩展：在 `herdr-agent-state.ts` 旁增加扩展，监听 `rpiv:ask-user:blocked` 并转发 `herdr:blocked`（该集成文件注明可在旁新增自定义 hook／plugin）。
+  - B. 监督层兜底：对 Pi 不依赖 `blocked`，用 `working` 长时间无输出加 pane 读取识别等待人工。
+  - C. 卸载 Pi 集成回退屏幕检测：不推荐，丢失会话身份与精确状态。
+- 该事项已登记为工单总览 README 的 E01，待主脑决定处置方案。
