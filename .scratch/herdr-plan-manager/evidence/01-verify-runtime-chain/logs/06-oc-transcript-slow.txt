@@ -1,0 +1,52 @@
+
+  ┃                                                                                                                                            EXP01 readiness check
+  ┃  Reply with exactly this line and nothing else: EXP01-OC-READY
+  ┃                                                                                                                                            Context
+                                                                                                                                               10,914 tokens
+     + Thought: 225ms                                                                                                                          1% used
+                                                                                                                                               $0.00 spent
+     EXP01-OC-READY
+                                                                                                                                               LSP
+     ▣  Build · DeepSeek V4.1 Flash · 7.3s                                                                                                     LSPs are disabled
+
+  ┃
+  ┃  Use the bash tool to run exactly: sleep 30; then reply with exactly EXP01-OC-SLOW-DONE
+  ┃
+
+  ┃
+  ┃  $ sleep 30
+  ┃
+  ┃  (no output)
+  ┃
+
+     EXP01-OC-SLOW-DONE
+
+     ▣  Build · DeepSeek V4.1 Flash · 35.9s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ┃
+  ┃
+  ┃
+  ┃  Build · DeepSeek V4.1 Flash OpenCode Go · max                                                                                             /tmp/opencode/hpm-exp01/repo:main
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+   /tmp/opencode/hpm-exp01/repo                                                                         10.9K (1%) · $0.00  ctrl+p commands    • OpenCode 1.18.30

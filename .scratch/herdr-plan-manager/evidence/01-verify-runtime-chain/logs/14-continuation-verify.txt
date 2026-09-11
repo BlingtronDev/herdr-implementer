@@ -1,0 +1,27 @@
+=== pi-continue.txt ===
+0000000   E   X   P   0   1   -   P   I   -   C   O   N   T   I   N   U
+0000020   E   D  \n
+0000023
+=== oc-continue.txt ===
+0000000   E   X   P   0   1   -   O   C   -   C   O   N   T   I   N   U
+0000020   E   D  \n
+0000023
+=== git log ===
+1c3fc55 exp01: add oc continue note
+0236aa9 exp01: add pi continue marker
+83f4279 exp01: disposable base
+=== git status ===
+?? secret.env
+=== pi new session config ===
+file: /home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp01-repo--/2026-09-11T09-32-10-581Z_01a08fcf-6bd4-731c-8b90-d3e15a052136.jsonl
+{"type": "session", "cwd": "/tmp/opencode/hpm-exp01/repo", "timestamp": "2026-09-11T09:32:10.581Z"}
+{"type": "model_change", "provider": "opencode-go", "modelId": "deepseek-v4.1-flash", "timestamp": "2026-09-11T09:32:12.207Z"}
+{"type": "thinking_level_change", "thinkingLevel": "max", "timestamp": "2026-09-11T09:32:12.207Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:24.102Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:26.185Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:28.105Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:29.977Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:32.099Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:34.212Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:36.366Z"}
+{"type": "message", "timestamp": "2026-09-11T09:32:38.892Z"}
