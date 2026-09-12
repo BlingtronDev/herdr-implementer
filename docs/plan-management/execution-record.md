@@ -1,48 +1,59 @@
-# 执行记录模板
+# Execution Record Template
 
-在目标仓库关联的主脑管理位置创建一份 Markdown 记录（例如 `.scratch/<slug>/execution.md`），填写下列区块。由主脑单写；这是业务决定的唯一记录，不是工具状态的镜像，也不是工具解析协议。若工单索引已有状态，可在此引用索引而非重复维护状态表。
+Create one coordinator-owned Markdown record associated with the target repository, for example `.scratch/<slug>/execution.md`. Use this template to record decisions and integration evidence, not to mirror tool state or define a machine-parsed business state model.
 
-## 目标与授权
+Keep one authoritative location for each fact. If an existing ticket index owns ticket status or unexpected findings, link to it instead of maintaining another copy. The coordinator is the sole writer of the shared record.
 
-- 目标／范围／排除项：
-- 计划路径与版本／完整初始工单索引：
-- 目标仓库、目标分支、初始目标 SHA：
-- 用户已确认配置：kind、provider、model、thinking、max_workers；授权来源：
-- OpenCode（如使用）对 `--auto` 行为的授权：
-- run_id／管理目录：
-- 执行中新增 run 及原因（若有）；所有相关 run 的总并发约束：
+## Goal and authorization
 
-## 工单与集成
+- Goal, scope, and exclusions:
+- Plan path and revision; complete initial ticket index:
+- Target repository, target branch, and initial target SHA:
+- Confirmed kind, provider, model, thinking, and max_workers:
+- Source of the user's authorization:
+- Authorization for OpenCode `--auto`, if applicable:
+- Run ID and management directory:
+- Additional runs, their reasons, and the aggregate concurrency constraint:
 
-| 工单标识／原文引用 | 依赖及解锁依据 | worker／结果路径 | 交付声明与交付 SHA／产物 | 集成 SHA／非代码接受证据 | 当前决定／下一步 |
+## Tickets and integration
+
+Replace the example rows with the complete initial ticket set. Preserve links to every attempt rather than overwriting failed-attempt history.
+
+| Ticket ID and source | Dependency and evidence required to unlock | Worker and result reference | Delivery declaration and SHA or artifact | Integration SHA or non-code acceptance evidence | Decision and next action |
 | --- | --- | --- | --- | --- | --- |
-| A | 无 | 尚未派发 | 未交付 | 未集成 | 待派发 |
-| B | 无 | 尚未派发 | 未交付 | 未集成 | 待派发 |
-| C | A 进入目标分支 | 尚未派发 | 未交付 | 未集成 | 等待 A 集成 |
+| A | None | Not dispatched | No delivery | Not integrated | Dispatch when eligible |
+| B | None | Not dispatched | No delivery | Not integrated | Dispatch when eligible |
+| C | A integrated into the target branch | Not dispatched | No delivery | Not integrated | Wait for A's integration |
 
-以真实工单替换示例，完整覆盖初始集合。多次尝试保留各 worker 的关联，不覆盖历史失败。`delivered` 是 worker 的声明，只有主脑填写集成列才能解锁代码依赖。调查／验证任务以已接受的耐久产物替代集成 SHA，不制造空提交。
+`delivered` is the worker's declaration. Record actual integration evidence before unlocking code dependents; acknowledgement is not that evidence. For investigation or verification tickets, record accepted durable artifacts instead of manufacturing empty commits.
 
-## 决定与计划外情况（发生时追加）
+## Decisions and unexpected findings
 
-- 时间／相关工单与事项 ID：
-- 事实与证据位置：
-- 决定、理由、与原目标的关系：
-- 新增／拆分／调整工单、依赖和受影响范围：
-- 需用户决定的问题或已有授权依据：
-- 后续动作／负责人；ack 状态（如尚待合并，明确写“待集成”）：
+Append an entry when a decision or finding affects execution:
 
-如果项目已有工单 README 的计划外情况区，在那里记录完整事实，此处仅放链接。避免多份事实漂移。
+- Time, affected tickets, and pending-item IDs:
+- Observed facts and evidence references:
+- Decision, rationale, and relation to the authorized goal:
+- Added, split, or adjusted tickets; dependency changes and affected work:
+- Existing authorization or the unresolved question requiring the user:
+- Owner and next action:
+- Acknowledgement status; explicitly note **pending integration** if applicable:
 
-## 集成与验证摘要
+If the repository has a designated unexpected-findings log, put the full entry there and retain only its reference here.
 
-- 工单／worker 交付 SHA → 合并前目标 SHA → 实际集成 SHA（非祖先集成注明 Git 策略和证据）：
-- 复用的验收证据或额外检查／验证 worker：
-- 目标覆盖与组合行为结论：
-- 遗留问题、受影响依赖与后续工单：
+## Integration and verification
 
-## 资源与收口
+- Ticket and worker delivery SHA -> pre-merge target SHA -> actual integration SHA:
+- Repository merge policy used; mapping evidence for squash or other non-ancestry integration:
+- Worker acceptance evidence reused:
+- Additional checks or verification workers and their conclusions:
+- Goal coverage and combined-behavior evidence:
+- Remaining gaps, blocked dependencies, and follow-up tickets:
 
-- 保留 worker／worktree／分支、结果、handoff／归档位置与原因：
-- 清理决定和 `cleanup` 记录位置（包括拒绝／残留原因）：
-- 整体结论：完成／仍在执行／阻塞；依据：
-- 最终报告：主要集成结果、验证摘要、未解决事项、保留资源位置。
+## Resources and closeout
+
+- Retained workers, worktrees, branches, results, handoff documents, and archives; locations and reasons:
+- Explicit cleanup decisions and cleanup-record references:
+- Cleanup refusals, residual resources, and next actions:
+- Overall conclusion: complete, executing, or blocked; supporting evidence:
+- Final report: principal integration results, verification summary, unresolved items, and retained resource locations.

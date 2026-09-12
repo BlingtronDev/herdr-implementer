@@ -1,45 +1,53 @@
 ---
 name: herdr-plan-manager-preview
-description: 在 Herdr 中按已确认的计划动态管理 Pi／OpenCode 工单执行（重建预览入口）。
+description: Manage a confirmed plan through independent Pi or OpenCode workers in Herdr.
 disable-model-invocation: true
 ---
 
-# Herdr Plan Manager（预览）
+# Herdr Plan Manager Preview
 
-主脑负责判断，worker 负责具体工作，工具负责机械可靠性。
+The coordinator makes decisions. Workers implement individual tickets. Tools make execution mechanically reliable.
 
-本入口可显式加载使用，独立于仓库根目录的旧 skill。正式名称切换、目录迁移与旧入口删除留给迁移工单。所有相对路径以本文件所在目录为基准。
+Load this preview explicitly. Use its workflow independently of the legacy root skill; final naming and removal of the old entry belong to migration. Resolve relative paths from this file's directory.
 
-## 1. 建立目标与授权
+## Establish the execution contract
 
-1. 阅读目标仓库规范、spec／计划和**完整初始工单集**。默认从 `.scratch/<slug>/spec.md` 与 `issues/*.md` 定位，也接受用户指定的文件或目录；缺材料先补齐。理解显式与语义依赖，为任务分配稳定标识，不要求工单使用特定标题或编号格式。
-2. 核对目标分支、实施范围、未决需求和授权。一次确认 `kind`（Pi 或 OpenCode）、`provider`、`model`、`thinking` 与 `max_workers`；已明确的信息直接沿用，只询问缺失或矛盾处。确认的是目标与边界，不是固定批次。
-3. 首次派发前读[操作参考](operations.md)的“准备与登记”和“派发”：核实 Herdr 环境、CLI／官方集成，校验并登记已确认配置。配置不支持或无法确认生效时报告并等待调整，不能自行降级。OpenCode 当前使用 `--auto`，授权需覆盖它对未显式拒绝权限的自动批准。
-4. 按[执行记录模板](execution-record.md)建立主脑记录，填入输入来源、授权、run、目标基线、完整工单索引及依赖。
+1. Read the target repository's conventions, the spec or plan, and the **complete initial ticket set**. Look under `.scratch/<slug>/spec.md` and `.scratch/<slug>/issues/` unless the user supplies other paths. Resolve missing materials before dispatch.
+2. Identify explicit and semantic dependencies, the target branch, and unresolved requirements that would change implementation direction. Assign stable ticket IDs without imposing a Markdown format or a fixed batch plan.
+3. Confirm the goal, scope, authorization boundaries, and worker configuration together: `kind` (`pi` or `opencode`), `provider`, `model`, `thinking`, and `max_workers`. Reuse information already confirmed; ask only about omissions or contradictions. Do not introduce task-duration or cost budgets.
+4. Read [Prepare and register](operations.md#prepare-and-register) before the first launch. Verify Herdr and the runtime integrations, validate the exact configuration, and register the run. Unsupported or unverifiable selections require an explicit adjustment, not a silent fallback. OpenCode's current `--auto` behavior must be covered by the authorization.
+5. Create a coordinator-owned [execution record](execution-record.md) containing the input references, authorization, run, target baseline, and complete ticket index.
 
-完成条件：材料完整可访问、影响方向的需求已明确、配置与并发已获授权且登记成功。无任务时长或费用预算。
+**Ready to dispatch:** the inputs are complete and accessible, direction-setting questions are resolved, and the authorized configuration and concurrency limit are registered.
 
-## 2. 动态推进
+## Advance dynamically
 
-循环执行，直到目标满足或有明确阻塞：
+Repeat while useful work remains:
 
-1. **选择**：根据已集成成果和当前活跃 worker，在并发上限内选择可执行工单。依赖代码的任务以成果进入目标分支为前提；非代码依赖须由主脑确认产物可用。交付、空闲和 ack 均不能解锁代码依赖。
-2. **派发**：提供单一工单目标、范围、验收、必要依赖、计划和参考材料，以及明确 base。按操作参考调用 `start --run`；记录返回的 worker、分支和路径。工具建立材料快照与[worker 合同](../../prompts/plan-worker.md)，主脑不拼装后台进程或运行时按键。
-3. **观察**：有管理工作就继续处理，没有则按操作参考“观察与处理事项”调用 `wait`，处理返回的任一待处理交付或异常。成功自动交接无需确认，同一 worker 跨会话仍占一个槽。等待窗口超时只表示本窗口没有事项。
-4. **处置**：检查结果、验收证据、HEAD／产物与遗留项。默认复用 worker 验收，疑点可按需检查或派补测。常规失败由主脑决定调查、重试或换 worker；新派前确认旧业务写入已停止。反复无进展则改变策略或报告阻塞。无法推断的需求取舍、扩大目标或改变授权约束时才问用户。
-5. **集成**：代码交付按下节正常合并；调查／验证产物记录接受结论与位置。记录已决定的处置后 `ack`，它仅表示事项已处理；如果先 ack 后合并，执行记录必须保留“待集成”。随后重新选择任务，无全局批次屏障。
+1. **Select eligible work.** Use integrated results and available worker slots to choose the next tickets. A code dependency is satisfied only after the required result enters the target branch. For investigation or verification dependencies, explicitly accept the artifact as usable. Delivery, terminal idleness, and acknowledgement are not integration.
+2. **Dispatch one ticket per worker.** Follow [Dispatch](operations.md#dispatch). Supply its goal, scope, acceptance criteria, dependency context, plan references, and an explicit base commit. Record the returned worker, branch, and resource paths. The tool snapshots materials, renders the [worker contract](../../prompts/plan-worker.md), and manages background supervision.
+3. **Observe without a batch barrier.** Do available management work; otherwise [wait for pending items](operations.md#observe-and-handle-items). Process any returned delivery or exception without waiting for unrelated workers. A successful automatic handoff needs no coordinator approval and remains the same worker occupying one slot. A wait-window expiry is not a task result.
+4. **Decide the disposition.** Inspect the declaration, acceptance evidence, HEAD or artifacts, and remaining work. Reuse worker verification by default; inspect suspicious results or assign supplementary checks when justified. Handle ordinary failures within the authorization: investigate, retry, or replace a worker. Confirm the previous attempt has stopped business writes before replacement. Repeated lack of progress calls for a different strategy or a blocker report.
+5. **Integrate or accept artifacts.** Follow the integration rules below for code. Record acceptance and durable locations for non-code results. Once the disposition is recorded, acknowledge the item. If acknowledgement precedes a merge, keep an explicit **pending integration** entry. Reassess eligibility immediately.
 
-在授权内可新增调查、修复、补测工单，拆分或调整任务。修改时记录理由、与目标的关系及依赖变化；worker 仅报告计划外情况，主脑及时更新共享计划和工单索引，避免并发改写。工具不领取下一工单、不理解整套依赖图、不决定业务重试。
+You may add investigation, repair, or verification tickets, split oversized work, and adjust dependencies within the authorized goal. Record the reason, relation to the goal, and affected work when making the change. Workers report unexpected findings; the coordinator updates shared plans and ticket indexes as the single writer. Tools neither select the next ticket nor decide business retries.
 
-## 3. 正常集成与保留
+Ask the user when a requirement trade-off cannot be inferred, the goal would expand, or an authorization constraint must change. Routine execution choices do not require renewed approval.
 
-- 合并前确认目标 checkout 在正确分支、无未完成 Git 操作、工作区适合本次合并；存在无法区分的用户改动时先保留并澄清。核对 worker 交付 HEAD，保存合并前目标 SHA。
-- 主脑串行执行符合仓库规范的正常合并，不强制 ff／no-ff／squash。记录工单、worker 交付 SHA、实际集成 SHA 的对应关系后才解锁依赖。squash 等非祖先关系需明确记录映射与证据。
-- 主脑可读代码、检查结果、运行检查以支持判断；具体实现、冲突修复和组合行为修复交给新 worker。出现冲突时保留 incoming SHA、目标基线和冲突摘要；仅对自己发起且前置条件明确的合并进行可控中止。中止失败则保留现场报告，不强行 reset。完整隔离修复与收口场景由后续工单补齐。
-- 交付后自动交接结束，现场留存。需要释放资源时先读操作参考“停止与明确清理”，确认停止、集成／处置决定和未提交内容的去向，再显式清理。失败现场、未集成成果不自动销毁。
+## Integrate and preserve results
 
-## 4. 目标收口
+Before a merge, verify the target checkout is on the intended branch, no unfinished Git operation exists, and the worktree is suitable for the operation. Preserve and clarify user changes that cannot safely be distinguished. Check the delivered HEAD and save the pre-merge target SHA.
 
-对照计划检查覆盖、集成与遗留问题。需要组合验证时派新 worker；已有充分证据可复用。工单全部交付不等于目标完成，已知组合失败必须安排修复，并暂停受影响的依赖。仅在整体目标满足时报告完成，列出主要集成结果、验证摘要、未解决事项和保留资源位置。
+Perform normal merges **serially**, following repository policy rather than imposing a universal ff, no-ff, or squash rule. Record the ticket, delivered SHA, and actual integration SHA before unlocking dependents. For squash or other non-ancestry integration, retain the explicit mapping and evidence.
 
-本版方法依赖当前主脑持续判断；耐久记录用于可靠收集事项和定位现场，不承诺主脑交接、崩溃恢复或自动接管。
+You may read code and run checks to support judgment. Assign implementation, conflict resolution, and behavioral repairs to workers. On a conflict, retain the incoming SHA, target baseline, and conflict summary. Abort only a merge you initiated with known-safe preconditions. If abort fails or user work cannot be separated, preserve the scene and report it rather than forcing a reset. Detailed isolated repair scenarios are completed in the subsequent repair workstream.
+
+Delivery ends automatic handoff; the result and scene remain available. Before releasing resources, read [Stop and clean up](operations.md#stop-and-clean-up). Require confirmed stopping, an explicit integration or disposition decision, and a safe destination for uncommitted work. Failed scenes and unintegrated results are not automatically destroyed.
+
+## Close the goal
+
+Compare the integrated result with the plan, acceptance evidence, and unresolved findings. Assign a new worker for necessary cross-module verification; reuse sufficient existing evidence instead of requiring a fixed final-review role. Known integration failures require repair and keep affected dependencies blocked.
+
+Report completion only when the overall goal is met, not merely when every worker has delivered. Include the main integration results, verification summary, unresolved items, and retained resource locations.
+
+This version relies on an active coordinator. Durable records support reliable item collection and scene inspection; they do not promise coordinator handoff, crash recovery, or automatic takeover.

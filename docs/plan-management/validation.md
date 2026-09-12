@@ -1,31 +1,59 @@
-# 预览入口验收
+# Preview Validation
 
-## 加载与边界
+## Load the intended workflow
 
-显式读取本目录的 [SKILL.md](SKILL.md)，不叠加仓库根目录的旧执行流程。在支持显式 skill 文件加载的运行时中可直接加载该文件；Pi 可用 `--skill <绝对路径>/docs/plan-management/SKILL.md`，预览命令名为 `herdr-plan-manager-preview`。此操作不迁移正式入口或删除旧实现。
+Explicitly load [SKILL.md](SKILL.md) from this directory, independently of the legacy root workflow. In Pi, use `--skill <absolute-path>/docs/plan-management/SKILL.md`; the preview skill name is `herdr-plan-manager-preview`. Loading it does not migrate the official entry or remove legacy implementation.
 
-验收分两层：确定性测试证明真实工具／Git 与模拟运行时之间的组合行为；真实冒烟证明安装环境下 worker 能按文档执行。前者不能替代后者，也不证明模型必然遵守主脑方法。
+Keep two evidence levels separate:
 
-## 确定性组合测试
+- **Deterministic integration tests** exercise the real manager and Git against simulated runtimes.
+- **Real-runtime smoke tests** establish that installed runtimes execute the worker lifecycle under coordinator control.
 
-在项目根目录执行：
+Simulation cannot substitute for real-runtime evidence. Neither layer guarantees that a model will always follow the coordinator instructions. After rewriting prompts, identify which checks were rerun; historical smoke results remain evidence for the revision actually exercised.
+
+## Run deterministic checks
+
+From the project root:
 
 ```bash
 python3 -m pytest tests/test_plan_management_workflow.py -v
 python3 -m pytest tests/ -q
 ```
 
-组合测试对 Pi、OpenCode 分别通过新 CLI 登记 run，执行 B 持续运行、A 自动交接并交付、wait／ack、主脑正常合并、从已集成基线启动 C，最后验证停止与未提交归档。使用临时 Git 仓库和模拟 Herdr／运行时，不访问真实 provider；测试超时仅为故障保护，不是产品任务预算。
+The workflow test runs separately for Pi and OpenCode. It registers a run, keeps B active, triggers A's automatic handoff and delivery, handles wait and acknowledgement, merges A, and starts C from the integrated baseline. It then exercises stopping and uncommitted-work archival.
 
-## 真实双运行时组合冒烟（需明确配置授权）
+The test uses temporary Git repositories and simulated Herdr, worker behavior, and context observations. It does not contact a real provider. Test watchdogs protect the test process; they are not product task budgets.
 
-1. 记录主脑执行环境、工具／运行时版本，以及 Pi 与 OpenCode 各自已确认的 provider、model、thinking、总并发上限（A／B 演示至少 2）。确认 OpenCode `--auto` 授权。缺任一项先询问，不能从旧日志反推本轮授权。
-2. 创建一次性业务仓库，主 checkout 的忽略目录保存完整计划和三张工单：A 创建 `api.txt` 并提交；B 在独立文件上完成较长、有限的工作；C 从 `api.txt` 生成 `consumer.txt` 并验证内容一致，明确只依赖 A。B 的验收写清真实业务工作与完成条件，不靠等待窗口决定失败。
-3. 主脑按模板建立记录，并分别对 Pi、OpenCode 跑同一场景（可使用两个一次性仓库顺序运行，避免跨 run 总并发歧义）。按操作参考 init-run 后从同一基线启动 A、B。留存命令、响应、合同和材料 manifest。
-4. 为 A 设置高于新会话种子上下文但可在本工单触达的受控阈值；安排足够上下文工作，使它实际触发自动交接。不设置极低阈值制造无限交接。若 A 太早完成或 B 太早结束，记录本轮未覆盖目标场景，调整任务后另跑，不事后篡改事实。
-5. 查 A 的会话证据：序号递增、相同 worktree／branch／配置、handoff 文档可读、新会话确实读取文档、旧会话不再业务写入；成功交接不询问用户。实际生效配置证据必须来自运行时，不能只保存启动 argv。
-6. 在 B 仍工作时由 wait 得到 A 的有效交付。保存目标 SHA 不变、C 未启动的记录；若先 ack，记录 A“待集成”。正常合并 A，记录交付→集成 SHA；从该集成基线启动 C，保存此时 B 仍活跃、活跃数不超过上限的状态证据。
-7. 继续动态处理各事项，核对 C 读取了 A 的成果，再完成集成与必要组合检查。保存结果、验证、实际 SHA 与主脑执行记录。所有工单交付之前或组合验证失败时，不报告目标完成。
-8. 保存现场及资源位置；对明确可清理对象 stop 并确认 `business_stopped`，随后显式 cleanup。有未提交材料则先保留或归档，默认保留分支；核实只清理登记资源。真实 worker 与其资料不因测试结束自动强删。
+## Run a real A/B/C experiment
 
-每次真实运行输出一份证据索引，标明执行命令、run／worker ID、开始与结束状态、主脑决定、结果和现场路径。若未执行、未覆盖或失败，保留准确状态及原因，不能仅凭之前独立的交接／等待冒烟勾选组合验收。
+### Establish the fixture and authorization
+
+Record the coordinator environment, tool and runtime versions, and the explicitly confirmed provider, model, and thinking for each runtime. Confirm a total concurrency limit of at least two and authorization for OpenCode `--auto`. Ask about missing values rather than treating a historical test configuration as current authorization.
+
+Use disposable repositories with a complete local plan and initial ticket set stored in an ignored main-checkout directory:
+
+- **A:** produce and commit `api.txt`, with meaningful work remaining after a required automatic handoff.
+- **B:** produce an independent result and remain active long enough to observe C's launch.
+- **C:** read A's integrated `api.txt`, derive `consumer.txt`, and verify the required relationship. Its only code dependency is A.
+
+Give each ticket concrete acceptance conditions. A coordinator-controlled observation checkpoint may keep B active for a repeatable experiment; document it as test instrumentation, not a production scheduling barrier. A wait-window expiry must never become B's failure condition.
+
+Create an [execution record](execution-record.md). Run the same experiment for each runtime, preferably sequentially in separate repositories so the aggregate concurrency bound is unambiguous.
+
+### Observe handoff and dynamic integration
+
+1. Follow [Operations](operations.md) to register a run and launch A and B from the same explicit baseline. Save commands, responses, worker contracts, and material manifests.
+2. Set A's controlled handoff threshold above its fresh-session seed context. Provide enough context-producing work to cross it before delivery, and leave clear continuation work. Avoid thresholds that cause immediate repeated handoffs after every restart.
+3. Observe an automatic handoff without coordinator approval. Retain the incremented session ID, unchanged worktree and branch, readable durable handoff document, and evidence that the new session actually read it. Verify the old session stopped business writes before the new session began them.
+4. Verify provider, model, thinking, and working directory using runtime-produced evidence from both sessions. Launch arguments alone are insufficient proof of effective configuration.
+5. While B is still working, receive A's valid delivery through `wait`. Record that the target SHA has not yet changed and C has not started. If acknowledging first, retain **pending integration** in the execution record.
+6. Merge A normally and record its delivery-to-integration SHA mapping. Start C from that integrated baseline. Capture evidence that B is still active and the total active-worker count stays within the authorized cap.
+7. Handle subsequent items dynamically. Confirm that C consumed A's inherited result, integrate accepted outputs, and assess overall coverage and necessary combined-behavior checks. A known combined failure prevents completion even if every ticket has delivered.
+
+If A delivers too early or B finishes before C starts, record that the ordering scenario was not covered. Adjust the fixture and run a new attempt; preserve the original evidence rather than rewriting its outcome.
+
+### Preserve and report
+
+Record results, actual commits, verification evidence, coordinator decisions, and retained resource locations. Stop workers selected for cleanup and require `business_stopped: true`. Supply an explicit cleanup decision; preserve or archive uncommitted content before removal, retain branches by default, and verify that only registered resources are touched. The end of a test is not permission to force-delete its workers or artifacts.
+
+Publish an evidence index with commands, run and worker IDs, initial and final states, integration mappings, verification results, and scene locations. Distinguish passed, failed, uncovered, and unexecuted checks. Separate the smoke repository's integration commits from the implementation project's delivery or integration status.
