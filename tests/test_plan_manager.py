@@ -237,6 +237,9 @@ class Harness:
     def stop(self, worker_id: str, *, timeout: float = 30) -> subprocess.CompletedProcess[str]:
         return self.run("stop", "--repo", str(self.repo), "--worker", worker_id, timeout=timeout)
 
+    def cleanup(self, worker_id: str, *extra: str, timeout: float = 60) -> subprocess.CompletedProcess[str]:
+        return self.run("cleanup", "--repo", str(self.repo), "--worker", worker_id, *extra, timeout=timeout)
+
     def wait_state(self, worker_id: str, states: set[str], timeout: float = 30) -> dict:
         deadline = time.time() + timeout
         facts = None
@@ -1283,3 +1286,325 @@ def test_stalled_start_is_a_pending_exception(make_harness):
     stopped = h.stop("w-stalled-01")
     assert stopped.returncode == 0, stopped.stderr
     assert h.run_status(run_id)["active_count"] == 0
+
+
+def branch_exists(repo: Path, branch: str) -> bool:
+    proc = subprocess.run(
+        ["git", "rev-parse", "--verify", f"refs/heads/{branch}"],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+    )
+    return proc.returncode == 0
+
+
+def test_cleanup_requires_an_explicit_decision(make_harness):
+    h = make_harness("deliver-code")
+    proc = h.start(worker_id="w-clean-01")
+    assert proc.returncode == 0, proc.stderr
+    h.wait_state("w-clean-01", {"delivered"})
+
+    missing = h.cleanup("w-clean-01")
+    assert missing.returncode == 2
+    assert "explicit decision" in missing.stderr
+    assert Path(h.status("w-clean-01")["worktree"]).is_dir()
+
+    both = h.cleanup("w-clean-01", "--archive-uncommitted", "--discard-uncommitted", "--disposition", "x")
+    assert both.returncode == 2
+    assert "mutually exclusive" in both.stderr
+
+    force_only = h.cleanup("w-clean-01", "--force-branch", "--disposition", "x")
+    assert force_only.returncode == 2
+    assert "requires --delete-branch" in force_only.stderr
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_cleanup_removes_worktree_but_keeps_branch_and_evidence(make_harness, kind):
+    h = make_harness("deliver-code")
+    proc = h.start(kind=kind, worker_id="w-clean-02")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-clean-02", {"delivered"})
+    worktree = Path(facts["worktree"])
+    result_path = Path(facts["paths"]["result"])
+    management = Path(facts["paths"]["management"])
+    tab = facts["herdr"]["tab"]
+
+    cleaned = h.cleanup("w-clean-02", "--disposition", "delivered and merged by hand")
+    assert cleaned.returncode == 0, cleaned.stderr
+    payload = json.loads(cleaned.stdout)
+    assert payload["cleaned"] is True
+    assert payload["already_cleaned"] is False
+    assert payload["worktree"]["removed"] is True
+    assert payload["branch"]["deleted"] is False
+    assert payload["sessions"]["closed_tabs"] == [tab]
+    assert [call for call in herdr_calls(h, ("tab", "close"))] == [["tab", "close", tab]]
+    assert not worktree.exists()
+    assert branch_exists(h.repo, facts["branch"])
+    assert result_path.is_file()
+    assert (management / "cleanup.json").is_file()
+    assert (management / "contract.md").is_file()
+
+    again = h.cleanup("w-clean-02", "--disposition", "repeat")
+    assert again.returncode == 0, again.stderr
+    repeated = json.loads(again.stdout)
+    assert repeated["already_cleaned"] is True
+    assert repeated["sessions"]["closed_tabs"] == []
+
+    deleted = h.cleanup("w-clean-02", "--integrated", h.base, "--delete-branch")
+    assert deleted.returncode == 0, deleted.stderr
+    payload = json.loads(deleted.stdout)
+    assert payload["branch"]["existed"] is True
+    assert payload["branch"]["deleted"] is False, "an unmerged branch needs --force-branch"
+    assert branch_exists(h.repo, facts["branch"])
+
+    forced = h.cleanup("w-clean-02", "--integrated", h.base, "--delete-branch", "--force-branch")
+    assert forced.returncode == 0, forced.stderr
+    payload = json.loads(forced.stdout)
+    assert payload["branch"]["deleted"] is True
+    assert not branch_exists(h.repo, facts["branch"])
+
+    status = h.status("w-clean-02")
+    assert status["cleanup"]["cleaned"] is True
+    assert status["cleanup"]["resources"]["worktree"]["exists"] is False
+
+
+def test_cleanup_refuses_live_worker_and_succeeds_after_stop(make_harness):
+    h = make_harness("slow")
+    proc = h.start(worker_id="w-clean-03")
+    assert proc.returncode == 0, proc.stderr
+    h.wait_agent_status("w-clean-03", "working")
+
+    refused = h.cleanup("w-clean-03", "--disposition", "too early")
+    assert refused.returncode == 3
+    payload = json.loads(refused.stderr)
+    codes = {blocker["code"] for blocker in payload["blockers"]}
+    assert "worker-not-stopped" in codes
+    assert "supervisor-running" in codes
+    assert "active-session" in codes
+    assert Path(h.status("w-clean-03")["worktree"]).is_dir()
+
+    stopped = h.stop("w-clean-03")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["business_stopped"] is True
+
+    cleaned = h.cleanup("w-clean-03", "--disposition", "abandoned after inspection")
+    assert cleaned.returncode == 0, cleaned.stderr
+    facts = h.status("w-clean-03")
+    assert facts["cleanup"]["cleaned"] is True
+    assert not Path(facts["worktree"]).exists()
+    assert branch_exists(h.repo, facts["branch"])
+
+
+def test_cleanup_requires_a_decision_for_uncommitted_content_and_archives_it(make_harness):
+    h = make_harness("deliver-noncode")
+    proc = h.start(worker_id="w-clean-04")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-clean-04", {"delivered"})
+    worktree = Path(facts["worktree"])
+    assert (worktree / "findings.md").is_file()
+
+    status = h.status("w-clean-04")
+    assert status["cleanup"]["cleaned"] is False
+    assert "uncommitted-content" in {blocker["code"] for blocker in status["cleanup"]["blockers"]}
+
+    refused = h.cleanup("w-clean-04", "--disposition", "will archive")
+    assert refused.returncode == 3
+    blockers = {blocker["code"]: blocker for blocker in json.loads(refused.stderr)["blockers"]}
+    assert "uncommitted-content" in blockers
+    assert any(entry["path"] == "findings.md" for entry in blockers["uncommitted-content"]["entries"])
+    assert worktree.is_dir()
+
+    cleaned = h.cleanup("w-clean-04", "--disposition", "archived then removed", "--archive-uncommitted")
+    assert cleaned.returncode == 0, cleaned.stderr
+    payload = json.loads(cleaned.stdout)
+    assert payload["worktree"]["uncommitted"] == "archived"
+    archive = Path(payload["archive"]["path"])
+    assert (archive / "manifest.json").is_file()
+    assert (archive / "untracked" / "findings.md").is_file()
+    assert not worktree.exists()
+    assert payload["evidence"]["management_dir"] == facts["paths"]["management"]
+
+
+def test_cleanup_never_removes_unowned_paths(make_harness):
+    h = make_harness("deliver-code")
+    foreign = h.tmp / "foreign-dir"
+    foreign.mkdir()
+    (foreign / "keep-me.txt").write_text("not ours\n", encoding="utf-8")
+    now = "2026-09-12T00:00:00Z"
+    worker_dir = h.repo / ".git" / "herdr-plan-manager" / "workers" / "w-clean-05"
+    worker_dir.mkdir(parents=True)
+    state = {
+        "version": 3,
+        "worker_id": "w-clean-05",
+        "run_id": None,
+        "ticket": {"id": "06", "title": "foreign path"},
+        "runtime": {"kind": "pi", "provider": "opencode-go", "model": "deepseek-v4.1-flash", "thinking": "max"},
+        "repo": {"root": str(h.repo), "common_dir": str(h.repo / ".git"), "base": h.base},
+        "branch": "hpm/w-clean-05",
+        "worktree": str(foreign),
+        "herdr": {"workspace": "test-ws", "agent": "w-clean-05", "tab": None, "pane": None},
+        "paths": {
+            "management": str(worker_dir),
+            "result": str(worker_dir / "result.json"),
+            "contract": str(worker_dir / "contract.md"),
+            "supervisor_log": str(worker_dir / "supervisor.log"),
+        },
+        "lifecycle": {"state": "stopped", "reason": "stop-requested", "started_at": now, "updated_at": now},
+        "supervisor": {
+            "pid": None,
+            "host": None,
+            "state": "exited",
+            "started_at": None,
+            "heartbeat_at": None,
+            "exit_reason": "stop-requested",
+        },
+        "items": [],
+        "result": None,
+        "sessions": [],
+        "created_at": now,
+        "updated_at": now,
+    }
+    (worker_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    refused = h.cleanup("w-clean-05", "--disposition", "remove it")
+    assert refused.returncode == 3
+    codes = {blocker["code"] for blocker in json.loads(refused.stderr)["blockers"]}
+    assert "worktree-unowned" in codes
+    assert (foreign / "keep-me.txt").is_file()
+
+    ghost = h.cleanup("w-nobody-01", "--disposition", "x")
+    assert ghost.returncode == 2
+    assert "not registered" in ghost.stderr
+
+
+def test_cleanup_refuses_worker_that_was_never_stopped(make_harness):
+    h = make_harness("slow")
+    proc = h.start(worker_id="w-clean-06")
+    assert proc.returncode == 0, proc.stderr
+    h.wait_agent_status("w-clean-06", "working")
+    h.kill_supervisor("w-clean-06")
+
+    refused = h.cleanup("w-clean-06", "--disposition", "abandoned")
+    assert refused.returncode == 3
+    codes = {blocker["code"] for blocker in json.loads(refused.stderr)["blockers"]}
+    assert "worker-not-stopped" in codes
+    assert "active-session" in codes
+
+    stopped = h.stop("w-clean-06")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["business_stopped"] is True
+    cleaned = h.cleanup("w-clean-06", "--disposition", "abandoned after stop")
+    assert cleaned.returncode == 0, cleaned.stderr
+
+
+def test_delivery_stops_automatic_handoff(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HPM_FAKE_CONTEXT_TOTAL"] = "100"
+    h.env["HPM_CONTEXT_POLL_SECONDS"] = "0.2"
+    proc = h.start(worker_id="w-clean-07", handoff_tokens=50, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+
+    seen = False
+    deadline = time.time() + 3
+    while time.time() < deadline:
+        facts = h.status("w-clean-07")
+        if Path(facts["paths"]["result"]).is_file():
+            seen = True
+            assert len(facts["sessions"]) == 1, "delivery must stop automatic handoff"
+            assert facts["handoff"]["history"] == []
+            break
+        time.sleep(0.1)
+    assert seen, "the scenario never declared a result"
+
+    facts = h.wait_state("w-clean-07", {"delivered"}, timeout=30)
+    assert len(facts["sessions"]) == 1
+    assert facts["handoff"]["history"] == []
+    assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 1, "no handoff prompt may be sent after delivery"
+
+
+def test_stop_after_delivery_keeps_the_result_and_the_scene(make_harness):
+    h = make_harness("deliver-code")
+    proc = h.start(worker_id="w-clean-08")
+    assert proc.returncode == 0, proc.stderr
+    h.wait_state("w-clean-08", {"delivered"})
+
+    stopped = h.stop("w-clean-08")
+    assert stopped.returncode == 0, stopped.stderr
+    payload = json.loads(stopped.stdout)
+    assert payload["already_terminal"] is True
+    assert payload["lifecycle"] == "delivered"
+    assert payload["business_stopped"] is True
+
+    facts = h.status("w-clean-08")
+    assert facts["lifecycle"]["state"] == "delivered"
+    assert facts["result"] is not None
+    assert len([item for item in facts["items"] if item["kind"] == "delivery"]) == 1
+    assert Path(facts["worktree"]).is_dir()
+    assert Path(facts["paths"]["result"]).is_file()
+
+
+def test_cleanup_after_a_failed_worker_keeps_the_evidence(make_harness):
+    h = make_harness("needs-decision")
+    proc = h.start(worker_id="w-clean-10")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-clean-10", {"needs-decision"})
+    management = Path(facts["paths"]["management"])
+    assert (management / "result.json").is_file()
+    assert facts["cleanup"]["blockers"] and facts["cleanup"]["blockers"][0]["code"] == "decision-missing"
+
+    cleaned = h.cleanup("w-clean-10", "--disposition", "user decision recorded: option A")
+    assert cleaned.returncode == 0, cleaned.stderr
+    payload = json.loads(cleaned.stdout)
+    assert payload["worktree"]["removed"] is True
+    assert payload["worktree"]["uncommitted"] == "none"
+    assert not Path(facts["worktree"]).exists()
+    assert (management / "result.json").is_file()
+    assert (management / "cleanup.json").is_file()
+
+    again = h.cleanup("w-clean-10", "--disposition", "repeat")
+    assert again.returncode == 0, again.stderr
+    assert json.loads(again.stdout)["already_cleaned"] is True
+
+
+def test_stop_wins_handoff_race_without_a_new_writer(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_SCENARIO_CONTINUATION_DELAY"] = "8"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    proc = h.start(worker_id="w-clean-09", handoff_tokens=50, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+
+    facts = None
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        facts = h.status("w-clean-09")
+        if len(facts["sessions"]) == 2:
+            break
+        time.sleep(0.1)
+    assert facts is not None and len(facts["sessions"]) == 2, "the handoff never replaced the session"
+
+    stopped = h.stop("w-clean-09", timeout=60)
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["business_stopped"] is True
+
+    facts = h.status("w-clean-09")
+    assert facts["lifecycle"]["state"] == "stopped"
+    statuses = []
+    for session in facts["sessions"]:
+        agent_file = h.fake / "agents" / f"{session['agent']}.json"
+        if agent_file.is_file():
+            statuses.append(json.loads(agent_file.read_text(encoding="utf-8"))["status"])
+    assert "working" not in statuses, "no registered session may keep writing after stop"
+    worktree = Path(facts["worktree"])
+    assert not (worktree / "continuation.txt").exists(), "the interrupted replacement must not commit"
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=worktree, text=True, capture_output=True, check=True
+    ).stdout.strip()
+    assert head == h.base
+
+    cleaned = h.cleanup("w-clean-09", "--disposition", "race stopped", "--archive-uncommitted")
+    assert cleaned.returncode == 0, cleaned.stderr
+    payload = json.loads(cleaned.stdout)
+    assert len(payload["sessions"]["closed_tabs"]) == 2
+    assert payload["worktree"]["uncommitted"] == "archived"
+    assert not worktree.exists()

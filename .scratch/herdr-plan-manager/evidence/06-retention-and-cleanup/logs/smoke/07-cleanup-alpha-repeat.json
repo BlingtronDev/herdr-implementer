@@ -1,0 +1,32 @@
+{
+  "already_cleaned": true,
+  "archive": null,
+  "blockers": [],
+  "branch": {
+    "deleted": false,
+    "existed": true,
+    "name": "hpm/w-smoke06-alpha",
+    "retained_reason": "branch deletion needs an explicit --delete-branch"
+  },
+  "cleaned": true,
+  "decision": {
+    "at": "2026-09-12T13:20:52.140830Z",
+    "disposition": "repeat check"
+  },
+  "evidence": {
+    "handoffs": [],
+    "management_dir": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-alpha",
+    "result": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-alpha/result.json"
+  },
+  "sessions": {
+    "closed_tabs": [],
+    "remaining_agents": []
+  },
+  "worker_id": "w-smoke06-alpha",
+  "worktree": {
+    "existed": false,
+    "path": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-alpha",
+    "removed": false,
+    "uncommitted": "none"
+  }
+}

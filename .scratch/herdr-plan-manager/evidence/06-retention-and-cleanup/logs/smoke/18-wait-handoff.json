@@ -1,0 +1,61 @@
+{
+  "items": [
+    {
+      "acked": false,
+      "acked_at": null,
+      "branch": "hpm/w-smoke06-alpha",
+      "code": "delivered",
+      "created_at": "2026-09-12T13:20:12.884006Z",
+      "details": {
+        "artifacts": [
+          "alpha.txt"
+        ],
+        "head": "f5ca97c70acd1dd31b645cd4bf8ba473ea23b6a1"
+      },
+      "item_id": "w-smoke06-alpha/i001",
+      "kind": "delivery",
+      "lifecycle": "delivered",
+      "message": "Created alpha.txt containing exactly 'ALPHA-06' plus a trailing newline in the worktree and committed it on branch hpm/w-smoke06-alpha.",
+      "result_path": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-alpha/result.json",
+      "run_id": "smoke06",
+      "session": 1,
+      "ticket": {
+        "id": "ALPHA-06",
+        "title": "alpha deliver"
+      },
+      "worker_id": "w-smoke06-alpha",
+      "worktree": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-alpha"
+    },
+    {
+      "acked": false,
+      "acked_at": null,
+      "branch": "hpm/w-smoke06-handoff",
+      "code": "delivered",
+      "created_at": "2026-09-12T13:24:07.772292Z",
+      "details": {
+        "artifacts": [
+          "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-handoff/beta.txt",
+          "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-handoff/scratch-log.txt"
+        ],
+        "head": "d93d9d33fdd03722163639cc1b4ab481f29107fd"
+      },
+      "item_id": "w-smoke06-handoff/i001",
+      "kind": "delivery",
+      "lifecycle": "delivered",
+      "message": "Continued the ticket in the same worktree after a session handoff. Re-verified the delivered state: wrote uncommitted scratch-log.txt with work notes, created beta.txt containing exactly 'BETA-06' followed by a newline, and committed beta.txt alone with message 'Add beta.txt containing BETA-06' as d93d9d33fdd03722163639cc1b4ab481f29107fd. No business work remained and no new business edits were made; scratch-log.txt is intentionally left uncommitted.",
+      "result_path": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-handoff/result.json",
+      "run_id": "smoke06",
+      "session": 2,
+      "ticket": {
+        "id": "HANDOFF-06",
+        "title": "handoff compatibility"
+      },
+      "worker_id": "w-smoke06-handoff",
+      "worktree": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-handoff"
+    }
+  ],
+  "note": "each item is a durable fact awaiting ack; a delivery is not integration and an idle terminal is not a result",
+  "observed_at": "2026-09-12T13:24:14.243285Z",
+  "run_id": "smoke06",
+  "timed_out": false
+}

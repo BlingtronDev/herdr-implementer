@@ -1,0 +1,13 @@
+{
+  "acked": [
+    {
+      "acked": true,
+      "acked_at": "2026-09-12T13:24:33.984850Z",
+      "already_acked": false,
+      "effect": "acknowledgement only; delivery and integration conclusions are unchanged",
+      "item_id": "w-smoke06-alpha/i001",
+      "note": "integrated in smoke check",
+      "worker_id": "w-smoke06-alpha"
+    }
+  ]
+}

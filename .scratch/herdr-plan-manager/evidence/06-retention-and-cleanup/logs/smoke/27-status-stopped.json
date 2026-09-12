@@ -1,0 +1,440 @@
+{
+  "branch": "hpm/w-smoke06-stop",
+  "branch_head": "8948648a470e65858b9d23b1150dd8e90314b953",
+  "cleanup": {
+    "blockers": [
+      {
+        "code": "decision-missing",
+        "message": "no explicit cleanup decision is recorded"
+      },
+      {
+        "code": "uncommitted-content",
+        "entries": [
+          {
+            "code": "??",
+            "path": "slow-01.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-02.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-03.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-04.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-05.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-06.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-07.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-08.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-09.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-10.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-11.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-12.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-13.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-14.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-15.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-16.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-17.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-18.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-19.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-20.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-21.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-22.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-23.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-24.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-25.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-26.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-27.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-28.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-29.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-30.txt"
+          }
+        ],
+        "message": "30 uncommitted entries; pass --archive-uncommitted or --discard-uncommitted"
+      }
+    ],
+    "branch_deleted_at": null,
+    "cleaned": false,
+    "decision": null,
+    "last_attempt": null,
+    "resources": {
+      "branch": {
+        "exists": true,
+        "head": "8948648a470e65858b9d23b1150dd8e90314b953",
+        "name": "hpm/w-smoke06-stop"
+      },
+      "contract": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop/contract.md",
+      "handoffs": [],
+      "management_dir": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop",
+      "result": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop/result.json",
+      "sessions": [
+        {
+          "agent": "w-smoke06-stop",
+          "agent_live": true,
+          "agent_status": "done",
+          "index": 1,
+          "session_status": "ended",
+          "tab": "wJ:t17"
+        }
+      ],
+      "worktree": {
+        "dirty": true,
+        "exists": true,
+        "owned": true,
+        "path": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-stop",
+        "uncommitted_entries": [
+          {
+            "code": "??",
+            "path": "slow-01.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-02.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-03.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-04.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-05.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-06.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-07.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-08.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-09.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-10.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-11.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-12.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-13.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-14.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-15.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-16.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-17.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-18.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-19.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-20.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-21.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-22.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-23.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-24.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-25.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-26.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-27.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-28.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-29.txt"
+          },
+          {
+            "code": "??",
+            "path": "slow-30.txt"
+          }
+        ]
+      }
+    },
+    "worktree_removed_at": null
+  },
+  "control": {
+    "handoff_reason": null,
+    "handoff_request_id": null,
+    "handoff_requested_at": null,
+    "handoff_requested_session": null,
+    "reason": "ticket 06 smoke: stop a running worker",
+    "stop_requested_at": "2026-09-12T13:25:33.360902Z"
+  },
+  "handoff": {
+    "auto_suppressed": false,
+    "handled_request_id": null,
+    "history": [],
+    "pct": 0.8,
+    "tokens": 300000,
+    "window": null
+  },
+  "herdr": {
+    "agent": "w-smoke06-stop",
+    "agent_present": true,
+    "agent_status": "done",
+    "pane": "wJ:p17",
+    "tab": "wJ:t17",
+    "workspace": "wJ"
+  },
+  "items": [],
+  "lifecycle": {
+    "reason": "stop-requested",
+    "started_at": "2026-09-12T13:25:13.038655Z",
+    "state": "stopped",
+    "updated_at": "2026-09-12T13:25:13.038655Z"
+  },
+  "paths": {
+    "contract": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop/contract.md",
+    "management": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop",
+    "result": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop/result.json",
+    "supervisor_log": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop/supervisor.log"
+  },
+  "pending_items": [],
+  "prompt": {
+    "attempts": 1,
+    "confirmed_at": "2026-09-12T13:25:18.609217Z"
+  },
+  "repo": {
+    "base": "8948648a470e65858b9d23b1150dd8e90314b953",
+    "common_dir": "/tmp/opencode/hpm-exp06/repo/.git",
+    "root": "/tmp/opencode/hpm-exp06/repo"
+  },
+  "result": null,
+  "run": {
+    "created_at": "2026-09-12T13:19:23.307349Z",
+    "max_workers": 2,
+    "repo_root": "/tmp/opencode/hpm-exp06/repo",
+    "run_id": "smoke06",
+    "runtime": {
+      "kind": "pi",
+      "model": "deepseek-v4.1-flash",
+      "provider": "opencode-go",
+      "thinking": "max"
+    },
+    "version": 1
+  },
+  "run_id": "smoke06",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session": {
+    "agent": "w-smoke06-stop",
+    "context": {
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp06-repo-.git-herdr-plan-manager-worktrees-w-smoke06-stop--/2026-09-12T13-25-16-175Z_01a095cb-2f0d-7563-a92e-13a07f9159ea.jsonl",
+      "error": "[Errno 2] No such file or directory: '/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp06-repo-.git-herdr-plan-manager-worktrees-w-smoke06-stop--/2026-09-12T13-25-16-175Z_01a095cb-2f0d-7563-a92e-13a07f9159ea.jsonl'",
+      "observed_at": "2026-09-12T13:25:18.852790Z",
+      "sampled_at": "2026-09-12T13:25:18.852828Z",
+      "session": 1,
+      "state": "pending"
+    },
+    "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp06-repo-.git-herdr-plan-manager-worktrees-w-smoke06-stop--/2026-09-12T13-25-16-175Z_01a095cb-2f0d-7563-a92e-13a07f9159ea.jsonl",
+    "end_state": "stopped",
+    "ended_at": "2026-09-12T13:25:49.836450Z",
+    "handoff": null,
+    "index": 1,
+    "pane": "wJ:p17",
+    "prompt": {
+      "attempts": 1,
+      "confirmed_at": "2026-09-12T13:25:18.609245Z"
+    },
+    "runtime": {
+      "kind": "pi",
+      "model": "deepseek-v4.1-flash",
+      "provider": "opencode-go",
+      "thinking": "max"
+    },
+    "started_at": "2026-09-12T13:25:18.048973Z",
+    "status": "ended",
+    "tab": "wJ:t17"
+  },
+  "sessions": [
+    {
+      "agent": "w-smoke06-stop",
+      "context": {
+        "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp06-repo-.git-herdr-plan-manager-worktrees-w-smoke06-stop--/2026-09-12T13-25-16-175Z_01a095cb-2f0d-7563-a92e-13a07f9159ea.jsonl",
+        "error": "[Errno 2] No such file or directory: '/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp06-repo-.git-herdr-plan-manager-worktrees-w-smoke06-stop--/2026-09-12T13-25-16-175Z_01a095cb-2f0d-7563-a92e-13a07f9159ea.jsonl'",
+        "observed_at": "2026-09-12T13:25:18.852790Z",
+        "sampled_at": "2026-09-12T13:25:18.852828Z",
+        "session": 1,
+        "state": "pending"
+      },
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp06-repo-.git-herdr-plan-manager-worktrees-w-smoke06-stop--/2026-09-12T13-25-16-175Z_01a095cb-2f0d-7563-a92e-13a07f9159ea.jsonl",
+      "end_state": "stopped",
+      "ended_at": "2026-09-12T13:25:49.836450Z",
+      "handoff": null,
+      "index": 1,
+      "pane": "wJ:p17",
+      "prompt": {
+        "attempts": 1,
+        "confirmed_at": "2026-09-12T13:25:18.609245Z"
+      },
+      "runtime": {
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-12T13:25:18.048973Z",
+      "status": "ended",
+      "tab": "wJ:t17"
+    }
+  ],
+  "supervisor": {
+    "alive": false,
+    "exit_reason": "stop-requested",
+    "heartbeat_at": "2026-09-12T13:25:50.039256Z",
+    "host": "BlingtronPC",
+    "pid": 2611839,
+    "state": "exited",
+    "warnings": []
+  },
+  "ticket": {
+    "id": "STOP-06",
+    "title": "stop while working"
+  },
+  "worker_id": "w-smoke06-stop",
+  "worktree": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-stop",
+  "worktree_dirty": {
+    "entries": 30
+  }
+}

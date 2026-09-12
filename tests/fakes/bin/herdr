@@ -126,13 +126,13 @@ def main(argv):
         text = argv[3] if len(argv) > 3 else ""
         count = int(data.get("prompt_count", 0)) + 1
         prompt_file = ROOT / "agents" / f"{name}.prompt.{count}.txt"
-        prompt_file.write_text(text, encoding="utf-8")
         data["prompt_count"] = count
         drops = ROOT / "drop_prompts"
         remaining = int(drops.read_text()) if drops.is_file() else 0
         if remaining > 0:
             drops.write_text(str(remaining - 1))
             write_agent(name, data)
+            prompt_file.write_text(text, encoding="utf-8")
             emit({"result": {"agent": as_agent(name, data), "type": "agent_prompted"}})
         data["status"] = "working"
         if data.get("kind") == "opencode" and not data.get("session"):
@@ -140,6 +140,9 @@ def main(argv):
         processed = int(data.get("processed_prompt_count", 0)) + 1
         data["processed_prompt_count"] = processed
         write_agent(name, data)
+        # The prompt file appears only after the status is durable, so a
+        # scenario that reacts to the file sees a running turn it can abort.
+        prompt_file.write_text(text, encoding="utf-8")
         if processed == 1 and os.environ.get("HPM_FAKE_SCENARIO"):
             subprocess.Popen(
                 [sys.executable, os.environ["HPM_FAKE_SCENARIO"], name, str(prompt_file)],

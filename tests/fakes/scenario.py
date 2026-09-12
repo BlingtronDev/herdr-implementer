@@ -86,12 +86,16 @@ def base_result(status, **extra):
     return payload
 
 
-def deliver_code():
+def commit_material_note():
     note = WORKTREE / "material-note.txt"
     note.write_text(MATERIAL_TEXT, encoding="utf-8")
     git("add", "material-note.txt")
     git("commit", "-m", "add material note")
-    head = git("rev-parse", "HEAD")
+    return git("rev-parse", "HEAD")
+
+
+def deliver_code():
+    head = commit_material_note()
     write_result(
         base_result(
             "delivered",
@@ -104,6 +108,31 @@ def deliver_code():
         )
     )
     set_status("idle")
+
+
+def deliver_then_work():
+    """Declare delivery but keep reporting `working` for a while.
+
+    Delivery must stop automatic handoff even though the session has not
+    settled yet.
+    """
+    commit_material_note()
+    write_result(
+        base_result(
+            "delivered",
+            summary=f"wrote the material into material-note.txt (sha {MATERIAL_SHA})",
+            acceptance=[{"criterion": "material is visible to the worker", "met": True, "evidence": "material-note.txt"}],
+            verification=[{"command": "true", "exit_code": 0, "summary": "done"}],
+            head=git("rev-parse", "HEAD"),
+            artifacts=[],
+            remaining="",
+        )
+    )
+    set_status("working")
+    deadline = time.time() + float(os.environ.get("HPM_SCENARIO_EXTRA_WORK_SECONDS", "6"))
+    while time.time() < deadline and current_status() == "working":
+        time.sleep(0.1)
+    settle_to_idle()
 
 
 def deliver_noncode():
@@ -211,7 +240,26 @@ def handle_handoff_prompt(text):
     settle_to_idle()
 
 
+def continuation_window():
+    """Hold the continuation turn open so an interrupting stop can be observed.
+
+    Returns False when the turn was settled (interrupted) before the window
+    elapsed, meaning the scenario must not write anything else.
+    """
+    delay = float(os.environ.get("HPM_SCENARIO_CONTINUATION_DELAY", "0"))
+    if delay <= 0:
+        return True
+    deadline = time.time() + delay
+    while time.time() < deadline:
+        if current_status() != "working":
+            return False
+        time.sleep(0.1)
+    return current_status() == "working"
+
+
 def handle_continuation(text):
+    if not continuation_window():
+        return
     doc_path = document_path_from_prompt(text)
     document = doc_path.read_text(encoding="utf-8")
     match = re.search(r"NEXT-STEP-MARKER-[A-Za-z0-9._-]+", document)
@@ -267,6 +315,11 @@ def handoff_behavior():
 
 
 def main():
+    if BEHAVIOR == "deliver-then-work":
+        # Declare delivery before the supervisor can sample context, so the
+        # automatic handoff guard is exercised deterministically.
+        deliver_then_work()
+        return
     time.sleep(DELAY)
     if BEHAVIOR == "deliver-code":
         deliver_code()

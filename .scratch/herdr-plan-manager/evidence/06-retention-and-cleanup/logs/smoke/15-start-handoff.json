@@ -1,0 +1,24 @@
+{
+  "active_workers": 1,
+  "agent": "w-smoke06-handoff",
+  "base": "8948648a470e65858b9d23b1150dd8e90314b953",
+  "branch": "hpm/w-smoke06-handoff",
+  "management_dir": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-handoff",
+  "max_workers": 2,
+  "pane": "wJ:p15",
+  "prompt_attempts": 1,
+  "result_path": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-handoff/result.json",
+  "run_id": "smoke06",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session": 1,
+  "supervisor_pid": 2608998,
+  "tab": "wJ:t15",
+  "ticket_id": "HANDOFF-06",
+  "worker_id": "w-smoke06-handoff",
+  "worktree": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-handoff"
+}

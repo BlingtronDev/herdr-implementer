@@ -1,0 +1,34 @@
+{
+  "already_cleaned": false,
+  "archive": null,
+  "blockers": [],
+  "branch": {
+    "deleted": false,
+    "existed": true,
+    "name": "hpm/w-smoke06-alpha",
+    "retained_reason": "error: the branch 'hpm/w-smoke06-alpha' is not fully merged.\nIf you are sure you want to delete it, run 'git branch -D hpm/w-smoke06-alpha'"
+  },
+  "cleaned": true,
+  "decision": {
+    "at": "2026-09-12T13:20:40.065290Z",
+    "integrated": "f5ca97c70acd1dd31b645cd4bf8ba473ea23b6a1"
+  },
+  "evidence": {
+    "handoffs": [],
+    "management_dir": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-alpha",
+    "result": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-alpha/result.json"
+  },
+  "sessions": {
+    "closed_tabs": [
+      "wJ:t13"
+    ],
+    "remaining_agents": []
+  },
+  "worker_id": "w-smoke06-alpha",
+  "worktree": {
+    "existed": true,
+    "path": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-alpha",
+    "removed": true,
+    "uncommitted": "none"
+  }
+}

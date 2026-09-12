@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Herdr Plan Manager: lifecycle tool for Herdr coding workers (tickets 02-05).
+"""Herdr Plan Manager: lifecycle tool for Herdr coding workers (tickets 02-06).
 
 Scope: confirm one execution (run) with its runtime configuration and
 max_workers, start isolated Pi or OpenCode workers from an explicit base SHA,
 register their resources, supervise them in the background, observe their
 context, hand the ticket to a fresh session of the same worker at the
 configured threshold, record structured deliveries or exceptions as durable
-items, wait for any pending item, and acknowledge it. The tool never orders
-tickets, picks new work, retries business tasks or merges results; cleanup
-belongs to ticket 06.
+items, wait for any pending item, acknowledge it, stop business execution
+while retaining the scene, and remove registered resources only after an
+explicit master decision. The tool never orders tickets, picks new work,
+retries business tasks or merges results.
 """
 
 from __future__ import annotations
@@ -74,7 +75,8 @@ READY_DELAY = 0.5
 PROMPT_ATTEMPTS = 3
 PARSE_ATTEMPTS = 3
 SUPERVISOR_START_WAIT = 10.0
-DEFAULT_STOP_WAIT = 30.0
+DEFAULT_STOP_WAIT = 60.0
+DEFAULT_SESSION_CLOSE_TIMEOUT = 5.0
 PROMPT_CONFIRM_ATTEMPTS = 3
 DEFAULT_PROMPT_CONFIRM_TIMEOUT = 10.0
 
@@ -372,6 +374,20 @@ class Store:
             return {}
         return {key: entry for key, entry in acks.items() if isinstance(entry, dict)}
 
+    def cleanup_path(self, worker_id: str) -> Path:
+        return self.worker_dir(worker_id) / "cleanup.json"
+
+    def cleanup_lock_path(self, worker_id: str) -> Path:
+        return self.worker_dir(worker_id) / "cleanup.lock"
+
+    def load_cleanup(self, worker_id: str) -> dict[str, Any]:
+        value = read_json(self.cleanup_path(worker_id))
+        return value if isinstance(value, dict) else {}
+
+    def save_cleanup(self, worker_id: str, record: dict[str, Any]) -> None:
+        record["updated_at"] = utc_now()
+        atomic_json(self.cleanup_path(worker_id), record)
+
 
 class Herdr:
     def __init__(self, workspace: str | None = None):
@@ -448,8 +464,10 @@ class Herdr:
             raise ManagerError("tab create response has no result.tab/result.root_pane IDs")
         return tab_id, pane_id
 
-    def tab_close(self, tab: str) -> None:
-        run(["herdr", "tab", "close", tab], timeout=30)
+    def tab_close(self, tab: str) -> tuple[int, str | None]:
+        """Close one registered tab; a missing tab is already closed."""
+        proc = run(["herdr", "tab", "close", tab], timeout=30)
+        return proc.returncode, herdr_error_code(proc)
 
     def agent_prompt(self, name: str, text: str) -> subprocess.CompletedProcess[str]:
         return run(["herdr", "agent", "prompt", name, text], timeout=60)
@@ -1156,8 +1174,8 @@ def wait_for_settled(
         rc, status = herdr.agent_status(agent)
 
 
-def settle_session_for_handoff(herdr: Herdr, agent: str, adapter: RuntimeAdapter) -> bool:
-    """Pause business execution so the session can accept the handoff instruction."""
+def settle_session_for_control(herdr: Herdr, agent: str, adapter: RuntimeAdapter) -> bool:
+    """Pause business execution so the session can accept a control instruction."""
     grace = env_float("HPM_HANDOFF_SETTLE_SECONDS", 15.0)
     timeout = env_float("HPM_HANDOFF_SETTLE_TIMEOUT_SECONDS", 20.0)
     rc, status = wait_for_settled(herdr, agent, grace)
@@ -1191,6 +1209,379 @@ def end_session(herdr: Herdr, adapter: RuntimeAdapter, session: dict[str, Any]) 
         if herdr.wait_agent_gone(agent, timeout=10.0):
             return True
     return not herdr.agent_exists(agent)
+
+
+def result_declared(state: dict[str, Any]) -> bool:
+    """True once the worker has written its result file; delivery stops auto-handoff."""
+    raw = str((state.get("paths") or {}).get("result") or "")
+    return bool(raw) and Path(raw).is_file()
+
+
+def live_session_facts(herdr: Herdr, state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Registered sessions paired with their actual Herdr agent state (read-only)."""
+    sessions = state.get("sessions")
+    if not isinstance(sessions, list) or not sessions:
+        agent = str((state.get("herdr") or {}).get("agent") or "")
+        if not agent:
+            return []
+        rc, status = herdr.agent_status(agent)
+        return [
+            {
+                "index": state.get("session_index"),
+                "agent": agent,
+                "tab": (state.get("herdr") or {}).get("tab"),
+                "session_status": None,
+                "agent_live": rc == 0,
+                "agent_status": status if rc == 0 else None,
+            }
+        ]
+    facts: list[dict[str, Any]] = []
+    for session in sessions:
+        agent = str(session.get("agent") or "")
+        rc, status = herdr.agent_status(agent) if agent else (1, None)
+        facts.append(
+            {
+                "index": session.get("index"),
+                "agent": agent,
+                "tab": session.get("tab"),
+                "session_status": session.get("status"),
+                "agent_live": rc == 0,
+                "agent_status": status if rc == 0 else None,
+            }
+        )
+    return facts
+
+
+def mark_session_stopped(state: dict[str, Any], fact: dict[str, Any], end_state: str = "stopped") -> None:
+    for session in state.get("sessions") or []:
+        if session.get("index") == fact.get("index") and session.get("status") in {"active", "handing-off"}:
+            session["status"] = "ended"
+            session["ended_at"] = utc_now()
+            session["end_state"] = end_state
+
+
+def stop_registered_sessions(herdr: Herdr, adapter: RuntimeAdapter, state: dict[str, Any]) -> dict[str, Any]:
+    """Pause business execution in every registered session; never closes a TUI.
+
+    Stop must also cover the handoff competition: whichever session is current
+    when the request lands is the one that gets paused, so a replacement
+    session cannot keep writing behind a stopped worker.
+    """
+    facts: list[dict[str, Any]] = []
+    stopped = True
+    for fact in reversed(live_session_facts(herdr, state)):
+        agent = fact["agent"]
+        if not agent or not fact["agent_live"] or fact["agent_status"] in {"idle", "done", "blocked"}:
+            mark_session_stopped(state, fact)
+            facts.append({**fact, "stopped": True})
+            continue
+        ok = settle_session_for_control(herdr, agent, adapter)
+        rc, status = herdr.agent_status(agent)
+        if ok:
+            mark_session_stopped(state, fact)
+        else:
+            stopped = False
+        facts.append({**fact, "agent_status": status if rc == 0 else None, "stopped": ok})
+    return {"business_stopped": stopped, "sessions": facts}
+
+
+def worktree_listing(repo: Path) -> dict[str, dict[str, str]]:
+    """Parse `git worktree list --porcelain` into {resolved path: entry}."""
+    proc = git(repo, "worktree", "list", "--porcelain", check=False)
+    if proc.returncode != 0:
+        raise ManagerError(f"cannot list git worktrees in {repo}: {proc.stderr.strip() or proc.stdout.strip()}")
+    listing: dict[str, dict[str, str]] = {}
+    current: dict[str, str] = {}
+    for raw in [*proc.stdout.splitlines(), ""]:
+        line = raw.rstrip("\n")
+        if not line.strip():
+            path = current.get("worktree")
+            if path:
+                listing[str(Path(path).resolve())] = current
+            current = {}
+            continue
+        key, _, value = line.partition(" ")
+        current[key] = value
+    return listing
+
+
+def uncommitted_entries(worktree: Path) -> list[dict[str, str]]:
+    """Tracked modifications and untracked files (ignored files are not evidence)."""
+    proc = git(worktree, "status", "--porcelain=v1", check=False)
+    if proc.returncode != 0:
+        return []
+    entries: list[dict[str, str]] = []
+    for line in proc.stdout.splitlines():
+        if not line.strip():
+            continue
+        entries.append({"code": line[:2].strip() or "??", "path": line[3:]})
+    return entries
+
+
+def archive_uncommitted(worker_dir: Path, worktree: Path) -> dict[str, Any]:
+    """Copy every uncommitted change into the durable management dir before removal."""
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    target = worker_dir / "cleanup" / f"uncommitted-{stamp}"
+    if target.exists():
+        target = worker_dir / "cleanup" / f"uncommitted-{stamp}-{uuid.uuid4().hex[:6]}"
+    target.mkdir(parents=True)
+    patch = git(worktree, "diff", "HEAD", "--binary", check=False)
+    if patch.returncode != 0:
+        raise ManagerError(f"cannot read uncommitted changes: {patch.stderr.strip() or patch.stdout.strip()}")
+    atomic_text(target / "tracked.patch", patch.stdout)
+    untracked_proc = git(worktree, "ls-files", "--others", "--exclude-standard", "-z", check=False)
+    if untracked_proc.returncode != 0:
+        raise ManagerError(f"cannot list untracked files: {untracked_proc.stderr.strip()}")
+    untracked = [item for item in untracked_proc.stdout.split("\0") if item]
+    archived: list[dict[str, Any]] = []
+    for relative in untracked:
+        source = worktree / relative
+        destination = target / "untracked" / relative
+        try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if source.is_symlink():
+                os.symlink(os.readlink(source), destination)
+                archived.append({"path": relative, "kind": "symlink"})
+                continue
+            shutil.copy2(source, destination)
+        except OSError as exc:
+            raise ManagerError(f"cannot archive uncommitted file {relative!r}: {exc}") from exc
+        archived.append({"path": relative, "bytes": source.stat().st_size})
+    manifest = {
+        "created_at": utc_now(),
+        "worktree": str(worktree),
+        "tracked_patch_bytes": len(patch.stdout.encode("utf-8")),
+        "tracked_entries": uncommitted_entries(worktree),
+        "untracked_files": archived,
+    }
+    atomic_json(target / "manifest.json", manifest)
+    return {
+        "path": str(target),
+        "tracked_patch_bytes": manifest["tracked_patch_bytes"],
+        "untracked_files": archived,
+    }
+
+
+def close_registered_sessions(
+    herdr: Herdr,
+    adapter: RuntimeAdapter,
+    state: dict[str, Any],
+    *,
+    timeout: float = DEFAULT_SESSION_CLOSE_TIMEOUT,
+    skip_tabs: set[str] | None = None,
+) -> dict[str, Any]:
+    """Close only the tabs recorded for this worker, after ending their live TUIs."""
+    live = live_session_facts(herdr, state)
+    for fact in live:
+        agent = fact["agent"]
+        if not fact["agent_live"]:
+            continue
+        for keys in adapter.exit_sequences():
+            try:
+                herdr.send_keys(agent, keys)
+            except ManagerError:
+                break
+            if herdr.wait_agent_gone(agent, timeout=timeout):
+                break
+    tabs: list[str] = []
+    for fact in live:
+        tab = fact.get("tab")
+        if isinstance(tab, str) and tab and tab not in tabs:
+            tabs.append(tab)
+    closed: list[str] = []
+    failed: list[dict[str, Any]] = []
+    for tab in tabs:
+        if skip_tabs and tab in skip_tabs:
+            continue
+        rc, code = herdr.tab_close(tab)
+        if rc == 0 or code == "tab_not_found":
+            closed.append(tab)
+        else:
+            failed.append({"tab": tab, "error": code or "tab-close-failed"})
+    remaining = [fact for fact in live_session_facts(herdr, state) if fact["agent_live"]]
+    return {
+        "closed_tabs": closed,
+        "remaining_agents": remaining,
+        "failed_tabs": failed,
+        "closed": not remaining and not failed,
+    }
+
+
+def worker_paths(store: Store, state: dict[str, Any]) -> dict[str, str]:
+    """Resolve management paths, tolerating legacy states with a partial `paths` map."""
+    paths = state.get("paths") if isinstance(state.get("paths"), dict) else {}
+    worker_dir = store.worker_dir(state["worker_id"])
+    return {
+        "management": str(paths.get("management") or worker_dir),
+        "result": str(paths.get("result") or (worker_dir / "result.json")),
+        "contract": str(paths.get("contract") or (worker_dir / "contract.md")),
+        "supervisor_log": str(paths.get("supervisor_log") or store.log_path(state["worker_id"])),
+    }
+
+
+def cleanup_state_facts(
+    store: Store, state: dict[str, Any], *, live: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """Read-only retention facts: resources, recorded decision and why cleanup is not done."""
+    worker_id = state["worker_id"]
+    repo = Path(state["repo"]["root"])
+    worktree = Path(state["worktree"])
+    branch = state["branch"]
+    paths = worker_paths(store, state)
+    record = store.load_cleanup(worker_id)
+    exists = worktree.exists()
+    entries = uncommitted_entries(worktree) if exists else []
+    listing: dict[str, dict[str, str]] = {}
+    listing_error: str | None = None
+    try:
+        listing = worktree_listing(repo)
+    except ManagerError as exc:
+        listing_error = str(exc)
+    resolved = str(worktree.resolve())
+    entry = listing.get(resolved)
+    main_checkout = Path(resolved) == Path(state["repo"]["root"]).resolve()
+    owned = bool(entry) and entry.get("branch") == f"refs/heads/{branch}" and not main_checkout
+    branch_exists = git(repo, "rev-parse", "--verify", f"refs/heads/{branch}", check=False).returncode == 0
+    branch_head = None
+    if branch_exists:
+        head_proc = git(repo, "rev-parse", "--verify", f"{branch}^{{commit}}", check=False)
+        if head_proc.returncode == 0:
+            branch_head = head_proc.stdout.strip()
+    if live is None:
+        live = live_session_facts(Herdr(state.get("herdr", {}).get("workspace")), state)
+    blockers: list[dict[str, Any]] = []
+    if state["lifecycle"]["state"] not in TERMINAL_STATES:
+        blockers.append(
+            {
+                "code": "worker-not-stopped",
+                "message": f"lifecycle is {state['lifecycle']['state']!r}; stop the worker before cleanup",
+            }
+        )
+    if not record.get("decision"):
+        blockers.append({"code": "decision-missing", "message": "no explicit cleanup decision is recorded"})
+    if pid_alive(state):
+        blockers.append(
+            {"code": "supervisor-running", "message": "the worker supervisor is still running; stop the worker first"}
+        )
+    for fact in live:
+        if fact["agent_live"] and fact["agent_status"] == "working":
+            blockers.append(
+                {
+                    "code": "active-session",
+                    "message": f"session {fact['index']} is still working; stop the worker first",
+                    "agent": fact["agent"],
+                }
+            )
+    if exists:
+        if main_checkout:
+            blockers.append(
+                {"code": "worktree-is-main-checkout", "message": "the recorded worktree is the repository checkout itself"}
+            )
+        elif listing_error is not None:
+            blockers.append({"code": "worktree-unowned", "message": listing_error})
+        elif not owned:
+            blockers.append(
+                {
+                    "code": "worktree-unowned",
+                    "message": "the recorded path is not the registered worktree of this repository and branch",
+                }
+            )
+    if entries:
+        blockers.append(
+            {
+                "code": "uncommitted-content",
+                "message": (
+                    f"{len(entries)} uncommitted entr{'y' if len(entries) == 1 else 'ies'}; "
+                    "pass --archive-uncommitted or --discard-uncommitted"
+                ),
+                "entries": entries[:50],
+            }
+        )
+    return {
+        "decision": record.get("decision"),
+        "cleaned": bool(record.get("worktree_removed_at")) and not exists,
+        "worktree_removed_at": record.get("worktree_removed_at"),
+        "branch_deleted_at": record.get("branch_deleted_at"),
+        "last_attempt": record.get("last_attempt"),
+        "blockers": blockers,
+        "resources": {
+            "management_dir": paths["management"],
+            "result": paths["result"],
+            "contract": paths["contract"],
+            "handoffs": sorted(str(path) for path in (store.worker_dir(worker_id) / "handoffs").glob("*.md")),
+            "worktree": {
+                "path": state["worktree"],
+                "exists": exists,
+                "owned": owned,
+                "dirty": bool(entries),
+                "uncommitted_entries": entries[:50],
+            },
+            "branch": {"name": branch, "exists": branch_exists, "head": branch_head},
+            "sessions": live,
+        },
+    }
+
+
+def delete_worker_branch(repo: Path, state: dict[str, Any], *, force: bool) -> dict[str, Any]:
+    """Delete the worker branch only on an explicit decision and never in place."""
+    name = state["branch"]
+    if git(repo, "rev-parse", "--verify", f"refs/heads/{name}", check=False).returncode != 0:
+        return {"name": name, "existed": False, "deleted": False, "retained_reason": "branch does not exist"}
+    try:
+        listing = worktree_listing(repo)
+    except ManagerError as exc:
+        return {"name": name, "existed": True, "deleted": False, "retained_reason": str(exc)}
+    for path, entry in listing.items():
+        if entry.get("branch") == f"refs/heads/{name}":
+            return {
+                "name": name,
+                "existed": True,
+                "deleted": False,
+                "retained_reason": f"branch is still checked out at {path}",
+            }
+    proc = git(repo, "branch", "-D" if force else "-d", name, check=False)
+    if proc.returncode == 0:
+        return {"name": name, "existed": True, "deleted": True, "forced": force}
+    return {
+        "name": name,
+        "existed": True,
+        "deleted": False,
+        "retained_reason": proc.stderr.strip() or proc.stdout.strip() or "branch deletion was refused",
+    }
+
+
+def save_cleanup_record(
+    store: Store,
+    state: dict[str, Any],
+    record: dict[str, Any],
+    decision: dict[str, Any],
+    *,
+    outcome: str,
+    removed: dict[str, Any],
+    blockers: list[dict[str, Any]],
+    archive: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    now = utc_now()
+    record["version"] = 1
+    record["worker_id"] = state["worker_id"]
+    record["decision"] = decision
+    record["last_attempt"] = {"at": now, "outcome": outcome, "removed": removed, "blockers": blockers}
+    if archive is not None:
+        record["last_archive"] = archive
+    if removed.get("worktree"):
+        record["worktree_removed_at"] = now
+    if removed.get("branch"):
+        record["branch_deleted_at"] = now
+    closed = [tab for tab in (record.get("closed_tabs") or []) if isinstance(tab, str)]
+    for tab in removed.get("tabs") or []:
+        if tab not in closed:
+            closed.append(tab)
+    if closed:
+        record["closed_tabs"] = closed
+    if outcome == "removed" and not blockers:
+        record["completed_at"] = record.get("completed_at") or now
+    store.save_cleanup(state["worker_id"], record)
+    return record
 
 
 def handoff_checkpoint(store: Store, worker_id: str) -> None:
@@ -1347,7 +1738,7 @@ def attempt_handoff(
     supervisor_log(f"handoff ({trigger}) requested for session {session['index']} ({session['agent']}): {reason}")
     try:
         handoff_checkpoint(store, worker_id)
-        if not settle_session_for_handoff(herdr, session["agent"], adapter):
+        if not settle_session_for_control(herdr, session["agent"], adapter):
             raise HandoffError("handoff-settle-failed", "the current session could not be paused for the handoff")
         handoff_checkpoint(store, worker_id)
         record["phase"] = "requesting-document"
@@ -1370,7 +1761,7 @@ def attempt_handoff(
             store.save_state(worker_id, state)
             handoff_document = wait_for_handoff_document(store, state, herdr, adapter, session, doc_path, record)
         handoff_checkpoint(store, worker_id)
-        if not settle_session_for_handoff(herdr, session["agent"], adapter):
+        if not settle_session_for_control(herdr, session["agent"], adapter):
             raise HandoffError(
                 "handoff-settle-failed",
                 "the session did not stop business work after writing the handoff document",
@@ -1762,6 +2153,10 @@ def validate_result(payload: Any, state: dict[str, Any]) -> dict[str, Any]:
 
 
 def record_result(store: Store, state: dict[str, Any]) -> str:
+    if state.get("result") is not None and state["lifecycle"]["state"] in {"delivered", "failed", "needs-decision"}:
+        return "recorded"
+    if state["lifecycle"]["state"] == "protocol-failure":
+        return "protocol-failure"
     result_path = Path(state["paths"]["result"])
     if not result_path.is_file():
         return "missing"
@@ -1842,6 +2237,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     store.save_state(worker_id, state)
     supervisor_log("supervisor started")
     herdr = Herdr(state.get("herdr", {}).get("workspace"))
+    adapter = get_adapter(state["runtime"]["kind"])
     poll = env_float("HPM_POLL_SECONDS", 5.0)
     settle_grace = env_float("HPM_SETTLE_GRACE_SECONDS", 30.0)
     report_wait = env_float("HPM_REPORT_WAIT_SECONDS", 120.0)
@@ -1852,9 +2248,22 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         control = store.load_control(worker_id)
         if control.get("stop_requested_at"):
             outcome = record_result(store, state)
+            stopped = stop_registered_sessions(herdr, adapter, state)
             if outcome not in {"recorded", "protocol-failure"}:
-                finalize(state, "stopped", "stop-requested")
-                supervisor_log("stopped by request")
+                if stopped["business_stopped"]:
+                    finalize(state, "stopped", "stop-requested")
+                    supervisor_log("stopped by request")
+                else:
+                    if not any(item.get("code") == "stop-incomplete" for item in state["items"]):
+                        append_item(
+                            state,
+                            "exception",
+                            "stop-incomplete",
+                            "a registered session could not be confirmed stopped; the scene is retained",
+                            {"sessions": stopped["sessions"]},
+                        )
+                    state["supervisor"].update(state="exited", exit_reason="stop-incomplete")
+                    supervisor_log("stop requested but business execution could not be confirmed stopped")
             else:
                 state["supervisor"]["exit_reason"] = "stop-requested"
                 supervisor_log(f"stop requested after result: {outcome}")
@@ -1869,7 +2278,6 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             store.save_state(worker_id, state)
             supervisor_log("worker has no usable session record")
             return 0
-        adapter = get_adapter(state["runtime"]["kind"])
 
         request_id = control.get("handoff_request_id")
         if isinstance(request_id, str) and request_id and request_id != state["handoff"].get("handled_request_id"):
@@ -1981,7 +2389,9 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                 sample = sample_current_session(state, herdr, agent, status)
                 store.save_state(worker_id, state)
                 if sample_is_current(sample, state):
-                    trigger = handoff_trigger_reason(sample, state["handoff"])
+                    # A declared delivery stops automatic handoff; observation
+                    # itself continues so the recorded facts stay complete.
+                    trigger = None if result_declared(state) else handoff_trigger_reason(sample, state["handoff"])
                     if trigger:
                         supervisor_log(f"context threshold ({trigger}) reached for session {session['index']}")
                         attempt_handoff(
@@ -2137,6 +2547,7 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
             dirty = {"entries": len([line for line in porcelain.splitlines() if line.strip()])}
         except ManagerError:
             dirty = None
+    live_sessions = live_session_facts(herdr, state)
     return {
         "worker_id": state["worker_id"],
         "run_id": state.get("run_id"),
@@ -2158,6 +2569,7 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
         "items": annotated_items(store, state),
         "pending_items": worker_pending_items(store, state),
         "result": state["result"],
+        "cleanup": cleanup_state_facts(store, state, live=live_sessions),
         "paths": state["paths"],
         "control": store.load_control(worker_id),
     }
@@ -2570,6 +2982,10 @@ def cmd_handoff(args: argparse.Namespace) -> int:
         raise ManagerError(f"worker is in lifecycle {life!r}; a handoff cannot be requested")
     if not pid_alive(state):
         raise ManagerError("the worker supervisor is not running; a handoff cannot be requested")
+    if result_declared(state):
+        raise ManagerError(
+            "the worker has already written its result file; delivery stops automatic handoff"
+        )
     session = current_session(state)
     if session is None:
         raise ManagerError("the worker has no current session record")
@@ -2599,95 +3015,301 @@ def cmd_handoff(args: argparse.Namespace) -> int:
 
 
 def cmd_stop(args: argparse.Namespace) -> int:
+    """Stop business execution and supervision while retaining the whole scene.
+
+    A stop must also cover the handoff competition: the supervisor pauses
+    whichever session is current when the request lands, so a replacement
+    session cannot keep writing behind a stopped worker. Without a live
+    supervisor this command performs the same stop itself.
+    """
     store = resolve_store(args)
     state = store.load_state(args.worker)
     if state is None:
         raise ManagerError(f"worker {args.worker!r} is not registered under {store.root}")
-    life = state["lifecycle"]["state"]
-    if life == "stopped":
-        print_json({"stopped": True, "already_stopped": True, "worker_id": args.worker, "lifecycle": life})
-        return 0
-    if life in TERMINAL_STATES and not pid_alive(state):
-        print_json(
-            {
-                "stopped": True,
-                "already_terminal": True,
-                "worker_id": args.worker,
-                "lifecycle": life,
-                "branch": state["branch"],
-                "worktree": state["worktree"],
-            }
-        )
-        return 0
-
-    control = store.load_control(args.worker)
-    control.update({"stop_requested_at": utc_now(), "reason": args.reason or "stop requested"})
-    store.save_control(args.worker, control)
-
     herdr = Herdr(state.get("herdr", {}).get("workspace"))
-    agent = current_agent(state) or state["herdr"].get("agent", "")
     adapter = get_adapter(state["runtime"]["kind"])
-    rc, status = herdr.agent_status(agent)
-    if rc == 0 and status in {"working", "blocked"}:
-        for keys in adapter.interrupt_sequences():
-            herdr.send_keys(agent, keys)
-            rc, status = herdr.wait_settled(agent, timeout=10)
-            if rc != 0 or status in SETTLED_STATES:
-                break
+    life = state["lifecycle"]["state"]
 
-    if pid_alive(state):
-        deadline = time.monotonic() + DEFAULT_STOP_WAIT
-        current = state
-        while time.monotonic() < deadline:
-            current = store.load_state(args.worker) or current
-            if current["supervisor"].get("state") == "exited" or current["lifecycle"]["state"] in TERMINAL_STATES:
-                break
-            time.sleep(0.25)
-        current = store.load_state(args.worker) or current
-        if pid_alive(current) and current["lifecycle"]["state"] not in TERMINAL_STATES:
-            print_json(
-                {
-                    "error": "stop-incomplete",
-                    "message": "supervisor did not exit; scene retained for inspection",
-                    "worker_id": args.worker,
-                    "worktree": current["worktree"],
-                },
-                stream=sys.stderr,
-            )
-            return 3
-        state = current
-    else:
-        rc, status = herdr.agent_status(agent)
-        if rc == 0 and status == "working":
-            for keys in adapter.interrupt_sequences():
-                herdr.send_keys(agent, keys)
-                rc, status = herdr.wait_settled(agent, timeout=10)
-                if rc != 0 or status in SETTLED_STATES:
-                    break
-        if state["lifecycle"]["state"] not in TERMINAL_STATES:
-            finalize(state, "stopped", "supervisor-missing-at-stop")
-            store.save_state(args.worker, state)
+    paths = worker_paths(store, state)
 
-    print_json(
-        {
+    def stop_payload(stop_facts: dict[str, Any], **extra: Any) -> dict[str, Any]:
+        payload = {
             "stopped": True,
             "worker_id": args.worker,
             "session": state.get("session_index"),
             "lifecycle": state["lifecycle"]["state"],
             "reason": state["lifecycle"].get("reason"),
+            "business_stopped": stop_facts["business_stopped"],
+            "sessions": stop_facts["sessions"],
             "branch": state["branch"],
             "worktree": state["worktree"],
-            "result_path": state["paths"]["result"],
+            "result_path": paths["result"],
+            "management_dir": paths["management"],
             "items": len(state["items"]),
         }
+        payload.update(extra)
+        return payload
+
+    def stop_incomplete(stop_facts: dict[str, Any], message: str, **extra: Any) -> int:
+        payload = stop_payload(stop_facts, **extra)
+        payload.update({"error": "stop-incomplete", "message": message})
+        print_json(payload, stream=sys.stderr)
+        return 3
+
+    if life == "stopped" and not pid_alive(state):
+        stop_facts = stop_registered_sessions(herdr, adapter, state)
+        store.save_state(args.worker, state)
+        if not stop_facts["business_stopped"]:
+            return stop_incomplete(stop_facts, "a registered session is still working; the scene is retained")
+        print_json(stop_payload(stop_facts, already_stopped=True))
+        return 0
+
+    if life in TERMINAL_STATES and not pid_alive(state):
+        stop_facts = stop_registered_sessions(herdr, adapter, state)
+        store.save_state(args.worker, state)
+        if not stop_facts["business_stopped"]:
+            return stop_incomplete(
+                stop_facts, "a registered session is still working; the scene is retained", already_terminal=True
+            )
+        print_json(stop_payload(stop_facts, already_terminal=True))
+        return 0
+
+    control = store.load_control(args.worker)
+    control.update(
+        {
+            "stop_requested_at": utc_now(),
+            "reason": args.reason or "stop requested",
+            "handoff_request_id": None,
+            "handoff_requested_at": None,
+            "handoff_requested_session": None,
+            "handoff_reason": None,
+        }
     )
-    return 0
+    store.save_control(args.worker, control)
+
+    if pid_alive(state):
+        deadline = time.monotonic() + env_float("HPM_STOP_WAIT_SECONDS", DEFAULT_STOP_WAIT)
+        while time.monotonic() < deadline:
+            state = store.load_state(args.worker) or state
+            if not pid_alive(state):
+                break
+            time.sleep(0.25)
+        if pid_alive(state) and state["lifecycle"]["state"] not in TERMINAL_STATES:
+            stop_facts = {"business_stopped": False, "sessions": live_session_facts(herdr, state)}
+            return stop_incomplete(
+                stop_facts,
+                "the supervisor is still finishing an in-flight step; retry stop or inspect the scene",
+            )
+    state = store.load_state(args.worker) or state
+
+    outcome = record_result(store, state)
+    stop_facts = stop_registered_sessions(herdr, adapter, state)
+    if outcome in {"recorded", "protocol-failure"}:
+        state["lifecycle"]["reason"] = state["lifecycle"].get("reason") or "stop-requested"
+        state["supervisor"].update(
+            state="exited",
+            exit_reason=state["supervisor"].get("exit_reason") or "stop-requested",
+            heartbeat_at=utc_now(),
+        )
+        store.save_state(args.worker, state)
+        if not stop_facts["business_stopped"]:
+            return stop_incomplete(stop_facts, "a registered session is still working; the scene is retained")
+        print_json(stop_payload(stop_facts, already_terminal=state["lifecycle"]["state"] != "stopped"))
+        return 0
+    if stop_facts["business_stopped"]:
+        finalize(state, "stopped", "stop-requested")
+        store.save_state(args.worker, state)
+        print_json(stop_payload(stop_facts))
+        return 0
+    if not any(item.get("code") == "stop-incomplete" for item in state["items"]):
+        append_item(
+            state,
+            "exception",
+            "stop-incomplete",
+            "business execution could not be confirmed stopped after the stop request; the scene is retained",
+            {"sessions": stop_facts["sessions"]},
+        )
+    state["supervisor"].update(state="exited", exit_reason="stop-incomplete", heartbeat_at=utc_now())
+    store.save_state(args.worker, state)
+    return stop_incomplete(stop_facts, "business execution could not be confirmed stopped; the scene is retained")
+
+
+def cmd_cleanup(args: argparse.Namespace) -> int:
+    """Remove registered resources only after an explicit master decision.
+
+    The tool verifies ownership, absence of live business writes and the
+    disposition of uncommitted content; it never removes an unowned path, a
+    branch checked out elsewhere, or a worktree that is still writing. The
+    management directory (result, contract, handoffs, logs, archive) is kept.
+    """
+    store = resolve_store(args)
+    state = store.load_state(args.worker)
+    if state is None:
+        raise ManagerError(f"worker {args.worker!r} is not registered under {store.root}")
+    if args.archive_uncommitted and args.discard_uncommitted:
+        raise ManagerError("--archive-uncommitted and --discard-uncommitted are mutually exclusive")
+    if args.force_branch and not args.delete_branch:
+        raise ManagerError("--force-branch requires --delete-branch")
+    decision: dict[str, Any] = {"at": utc_now()}
+    if args.integrated:
+        sha = args.integrated.strip().lower()
+        if not SHA_RE.fullmatch(sha):
+            raise ManagerError("--integrated must be a full commit SHA (40-64 lowercase hex characters)")
+        decision["integrated"] = sha
+    if args.disposition.strip():
+        decision["disposition"] = args.disposition.strip()
+    if "integrated" not in decision and "disposition" not in decision:
+        raise ManagerError(
+            "cleanup needs an explicit decision: pass --integrated <sha> for integrated work "
+            "or --disposition <text> for another disposition"
+        )
+
+    with file_lock(store.cleanup_lock_path(args.worker)):
+        state = store.load_state(args.worker) or state
+        herdr = Herdr(state.get("herdr", {}).get("workspace"))
+        adapter = get_adapter(state["runtime"]["kind"])
+        record = store.load_cleanup(args.worker)
+        paths = worker_paths(store, state)
+        live = live_session_facts(herdr, state)
+        facts = cleanup_state_facts(store, state, live=live)
+        worktree = Path(state["worktree"])
+        worktree_existed = worktree.exists()
+        entries = facts["resources"]["worktree"]["uncommitted_entries"] if worktree_existed else []
+        handle_uncommitted = bool(entries) and (args.archive_uncommitted or args.discard_uncommitted)
+        blockers = [
+            blocker
+            for blocker in facts["blockers"]
+            if blocker["code"] != "decision-missing"
+            and not (blocker["code"] == "uncommitted-content" and handle_uncommitted)
+        ]
+        removed: dict[str, Any] = {"worktree": False, "branch": False, "tabs": []}
+        archive: dict[str, Any] | None = None
+
+        def blocked(payload_blockers: list[dict[str, Any]], message: str) -> int:
+            save_cleanup_record(
+                store, state, record, decision, outcome="blocked", removed=removed, blockers=payload_blockers
+            )
+            print_json(
+                {
+                    "error": "cleanup-blocked",
+                    "message": message,
+                    "worker_id": args.worker,
+                    "cleaned": False,
+                    "already_cleaned": False,
+                    "decision": decision,
+                    "blockers": payload_blockers,
+                    "resources": facts["resources"],
+                    "retained": {
+                        "worktree": state["worktree"],
+                        "branch": state["branch"],
+                        "management_dir": paths["management"],
+                        "result": paths["result"],
+                    },
+                },
+                stream=sys.stderr,
+            )
+            return 3
+
+        if blockers:
+            return blocked(blockers, "cleanup cannot proceed; no registered resource was removed")
+
+        if worktree_existed and entries and args.archive_uncommitted:
+            try:
+                archive = archive_uncommitted(Path(paths["management"]), worktree)
+            except ManagerError as exc:
+                return blocked([{"code": "archive-failed", "message": str(exc)}], str(exc))
+
+        sessions = close_registered_sessions(
+            herdr,
+            adapter,
+            state,
+            skip_tabs={tab for tab in (record.get("closed_tabs") or []) if isinstance(tab, str)},
+        )
+        removed["tabs"] = sessions["closed_tabs"]
+        if not sessions["closed"]:
+            return blocked(
+                [
+                    {
+                        "code": "session-close-failed",
+                        "message": "a registered session could not be closed; the worktree is retained",
+                        "remaining_agents": sessions["remaining_agents"],
+                        "failed_tabs": sessions["failed_tabs"],
+                    }
+                ],
+                "a registered session could not be closed; the worktree is retained",
+            )
+
+        if worktree.exists() or facts["resources"]["worktree"]["owned"]:
+            proc = git(state["repo"]["root"], "worktree", "remove", "--force", "--", str(worktree), check=False)
+            if proc.returncode != 0:
+                return blocked(
+                    [
+                        {
+                            "code": "worktree-remove-failed",
+                            "message": proc.stderr.strip() or proc.stdout.strip() or "git worktree remove failed",
+                        }
+                    ],
+                    "the registered worktree could not be removed; the scene is retained",
+                )
+            removed["worktree"] = True
+
+        if args.delete_branch:
+            branch_action = delete_worker_branch(Path(state["repo"]["root"]), state, force=args.force_branch)
+            removed["branch"] = bool(branch_action.get("deleted"))
+        else:
+            branch_action = {
+                "name": state["branch"],
+                "existed": facts["resources"]["branch"]["exists"],
+                "deleted": False,
+                "retained_reason": "branch deletion needs an explicit --delete-branch",
+            }
+
+        already_cleaned = (
+            bool(record.get("worktree_removed_at"))
+            and not removed["worktree"]
+            and not removed["branch"]
+            and not removed["tabs"]
+        )
+        save_cleanup_record(
+            store,
+            state,
+            record,
+            decision,
+            outcome="removed",
+            removed=removed,
+            blockers=[],
+            archive=archive,
+        )
+        print_json(
+            {
+                "worker_id": args.worker,
+                "cleaned": True,
+                "already_cleaned": already_cleaned,
+                "decision": decision,
+                "worktree": {
+                    "path": state["worktree"],
+                    "existed": worktree_existed,
+                    "removed": removed["worktree"],
+                    "uncommitted": "archived" if archive else ("discarded" if handle_uncommitted else "none"),
+                },
+                "branch": branch_action,
+                "sessions": {"closed_tabs": removed["tabs"], "remaining_agents": []},
+                "archive": archive,
+                "evidence": {
+                    "management_dir": paths["management"],
+                    "result": paths["result"],
+                    "handoffs": facts["resources"]["handoffs"],
+                },
+                "blockers": [],
+            }
+        )
+        return 0
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="plan_manager.py",
-        description="Lifecycle manager for Herdr coding workers on one confirmed run (tickets 02-05).",
+        description="Lifecycle manager for Herdr coding workers on one confirmed run (tickets 02-06).",
         epilog=(
             "Example:\n"
             "  plan_manager.py init-run --repo /repo --run-id plan-01 --kind pi --provider <p> --model <m> "
@@ -2698,7 +3320,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "  plan_manager.py wait --repo /repo --run plan-01 --timeout 600\n"
             "  plan_manager.py ack --repo /repo --item w-05-abc123/i001\n"
             "  plan_manager.py read --repo /repo --worker <worker-id>\n"
-            "  plan_manager.py stop --repo /repo --worker <worker-id>"
+            "  plan_manager.py stop --repo /repo --worker <worker-id>\n"
+            "  plan_manager.py cleanup --repo /repo --worker <worker-id> --integrated <full-sha>"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -2800,6 +3423,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     stop.add_argument("--worker", required=True)
     stop.add_argument("--reason", default="")
     stop.set_defaults(func=cmd_stop)
+
+    cleanup = sub.add_parser(
+        "cleanup", help="remove registered resources only after an explicit master decision"
+    )
+    cleanup.add_argument("--repo", default="")
+    cleanup.add_argument("--management-root", default="")
+    cleanup.add_argument("--worker", required=True)
+    cleanup.add_argument("--integrated", default="", help="integration SHA supplied by the master")
+    cleanup.add_argument("--disposition", default="", help="free-text disposition for non-code or discarded work")
+    cleanup.add_argument(
+        "--delete-branch", action="store_true", help="delete the worker branch (safe -d unless --force-branch)"
+    )
+    cleanup.add_argument(
+        "--force-branch", action="store_true", help="use -D when deleting a branch that is not merged"
+    )
+    cleanup.add_argument(
+        "--archive-uncommitted",
+        action="store_true",
+        help="copy uncommitted content into the management dir before removing the worktree",
+    )
+    cleanup.add_argument(
+        "--discard-uncommitted", action="store_true", help="explicitly discard uncommitted content"
+    )
+    cleanup.set_defaults(func=cmd_cleanup)
 
     supervise = sub.add_parser("_supervise", help=argparse.SUPPRESS)
     supervise.add_argument("--management-root", required=True)

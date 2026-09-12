@@ -1,0 +1,24 @@
+{
+  "active_workers": 1,
+  "agent": "w-smoke06-stop",
+  "base": "8948648a470e65858b9d23b1150dd8e90314b953",
+  "branch": "hpm/w-smoke06-stop",
+  "management_dir": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop",
+  "max_workers": 2,
+  "pane": "wJ:p17",
+  "prompt_attempts": 1,
+  "result_path": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/workers/w-smoke06-stop/result.json",
+  "run_id": "smoke06",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session": 1,
+  "supervisor_pid": 2611839,
+  "tab": "wJ:t17",
+  "ticket_id": "STOP-06",
+  "worker_id": "w-smoke06-stop",
+  "worktree": "/tmp/opencode/hpm-exp06/repo/.git/herdr-plan-manager/worktrees/w-smoke06-stop"
+}
