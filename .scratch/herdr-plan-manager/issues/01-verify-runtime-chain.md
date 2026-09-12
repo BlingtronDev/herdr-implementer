@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** delivered（验证记录与证据：[../evidence/01-verify-runtime-chain/README.md](../evidence/01-verify-runtime-chain/README.md)；待主脑确认集成）
+**Status:** integrated（已集成到 main：`99d8086`；验证记录与证据：[../evidence/01-verify-runtime-chain/README.md](../evidence/01-verify-runtime-chain/README.md)）
 
 ## 依据与边界
 

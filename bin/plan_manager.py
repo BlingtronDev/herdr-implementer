@@ -539,7 +539,12 @@ class OpenCodeAdapter(RuntimeAdapter):
     kind = "opencode"
 
     def start_args(self, provider: str, model: str, thinking: str) -> list[str]:
-        return []
+        # `--auto` auto-approves permissions that are not explicitly denied.
+        # There is no human at the worker terminal: an unanswered permission
+        # prompt (for example `external_directory` for the management
+        # directory) would stall the session while Herdr keeps reporting
+        # `working` (E03). Explicit denials in repo/user config still apply.
+        return ["--auto"]
 
     def tab_env(self, provider: str, model: str, thinking: str) -> dict[str, str]:
         content = {"agent": {"build": {"model": f"{provider}/{model}", "variant": thinking}}}

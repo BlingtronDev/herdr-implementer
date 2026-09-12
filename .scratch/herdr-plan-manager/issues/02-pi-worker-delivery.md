@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — 验证 Herdr 与双运行时的最小执行链路。
 
-**Status:** delivered（执行记录与证据：[../evidence/02-pi-worker-delivery/README.md](../evidence/02-pi-worker-delivery/README.md)；待主脑确认集成）
+**Status:** integrated（已集成到 main：`9224d83`；执行记录与证据：[../evidence/02-pi-worker-delivery/README.md](../evidence/02-pi-worker-delivery/README.md)）
 
 ## 依据与边界
 

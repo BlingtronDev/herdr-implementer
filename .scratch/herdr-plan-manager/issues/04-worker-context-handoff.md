@@ -4,9 +4,9 @@
 
 **Blocked by:** 03 — 让 OpenCode 使用同一套单工单执行接口。
 
-**Status:** delivered（执行记录与证据：[../evidence/04-worker-context-handoff/README.md](../evidence/04-worker-context-handoff/README.md)；待主脑确认集成）
+**Status:** integrated（已集成到 main：`b4c0444`；执行记录与证据：[../evidence/04-worker-context-handoff/README.md](../evidence/04-worker-context-handoff/README.md)）
 
-> 执行中发现 Pi 会话模型注册表不返回 context window（E04，已在本工单修复）；阈值低于新会话起始上下文会连续交接（E05，观察项）；E02／E03 仍待主脑汇总到共享 README。详见证据 README 第 6 节。
+> 执行中发现 Pi 会话模型注册表不返回 context window（E04，已在本工单修复）；阈值低于新会话起始上下文会连续交接（E05，观察项）；E02–E05 已汇总到共享 README（含 E06 记录本次汇总偏差）。详见证据 README 第 6 节。
 
 ## 依据与边界
 

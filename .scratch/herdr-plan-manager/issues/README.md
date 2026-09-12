@@ -69,10 +69,70 @@
 
 - 发现时间：2026-09-11
 - 关联工单：[01 验证最小执行链路](01-verify-runtime-chain.md)
-- 状态：待决策（根因已确认，处置方案待定）
+- 状态：已解决（2026-09-11 用户决定卸载触发该阻塞态的 `@juicesharp/rpiv-ask-user-question` 插件）
 - 预期与实际：预期 `blocked` 信号能覆盖所有等待人工输入的 worker UI。实际在 Pi 中调用 `ask_user_question` 后，对话框真实阻塞，但 `herdr agent get` 持续报告 `working`，`herdr agent wait --until blocked` 超时（exit 1）。根因：Herdr 0.8.2 在 Pi 官方集成报活时以生命周期 hook 为唯一权威、跳过屏幕检测；集成仅在收到 `herdr:blocked` 事件时才上报 blocked，而 `rpiv-ask-user-question` 只发出自身命名空间的 `rpiv:ask-user:blocked`，未桥接。对照 `pi-subagents` 显式桥接了 `herdr:blocked`，其等待人工会被正确上报。
-- 证据：[`evidence/01-verify-runtime-chain/logs/09-pi-blocked.txt`](../evidence/01-verify-runtime-chain/logs/09-pi-blocked.txt)、[`09-pi-blocked-current.txt`](../evidence/01-verify-runtime-chain/logs/09-pi-blocked-current.txt)、[`evidence/01-verify-runtime-chain/README.md` 附录 A](../evidence/01-verify-runtime-chain/README.md)；`~/.pi/agent/extensions/herdr-agent-state.ts:207`；`@juicesharp/rpiv-ask-user-question/events.ts:33`；Herdr 0.8.2 `agents.mdx`（Status authority / Blocked state）与 `pi-subagents/src/integrations/herdr-status.ts:267-280`。
-- 影响：工单 02（单 worker 生命周期监督）与 04（异常上报／自动交接）不能仅靠 `blocked` 识别 Pi 的人工介入信号；OpenCode 权限询问仍可靠映射为 `blocked`。工单 01 的验收结论不受影响（语义已实测并记录）。作为推论，卸载 `rpiv-ask-user-question` 不会改变该行为；只有卸载 Herdr 的 Pi 集成并回退屏幕 manifest 检测，才可能将可见审批／提问 UI 判为 `blocked`，但会丢失精确生命周期与会话身份。
-- 处置与负责人：待主脑决策。候选：A. 增加桥接扩展，监听 `rpiv:ask-user:blocked` 并转发 `herdr:blocked`（放在 `herdr-agent-state.ts` 旁）；B. 监督层对 Pi 采用 `working` 长时间无输出 + pane 读取兜底；C. 卸载 Pi 集成回退屏幕检测（不推荐）。
-- 后续工单／计划变更：暂无新增工单；建议在工单 02／04 的验收中明确 Pi 阻塞 UI 的识别路径。
-- 解决与验证：待补充。
+- 证据：[`evidence/01-verify-runtime-chain/logs/09-pi-blocked.txt`](../evidence/01-verify-runtime-chain/logs/09-pi-blocked.txt)、[`09-pi-blocked-current.txt`](../evidence/01-verify-runtime-chain/logs/09-pi-blocked-current.txt)、[`evidence/01-verify-runtime-chain/README.md` 附录 A](../evidence/01-verify-runtime-chain/README.md)；`~/.pi/agent/extensions/herdr-agent-state.ts:207`；`@juicesharp/rpiv-ask-user-question/events.ts:33`；Herdr 0.8.2 `agents.mdx`（Status authority / Blocked state）与 `pi-subagents/src/integrations/herdr-status.ts:267-280`。卸载证据：`pi remove npm:@juicesharp/rpiv-ask-user-question` 输出 `removed 2 packages`；`pi list` 与 `~/.pi/agent/settings.json` 的 `packages` 已不含该插件，`~/.pi/agent/npm/node_modules/@juicesharp/` 目录已移除（2026-09-11）。
+- 影响：插件卸载后，Pi 会话不再注册 `ask_user_question`，这一具体阻塞场景不会再出现；工单 02／04 已落地的合同约束与主脑 `read` 抽查保留为通用兜底。机制层面的事实仍然成立：Herdr 的 Pi 集成只认 `herdr:blocked` 事件，其他阻塞 UI 或停滞仍会显示为 `working`；用户判断这类情况发生概率极低，本次按“卸载即解决”处理。OpenCode 的权限询问仍可靠映射为 `blocked`；工单 01 的验收结论不受影响（语义已实测并记录）。
+- 处置与负责人：用户于 2026-09-11 决定并执行卸载：`pi remove npm:@juicesharp/rpiv-ask-user-question`（移除 2 个包）。候选 A（桥接扩展）因事件源消失不再需要；候选 B 的“`working` 长时间无输出 + pane 读取”自动兜底不实现；候选 C 不采用。工单 02 的合同约束与主脑 `read` 抽查保留为通用兜底。
+- 后续工单／计划变更：无新增工单。05／06／07 不再需要针对本插件设计验收或文档；残余限制（Pi 侧其他阻塞 UI／停滞不会自动上报）如仍提及，仅作为已知限制说明，不作风险项。
+- 解决与验证：已验证卸载生效：`pi remove` 输出 `removed 2 packages`，`pi list` 与 `~/.pi/agent/settings.json` 的 `packages` 均不再包含该插件，`~/.pi/agent/npm/node_modules/@juicesharp/` 目录消失。此后新启动的 Pi 会话不再注册该工具，无法进入该阻塞态；卸载前已启动的进程（包括执行卸载的当前会话）仍在进程内加载着旧工具，需重开会话才生效。
+
+### E02：OpenCode 在就绪握手后丢弃首条投递，监督层的“结果补报”被当成主投递路径
+
+- 发现时间：2026-09-11（同日修复并验证）
+- 关联工单：[03 统一执行接口](03-opencode-worker-delivery.md)；与 [01](01-verify-runtime-chain.md) 的未验证假设“`agent start` 返回后立即 prompt 的竞态”及 02 的一次结果补报机制直接相关
+- 状态：已解决
+- 预期与实际：预期 `herdr agent start` 返回、`agent get` 报 `idle`／`interactive_ready=true` 后即可投递。实际 OpenCode TUI 在该窗口内仍会丢弃键入：`herdr agent prompt` 返回 `agent_prompted`（rc=0），16 秒后 pane 输入框仍是占位符，会话中不存在该 user message（两次真实启动均复现）。旧行为下监督层 30 秒 settle 宽限期的“结果补报”提示成为会话第一条消息，worker 实际靠补报（而非合同提示）开始工作；首次冒烟的成功依赖模型自行找到并读取合同，属偶然而非保证。
+- 证据：[`race-discovery/race-composer-unsubmitted.txt`](../evidence/03-opencode-worker-delivery/logs/race-discovery/race-composer-unsubmitted.txt)、[`race-discovery/prompt-race-observation.txt`](../evidence/03-opencode-worker-delivery/logs/race-discovery/prompt-race-observation.txt)、[`race-discovery/oc-smoke1-user-parts.txt`](../evidence/03-opencode-worker-delivery/logs/race-discovery/oc-smoke1-user-parts.txt)、[`race-discovery/supervisor-delivered.log`](../evidence/03-opencode-worker-delivery/logs/race-discovery/supervisor-delivered.log)；工单 03 证据 README 第 6 节
+- 影响：未修复时 OpenCode 的首个业务投递不可靠；更关键的是“有限补报”这一安全网被误用为主投递路径，冒烟一度给出虚假成功。Pi 未观测到该现象，但机制上同样存在竞态。
+- 处置与负责人：工单 03 已实现 `deliver_prompt_confirmed`：投递后观察运行时是否离开 settled，窗口内仍 settled 则判定键入被丢弃，最多重投 3 次（`HPM_PROMPT_CONFIRM_SECONDS`／`HPM_PROMPT_ATTEMPTS`），只在明确 settled 时重投。工单 04 的续接投递复用了同一路径。
+- 后续工单／计划变更：无新增工单。建议 09 端到端验收保留“新会话确实读取交接文档”的证据要求。
+- 解决与验证：修复后真实启动 `prompt_attempts=2`、会话首条消息为合同提示、监督层不再补报交付；确定性测试 `test_dropped_prompt_is_redelivered_until_confirmed` 用 `drop_prompts` 场景验证恰好一次重投；04 的 Pi／OpenCode 自动交接冒烟均走同一确认路径。
+
+### E03：OpenCode 对项目外路径的 `external_directory` 权限依赖管理目录位置
+
+- 发现时间：2026-09-11
+- 关联工单：[03 统一执行接口](03-opencode-worker-delivery.md)；影响 [04](04-worker-context-handoff.md)（交接文档耐久位置）、[06](06-retention-and-cleanup.md)（清理与资源位置）及实际部署
+- 状态：处理中（用户决定采用 `--auto`，代码已改；待真实冒烟验证）
+- 预期与实际：预期 worker 可直接读取 worktree 之外的管理目录（合同、材料快照、结果）。实际 OpenCode 将 worktree 视为项目根，管理目录属于项目外路径：在 `/tmp/hpm-exp03-blocked/` 下读取合同时弹出 `Permission required`，Herdr 上报 `blocked`，形成待处理异常。首次记录曾推断成功冒烟依赖用户全局 `external_directory /tmp/opencode/* → allow` 规则；2026-09-11 复核发现 `~/.config/opencode/opencode.json`、`opencode.jsonc` 中并无任何 permission／放行规则，该推断缺少可复现证据，成功冒烟的真实原因待下次冒烟时一并核对。
+- 证据：[`opencode-blocked/pane-blocked.txt`](../evidence/03-opencode-worker-delivery/logs/opencode-blocked/pane-blocked.txt)、[`opencode-blocked/status-blocked.json`](../evidence/03-opencode-worker-delivery/logs/opencode-blocked/status-blocked.json)；成功冒烟使用的路径见 [`opencode-delivery/start.json`](../evidence/03-opencode-worker-delivery/logs/opencode-delivery/start.json)；工单 03 证据 README 第 6 节
+- 影响：默认管理目录位于目标仓库 Git common dir 下，OpenCode 视其为项目外；部署时若用户授权未覆盖该路径，每个工单都会产生一次人工放行（现由 `--auto` 消除）。工具不修改任何权限配置。03／04 的真实冒烟都在 `/tmp/opencode/` 下执行，因此没有暴露该成本。
+- 处置与负责人：用户于 2026-09-11 决定采用 `--auto`：OpenCode worker 启动时附加 `--auto`（帮助文本：“auto-approve permissions that are not explicitly denied”），由 `OpenCodeAdapter.start_args` 统一注入，交接后重建的会话复用同一路径。它不写任何配置文件、不覆盖显式 `deny`（仓库 `permission: {webfetch: deny}` 仍然生效），但会消除所有未显式拒绝的权限询问，使 OpenCode worker 与 Pi worker 一样无人值守；代价是失去“权限询问 → `blocked`”这一人工介入信号，后续如需约束应写进显式 deny。原候选 A／B／C 不再采用。
+- 后续工单／计划变更：无新增工单。05／06／07 按“OpenCode 权限询问不再出现”的前提设计；06 的管理目录位置不再受该权限限制。
+- 解决与验证：代码与确定性测试已更新（`test_opencode_injects_confirmed_config_without_touching_repo_config` 断言 `agent start -- --auto`）。待补充：一次真实 OpenCode worker 冒烟，确认 Herdr 会把 `--auto` 传给 TUI、管理目录读取不再出现 `blocked`；该冒烟同时用于核对上一条中无法复现的放行规则推断。未完成前本条保持“处理中”。
+
+### E04：Pi 会话模型注册表不提供 context window，Pi 上下文观测不可用
+
+- 发现时间：2026-09-11（同日修复并验证）
+- 关联工单：[04 上下文观测与自动交接](04-worker-context-handoff.md)
+- 状态：已解决
+- 预期与实际：预期 `bin/pi_context.mjs` 能从 Pi 模型注册表读出 `contextWindow`。实际对 `opencode-go/deepseek-v4.1-flash` 返回 `window: null`，`get_context.py` 报 “Pi model registry has no context window”，Pi 观测全部为 `unobservable`；首次 Pi 冒烟因此无法按阈值自动交接，靠监督层一次结果补报才完成阶段二并交付。同一模型在 `pi --list-models` 的 `context` 列为 `1M`，说明目录数据存在、仅会话内注册表缺失。
+- 证据：[`pi-attempt1-unobservable/status-unobservable.json`](../evidence/04-worker-context-handoff/logs/pi-attempt1-unobservable/status-unobservable.json)、[`pi-attempt1-unobservable/supervisor.log`](../evidence/04-worker-context-handoff/logs/pi-attempt1-unobservable/supervisor.log)；工单 04 证据 README 第 5.5、6 节
+- 影响：修复前 Pi 无法自动交接；OpenCode 不受影响。该缺陷与 E02 叠加后，“结果补报”又一次成为掩盖观测失效的路径。
+- 处置与负责人：工单 04 在 `bin/get_context.py` 增加回退：模型注册表没有窗口时查询 `pi --list-models`（与启动校验同一来源），输出增加 `window_source` 以区分窗口来源；`--window` 显式覆盖优先并标记 `explicit --window`。
+- 后续工单／计划变更：无新增工单。建议 09 在“非默认 provider”场景保留该回退的验证。
+- 解决与验证：修复后真实冒烟窗口 `1048576`、`pct=2.26%`，自动交接恢复；`tests/test_context.py::PiWindowTests` 覆盖回退与尺寸解析；04 的 Pi 自动阈值冒烟完成 7 次交接后交付。
+
+### E05：阈值低于新会话起始上下文时会连续自动交接（观察项，非缺陷）
+
+- 发现时间：2026-09-11
+- 关联工单：[04 上下文观测与自动交接](04-worker-context-handoff.md)；影响 [07](07-plan-management-skill.md) 的阈值使用建议
+- 状态：已解决（按用户判断关闭，不作变更）
+- 预期与实际：把 `--handoff-tokens` 设为 1（仅用于演示）时，新会话读完合同与交接文档后的首个回合即超过阈值，于是每完成一个回合就再次交接：Pi 演示连续交接 7 次、OpenCode 连续 2 次，最终均交付。默认 300K／80% 阈值下不会出现（新会话起始约 13K–21K tokens）。
+- 证据：[`pi/state.json`](../evidence/04-worker-context-handoff/logs/pi/state.json)、[`oc/state.json`](../evidence/04-worker-context-handoff/logs/oc/state.json)；工单 04 证据 README 第 6 节
+- 影响：仅影响明显低于新会话种子上下文的阈值配置；不违反“连续多次交接仍属于同一工单执行”，也不造成并写。风险是主脑误设极低阈值时工单被反复交接、进展缓慢。
+- 处置与负责人：用户于 2026-09-11 判定该现象没有实际意义：阈值 1 只是为演示制造的极端配置，正常使用不会出现。决定不处理——不加工具层抑制，也不作为风险跟踪；如需，07 的操作文档可用一句话提示阈值应高于新会话种子上下文，不单独立项。
+- 后续工单／计划变更：无新增工单。
+- 解决与验证：按“不作变更”关闭。默认 300K／80% 与任何常规配置不受影响；原始观测与证据保留在工单 04 与证据 README。
+
+### E06：E02–E05 未按本页规则及时汇总，工单状态未随集成回写
+
+- 发现时间：2026-09-11（补记时确认）
+- 关联工单：01–04 全部
+- 状态：已解决
+- 预期与实际：本页规定“发现即记录、不等工单结束才汇总”，且由主脑统一写入以避免多 worker 并发覆盖。实际只有 E01 进入本页：工单 03、04 的证据 README 都明确标注“E02／E03 待主脑汇总”“仍未见汇总”，但三个交付提交都没有回写本页；E01 的状态也未随 02／04 的事实处置更新。同时四张工单的 `Status` 仍写“delivered（待主脑确认集成）”，而其提交已进入 `main`。
+- 证据：`git log -- .scratch/herdr-plan-manager/issues/README.md` 最后改动为 `6ef992a`（仅 E01）；工单 03／04 证据 README 第 6 节；`git log --oneline` 中 02–04 的提交；工作区干净且 `python3 -m pytest tests/ -q` 为 85 passed。
+- 影响：后续工单（05–09）无法只读本页获得完整变更历史；E01 的“待决策”与事实处置不符，可能误导接手者。
+- 处置与负责人：主脑于 2026-09-11 补记 E02–E05、更新 E01，并把 01–04 工单 `Status` 回写为 integrated（附各自提交号）。
+- 后续工单／计划变更：无新增工单。
+- 解决与验证：四张工单的 `Status` 已改为“已集成：main 提交 `<hash>`”；本页记录完整，条目关闭。

@@ -91,7 +91,7 @@ The tool validates the document structure before starting the replacement sessio
 
 ## Asking questions
 
-Do not use interactive question UIs (for example `ask_user_question`). Some runtimes do not report those to the tool and nobody may answer them. If you need a decision, write a `needs-decision` result and end your turn.
+Do not use interactive question UIs (tools that wait for a human answer). Runtimes may not report these to the tool and nobody may answer them. If you need a decision, write a `needs-decision` result and end your turn.
 
 ## Idle is not delivery
 

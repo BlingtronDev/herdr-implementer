@@ -409,7 +409,8 @@ def test_opencode_injects_confirmed_config_without_touching_repo_config(make_har
 
     starts = herdr_calls(h, ("agent", "start"))
     assert len(starts) == 1
-    assert "--" not in starts[0], "OpenCode agent start must not append runtime argv"
+    tail = starts[0][starts[0].index("--") + 1 :]
+    assert tail == ["--auto"], "OpenCode worker must auto-approve non-denied permissions (E03)"
 
     assert facts["runtime"] == {
         "kind": "opencode",
