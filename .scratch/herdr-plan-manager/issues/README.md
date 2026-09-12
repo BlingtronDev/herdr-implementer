@@ -153,10 +153,10 @@
 
 - 发现时间：2026-09-12
 - 关联工单：[06 成果保留与按决定清理](06-retention-and-cleanup.md)；影响 [07](07-plan-management-skill.md)、[09](09-end-to-end-and-migration.md)
-- 状态：随工单 06 交付记录（待主脑确认集成；07／09 需按新接口执行）
+- 状态：已解决（随工单 06 集成，已同步 07／09）
 - 预期与实际：预期 `stop` 只中断当前会话、清理尚无工具入口。实际工单 06 引入 `cleanup --worker <id> (--integrated <sha> | --disposition <text>) [--archive-uncommitted | --discard-uncommitted] [--delete-branch [--force-branch]]`；`stop` 确认全部登记会话的业务写入停止并覆盖交接竞争，无法确认时形成 `stop-incomplete` 异常；worker 写出结果文件后停止自动交接且 `handoff` 被拒绝；新增 `workers/<id>/cleanup.json` 与 `workers/<id>/cleanup/` 归档，`status --worker` 增加 `cleanup` 字段。属于本页所列“已有接口需要改变”的计划外情况。
 - 证据：[06 证据 README 第 3、5 节](../evidence/06-retention-and-cleanup/README.md)
 - 影响：工单 07 的操作方法需要写明 cleanup 的明确决定参数（integration SHA／disposition）、默认保留分支与 `--delete-branch`／`--force-branch` 的区别、未提交内容的归档／丢弃选择，以及交付后不再自动交接；工单 09 的端到端验收需覆盖 stop→cleanup、未提交归档、只关闭登记 tab 与资源保留。
-- 处置与负责人：工单 06 worker 在交付材料中记录；主脑集成时同步 07／09 的操作说明与验收入口。
+- 处置与负责人：主脑于 2026-09-12 确认集成并同步后续工单：工单 07 增加“接口现状”说明（cleanup 决定参数、分支政策、归档／丢弃选择、交付后无自动交接），工单 09 增加新入口提示。
 - 后续工单／计划变更：无新增工单；依赖图不变（07 仍等 05、06）。
-- 解决与验证：待主脑确认工单 06 集成后补充；本页记录保留最初事实。
+- 解决与验证：`git merge-base --is-ancestor 3a60d48 main` 成立，工作区干净；`python3 -m pytest tests/ -q` 为 111 passed（原始输出：[06 证据目录](../evidence/06-retention-and-cleanup/logs/deterministic/test-all.txt)）；工单 06 `Status` 已回写为 integrated。

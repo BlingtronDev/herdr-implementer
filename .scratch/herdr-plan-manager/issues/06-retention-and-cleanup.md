@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 — 实现双运行时的上下文观测与自动 worker 交接。
 
-**Status:** delivered（待主脑确认集成；执行记录与证据：[../evidence/06-retention-and-cleanup/README.md](../evidence/06-retention-and-cleanup/README.md)）
+**Status:** integrated（已集成到 main：`3a60d48`；执行记录与证据：[../evidence/06-retention-and-cleanup/README.md](../evidence/06-retention-and-cleanup/README.md)）
 
 > 接口变化（主脑与工单 07／09 需知）：`stop` 现在确认全部登记会话的业务写入停止，并在交接竞争中负责暂停替换会话；响应增加 `business_stopped` 与会话状态，无法确认时形成 `stop-incomplete` 异常。交付（结果文件出现）后不再触发自动交接，`handoff` 也会拒绝。新增 `cleanup --worker <id> (--integrated <sha> | --disposition <text>) [--archive-uncommitted | --discard-uncommitted] [--delete-branch [--force-branch]]`，只有明确决定才移除登记资源；清零记录与归档位于 `workers/<id>/cleanup.json`、`workers/<id>/cleanup/`，`status --worker` 的 `cleanup` 字段可查询资源位置与未清理原因。见 [README E08](README.md)。
 
