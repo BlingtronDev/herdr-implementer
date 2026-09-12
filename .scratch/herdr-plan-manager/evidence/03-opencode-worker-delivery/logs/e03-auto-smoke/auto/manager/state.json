@@ -1,0 +1,180 @@
+{
+  "branch": "hpm/w-e03-auto",
+  "created_at": "2026-09-12T11:32:39.207789Z",
+  "handoff": {
+    "auto_suppressed": false,
+    "handled_request_id": null,
+    "history": [],
+    "pct": 0.8,
+    "tokens": 300000,
+    "window": null
+  },
+  "herdr": {
+    "agent": "w-e03-auto",
+    "pane": "wJ:pZ",
+    "tab": "wJ:tZ",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "acked_at": null,
+      "code": "delivered",
+      "created_at": "2026-09-12T11:33:45.831362Z",
+      "details": {
+        "artifacts": [
+          "result.txt"
+        ],
+        "head": "ca434400028c2d514ad268d4b31bb7b016852d7c"
+      },
+      "id": "i001",
+      "kind": "delivery",
+      "message": "Read the material file outside the worktree, created result.txt in the worktree root containing exactly the marker string (no trailing newline), and committed it as 'smoke: add result.txt' (ca434400028c2d514ad268d4b31bb7b016852d7c)."
+    }
+  ],
+  "lifecycle": {
+    "reason": "result-recorded",
+    "started_at": "2026-09-12T11:32:39.207789Z",
+    "state": "delivered",
+    "updated_at": "2026-09-12T11:32:39.207789Z"
+  },
+  "paths": {
+    "contract": "/tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto/contract.md",
+    "management": "/tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto",
+    "result": "/tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto/result.json",
+    "supervisor_log": "/tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 2,
+    "confirmed_at": "2026-09-12T11:32:57.042369Z"
+  },
+  "recovery": {
+    "parse_failures": 0,
+    "re_report_sent_at": null,
+    "settled_since": null
+  },
+  "repo": {
+    "base": "11f05275237162ef5ba0e5ff6cb4472485e22a36",
+    "common_dir": "/tmp/oc-auto-check/repo/.git",
+    "root": "/tmp/oc-auto-check/repo"
+  },
+  "result": {
+    "acceptance": [
+      {
+        "criterion": "Read the material file provided in your contract's material list (it is outside the worktree).",
+        "evidence": "Read /tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto/materials/02-material.txt; exact content is OC-AUTO-MARKER-590050cc (23 bytes, no trailing newline) as shown by od -c.",
+        "met": true
+      },
+      {
+        "criterion": "Create `result.txt` in the worktree root containing exactly the marker string from that file (no trailing newline).",
+        "evidence": "result.txt:1 is byte-identical to the material: `cmp result.txt materials/02-material.txt` exits 0; `wc -c result.txt` = 23; od -c shows no trailing newline.",
+        "met": true
+      },
+      {
+        "criterion": "Commit it as `smoke: add result.txt`.",
+        "evidence": "git log --oneline -1 -> ca43440 smoke: add result.txt; HEAD = ca434400028c2d514ad268d4b31bb7b016852d7c.",
+        "met": true
+      },
+      {
+        "criterion": "Write the structured result file exactly as your contract requires.",
+        "evidence": "This result.json, written atomically via a temporary sibling file and rename.",
+        "met": true
+      }
+    ],
+    "artifacts": [
+      "result.txt"
+    ],
+    "head": "ca434400028c2d514ad268d4b31bb7b016852d7c",
+    "remaining": "",
+    "status": "delivered",
+    "summary": "Read the material file outside the worktree, created result.txt in the worktree root containing exactly the marker string (no trailing newline), and committed it as 'smoke: add result.txt' (ca434400028c2d514ad268d4b31bb7b016852d7c).",
+    "ticket_id": "e03-auto",
+    "verification": [
+      {
+        "command": "cmp result.txt /tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto/materials/02-material.txt && wc -c result.txt",
+        "exit_code": 0,
+        "summary": "Files are byte-identical; result.txt is 23 bytes with no trailing newline."
+      },
+      {
+        "command": "git add result.txt && git commit -m 'smoke: add result.txt'",
+        "exit_code": 0,
+        "summary": "Created commit ca43440 (1 file changed, 1 insertion)."
+      },
+      {
+        "command": "git rev-parse HEAD",
+        "exit_code": 0,
+        "summary": "ca434400028c2d514ad268d4b31bb7b016852d7c"
+      },
+      {
+        "command": "git status --porcelain",
+        "exit_code": 0,
+        "summary": "Empty output: working tree clean, nothing uncommitted."
+      }
+    ],
+    "worker_id": "w-e03-auto"
+  },
+  "runtime": {
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{\"agent\":{\"build\":{\"model\":\"opencode-go/deepseek-v4.1-flash\",\"variant\":\"max\"}}}"
+    },
+    "kind": "opencode",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session_index": 1,
+  "sessions": [
+    {
+      "agent": "w-e03-auto",
+      "context": {
+        "context_ref": "ses_f6a9ba87fffex8aoQIrTUOxgqm",
+        "freshness": "completed-call",
+        "kind": "opencode",
+        "model": "deepseek-v4.1-flash",
+        "observed_at": "2026-09-12T11:33:28.447000Z",
+        "pct": 0.015487,
+        "provider": "opencode-go",
+        "sampled_at": "2026-09-12T11:33:35.786354Z",
+        "session": 1,
+        "source": "precise",
+        "state": "current",
+        "total": 15487,
+        "window": 1000000
+      },
+      "context_ref": "ses_f6a9ba87fffex8aoQIrTUOxgqm",
+      "end_state": "delivered",
+      "ended_at": "2026-09-12T11:33:45.831392Z",
+      "handoff": null,
+      "index": 1,
+      "pane": "wJ:pZ",
+      "prompt": {
+        "attempts": 2,
+        "confirmed_at": "2026-09-12T11:32:57.042395Z"
+      },
+      "runtime": {
+        "kind": "opencode",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-12T11:32:45.312475Z",
+      "status": "ended",
+      "tab": "wJ:tZ"
+    }
+  ],
+  "supervisor": {
+    "exit_reason": "result-recorded",
+    "heartbeat_at": "2026-09-12T11:33:45.831474Z",
+    "host": "BlingtronPC",
+    "pid": 2488823,
+    "started_at": "2026-09-12T11:32:57.206986Z",
+    "state": "exited"
+  },
+  "ticket": {
+    "id": "e03-auto",
+    "title": "E03 auto-approve smoke"
+  },
+  "updated_at": "2026-09-12T11:33:45.831481Z",
+  "version": 3,
+  "worker_id": "w-e03-auto",
+  "worktree": "/tmp/oc-auto-check/repo/.git/herdr-plan-manager/worktrees/w-e03-auto"
+}

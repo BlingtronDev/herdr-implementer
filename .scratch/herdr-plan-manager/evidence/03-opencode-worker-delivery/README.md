@@ -168,3 +168,39 @@ python3 -m pytest tests/ -q                       # 64 passed
 - 2026-09-11 11:22 UTC（本地 19:22）：先对实验 agent 发送 `ctrl+c` 退出 TUI，再关闭 tab `wJ:t8`、`wJ:t9`、`wJ:tB`、`wJ:tC`、`wJ:tD`、`wJ:tE`；确认 wJ workspace 仅剩原有 tab `wJ:t1`、`wJ:t2`、`wJ:t3`，无遗留实验 agent。
 - 移除实验 worktree 与分支 `hpm/w-03-smoke-8f4d17`、`hpm/w-03-stop-01`、`hpm/w-03-smoke-2075cc`、`hpm/w-03-stop-02`、`hpm/w-03-blocked-fe4ec4`；删除一次性仓库与管理目录 `/tmp/opencode/hpm-exp03`、`/tmp/opencode/hpm-exp03b`、`/tmp/hpm-exp03-blocked`。未操作其他 tab、workspace 或用户会话；证据已复制到本目录。
 - Pi 回归冒烟同样清理：关闭 tab `wJ:tF`，移除分支 `hpm/w-03-pi-smoke-afcb26` 与一次性仓库 `/tmp/opencode/hpm-exp03-pi`；最终 wJ 仅剩原有 `wJ:t1`、`wJ:t2`、`wJ:t3`。
+
+## 12. E03 修复验证：`--auto`（2026-09-12）
+
+工单 03 交付后，用户决定用 `--auto`（OpenCode 1.18.30 root TUI 参数，帮助文本：“auto-approve permissions that are not explicitly denied”）解决 E03。代码改为 `OpenCodeAdapter.start_args` 返回 `["--auto"]`，本节记录同日真实冒烟验证。
+
+### 12.1 设置
+
+- 一次性仓库 `/tmp/oc-auto-check/repo`（base `11f0527`），管理材料目录 `/tmp/oc-auto-check/manager`（worktree 之外）。用户全局 `~/.config/opencode/opencode.json`、`opencode.jsonc` 中**没有任何** `permission`／`external_directory` 放行规则。
+- 环境：Herdr 0.8.2、OpenCode 1.18.30（`logs/e03-auto-smoke/versions.txt`）；沿用已确认配置 `opencode-go / deepseek-v4.1-flash / max`。
+
+### 12.2 对照组（无 `--auto`）：外部读取确实触发权限询问
+
+- 手工建 tab（注入与工具相同的 `OPENCODE_CONFIG_CONTENT`）并 `herdr agent start occtl --kind opencode --pane wJ:pY`（无运行时参数）。
+- 提示词要求用 read 工具读取管理材料：`herdr agent prompt occtl … --wait` 返回 `agent_status: blocked`；pane 显示 `△ Permission required / ← Access external directory /tmp/oc-auto-check/manager`（`control/prompt.json`、`control/agent-get.json`、`control/pane-blocked.txt`）。
+- 结论：在没有任何放行规则的环境里，读取 worktree 之外的管理目录确实会阻塞。这也说明工单 03 首次记录中“成功冒烟依赖全局 `/tmp/opencode/* → allow` 规则”的推断无法复现（当时配置中同样不存在该规则）；原始冒烟为何未阻塞仍无解释，但不影响本修复的有效性。
+
+### 12.3 修复组（带 `--auto`）：端到端交付
+
+- `python3 bin/plan_manager.py start --repo /tmp/oc-auto-check/repo --ticket-id e03-auto --title "E03 auto-approve smoke" --base 11f0527… --material …/ticket.md --material …/material.txt --kind opencode --provider opencode-go --model deepseek-v4.1-flash --thinking max`。
+- 启动返回 `prompt_attempts=2`（E02 的投递确认再次生效）、worker `w-e03-auto`、tab `wJ:tZ`（`auto/start.json`、`auto/start.err`）。
+- **参数透传证据**：worker 对应的 opencode 进程 argv 为 `opencode --auto`（读 `/proc/<pid>/cmdline`，cwd 为该 worker 的 worktree；`auto/opencode-argv.txt`）。
+- 交付：约 50 秒后 `lifecycle=delivered`，交付事项 `i001` 的 HEAD `ca4344` 与分支一致；worker 结果明确记录它读取的是 worktree 之外的 `materials/02-material.txt`，并把 marker 逐字节写入 `result.txt` 提交（`auto/status.json`、`auto/manager/result.json`、`auto/git-log.txt`、`auto/result.txt`）。
+- **无权限询问**：监督日志无 `blocked`／`permission` 记录（`auto/manager/supervisor.log`）；交付后 pane 文本中 `Permission required` 出现次数为 0（`auto/pane-after-delivery.txt`）。
+- **配置未受影响**：会话 assistant 消息仍为 `opencode-go / deepseek-v4.1-flash / variant=max / agent=build`（`auto/session-config.json`）。
+
+### 12.4 清理
+
+- `stop` 返回 `already_terminal`；随后退出 TUI、关闭 tab `wJ:tZ`、`wJ:tY`；`herdr agent list` 无 `w-e03-auto`／`occtl` 残留；删除 `/tmp/oc-auto-check`。仅保留本节证据副本，未操作其他 tab／agent。
+
+### 12.5 证据索引
+
+| 路径 | 内容 |
+| --- | --- |
+| `logs/e03-auto-smoke/versions.txt` | 冒烟时的 Herdr／OpenCode 版本 |
+| `logs/e03-auto-smoke/control/` | 对照组：tab／agent start、prompt 返回 blocked、pane 权限询问现场、退出与关闭记录 |
+| `logs/e03-auto-smoke/auto/` | 修复组：start／status／stop、argv 证据、交付后 pane 文本、会话生效配置、manager 记录与材料 manifest |

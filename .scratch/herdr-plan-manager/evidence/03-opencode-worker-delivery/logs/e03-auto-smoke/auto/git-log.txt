@@ -1,0 +1,2 @@
+ca43440 smoke: add result.txt
+11f0527 seed

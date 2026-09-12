@@ -6,7 +6,7 @@
 
 **Status:** integrated（已集成到 main：`53b277e`；执行记录与证据：[../evidence/03-opencode-worker-delivery/README.md](../evidence/03-opencode-worker-delivery/README.md)）
 
-> 执行中发现 OpenCode 就绪握手后丢弃首条投递的竞态（E02，已在本工单修复）与管理目录的 `external_directory` 权限依赖（E03，待主脑决策）；详见证据 README 第 6 节。
+> 执行中发现 OpenCode 就绪握手后丢弃首条投递的竞态（E02，已在本工单修复）与管理目录的 `external_directory` 权限依赖（E03，已用 `--auto` 解决并冒烟验证）；详见证据 README 第 6、12 节。
 
 ## 依据与边界
 

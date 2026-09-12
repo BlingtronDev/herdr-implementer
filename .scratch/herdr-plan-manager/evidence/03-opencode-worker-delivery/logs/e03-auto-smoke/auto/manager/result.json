@@ -1,0 +1,21 @@
+{
+  "ticket_id": "e03-auto",
+  "worker_id": "w-e03-auto",
+  "status": "delivered",
+  "summary": "Read the material file outside the worktree, created result.txt in the worktree root containing exactly the marker string (no trailing newline), and committed it as 'smoke: add result.txt' (ca434400028c2d514ad268d4b31bb7b016852d7c).",
+  "acceptance": [
+    {"criterion": "Read the material file provided in your contract's material list (it is outside the worktree).", "met": true, "evidence": "Read /tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto/materials/02-material.txt; exact content is OC-AUTO-MARKER-590050cc (23 bytes, no trailing newline) as shown by od -c."},
+    {"criterion": "Create `result.txt` in the worktree root containing exactly the marker string from that file (no trailing newline).", "met": true, "evidence": "result.txt:1 is byte-identical to the material: `cmp result.txt materials/02-material.txt` exits 0; `wc -c result.txt` = 23; od -c shows no trailing newline."},
+    {"criterion": "Commit it as `smoke: add result.txt`.", "met": true, "evidence": "git log --oneline -1 -> ca43440 smoke: add result.txt; HEAD = ca434400028c2d514ad268d4b31bb7b016852d7c."},
+    {"criterion": "Write the structured result file exactly as your contract requires.", "met": true, "evidence": "This result.json, written atomically via a temporary sibling file and rename."}
+  ],
+  "verification": [
+    {"command": "cmp result.txt /tmp/oc-auto-check/repo/.git/herdr-plan-manager/workers/w-e03-auto/materials/02-material.txt && wc -c result.txt", "exit_code": 0, "summary": "Files are byte-identical; result.txt is 23 bytes with no trailing newline."},
+    {"command": "git add result.txt && git commit -m 'smoke: add result.txt'", "exit_code": 0, "summary": "Created commit ca43440 (1 file changed, 1 insertion)."},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "ca434400028c2d514ad268d4b31bb7b016852d7c"},
+    {"command": "git status --porcelain", "exit_code": 0, "summary": "Empty output: working tree clean, nothing uncommitted."}
+  ],
+  "head": "ca434400028c2d514ad268d4b31bb7b016852d7c",
+  "artifacts": ["result.txt"],
+  "remaining": ""
+}

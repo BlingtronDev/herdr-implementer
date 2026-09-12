@@ -93,13 +93,13 @@
 
 - 发现时间：2026-09-11
 - 关联工单：[03 统一执行接口](03-opencode-worker-delivery.md)；影响 [04](04-worker-context-handoff.md)（交接文档耐久位置）、[06](06-retention-and-cleanup.md)（清理与资源位置）及实际部署
-- 状态：处理中（用户决定采用 `--auto`，代码已改；待真实冒烟验证）
-- 预期与实际：预期 worker 可直接读取 worktree 之外的管理目录（合同、材料快照、结果）。实际 OpenCode 将 worktree 视为项目根，管理目录属于项目外路径：在 `/tmp/hpm-exp03-blocked/` 下读取合同时弹出 `Permission required`，Herdr 上报 `blocked`，形成待处理异常。首次记录曾推断成功冒烟依赖用户全局 `external_directory /tmp/opencode/* → allow` 规则；2026-09-11 复核发现 `~/.config/opencode/opencode.json`、`opencode.jsonc` 中并无任何 permission／放行规则，该推断缺少可复现证据，成功冒烟的真实原因待下次冒烟时一并核对。
+- 状态：已解决（2026-09-11 决定采用 `--auto`；2026-09-12 真实冒烟通过）
+- 预期与实际：预期 worker 可直接读取 worktree 之外的管理目录（合同、材料快照、结果）。实际 OpenCode 将 worktree 视为项目根，管理目录属于项目外路径：在 `/tmp/hpm-exp03-blocked/` 下读取合同时弹出 `Permission required`，Herdr 上报 `blocked`，形成待处理异常。首次记录曾推断成功冒烟依赖用户全局 `external_directory /tmp/opencode/* → allow` 规则；2026-09-11 复核发现 `~/.config/opencode/opencode.json`、`opencode.jsonc` 中并无任何 permission／放行规则，该推断缺少可复现证据。
 - 证据：[`opencode-blocked/pane-blocked.txt`](../evidence/03-opencode-worker-delivery/logs/opencode-blocked/pane-blocked.txt)、[`opencode-blocked/status-blocked.json`](../evidence/03-opencode-worker-delivery/logs/opencode-blocked/status-blocked.json)；成功冒烟使用的路径见 [`opencode-delivery/start.json`](../evidence/03-opencode-worker-delivery/logs/opencode-delivery/start.json)；工单 03 证据 README 第 6 节
 - 影响：默认管理目录位于目标仓库 Git common dir 下，OpenCode 视其为项目外；部署时若用户授权未覆盖该路径，每个工单都会产生一次人工放行（现由 `--auto` 消除）。工具不修改任何权限配置。03／04 的真实冒烟都在 `/tmp/opencode/` 下执行，因此没有暴露该成本。
 - 处置与负责人：用户于 2026-09-11 决定采用 `--auto`：OpenCode worker 启动时附加 `--auto`（帮助文本：“auto-approve permissions that are not explicitly denied”），由 `OpenCodeAdapter.start_args` 统一注入，交接后重建的会话复用同一路径。它不写任何配置文件、不覆盖显式 `deny`（仓库 `permission: {webfetch: deny}` 仍然生效），但会消除所有未显式拒绝的权限询问，使 OpenCode worker 与 Pi worker 一样无人值守；代价是失去“权限询问 → `blocked`”这一人工介入信号，后续如需约束应写进显式 deny。原候选 A／B／C 不再采用。
 - 后续工单／计划变更：无新增工单。05／06／07 按“OpenCode 权限询问不再出现”的前提设计；06 的管理目录位置不再受该权限限制。
-- 解决与验证：代码与确定性测试已更新（`test_opencode_injects_confirmed_config_without_touching_repo_config` 断言 `agent start -- --auto`）。待补充：一次真实 OpenCode worker 冒烟，确认 Herdr 会把 `--auto` 传给 TUI、管理目录读取不再出现 `blocked`；该冒烟同时用于核对上一条中无法复现的放行规则推断。未完成前本条保持“处理中”。
+- 解决与验证：2026-09-12 真实冒烟通过（证据：[03 证据 README 第 12 节](../evidence/03-opencode-worker-delivery/README.md)，`logs/e03-auto-smoke/`）。对照组（无 `--auto`）在同一环境读取管理目录时 `blocked` 并弹出 `Permission required`；修复组（带 `--auto`）worker 进程 argv 为 `opencode --auto`（Herdr 确实透传），约 50 秒交付，监督日志与 pane 中无任何权限询问，显式配置（`opencode-go / deepseek-v4.1-flash / max`）保持生效。对照组也证实了原记录中“全局 allow 规则”的推断无法复现；该历史疑问不再阻塞本条，已在证据 README 12.2 记录。
 
 ### E04：Pi 会话模型注册表不提供 context window，Pi 上下文观测不可用
 
