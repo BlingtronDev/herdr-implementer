@@ -136,3 +136,15 @@
 - 处置与负责人：主脑于 2026-09-11 补记 E02–E05、更新 E01，并把 01–04 工单 `Status` 回写为 integrated（附各自提交号）。
 - 后续工单／计划变更：无新增工单。
 - 解决与验证：四张工单的 `Status` 已改为“已集成：main 提交 `<hash>`”；本页记录完整，条目关闭。
+
+### E07：工单 05 改变了 start 接口与事项存储布局，07／09 需以新接口为准
+
+- 发现时间：2026-09-12
+- 关联工单：[05 并发与待处理事项等待](05-concurrency-and-wait-any.md)；影响 [07](07-plan-management-skill.md)、[09](09-end-to-end-and-migration.md)
+- 状态：已解决（随工单 05 集成，已同步 07／09）
+- 预期与实际：预期 `start` 延续 02–04 的单工单接口，直接传 `--kind/--provider/--model/--thinking`，并发上限由使用侧约束。实际为实现“当前执行关联明确 max_workers”，工单 05 引入 `init-run` 登记一次执行（确认运行配置与 `max_workers`，写入 `runs/<run-id>/run.json`）；`start` 必须带 `--run`，运行配置校验前移到 `init-run`，`start` 只校验传入值与已确认值一致，不静默替换；事项标识为 `<worker-id>/<item-id>`，`ack` 只写 `workers/<id>/ack.json`。属于本页所列“已有接口需要改变”的计划外情况。
+- 证据：[05 证据 README 第 3、6 节](../evidence/05-concurrency-and-wait-any/README.md)、提交 `0ee66d7`
+- 影响：工单 07 的操作文档需先 `init-run`，再用 `start --run` 派发、用 `wait`／`ack` 收割事项；工单 09 的端到端验收以新接口为入口。02–04 的合同、结果协议与交接语义不变；工单 06 不受影响（cleanup 依据 worker 登记，与 run 接口正交）。
+- 处置与负责人：主脑于 2026-09-12 确认集成并同步后续工单：工单 07 增加“接口现状”说明（含 `wait` 默认无限等待、`ack` 事项标识与 300K 阈值建议），工单 09 增加新入口提示。
+- 后续工单／计划变更：无新增工单；依赖图不变（07 仍等 06）。
+- 解决与验证：`git merge-base --is-ancestor 0ee66d7 main` 成立，工作区干净，`python3 -m pytest tests/ -q` 为 100 passed（原始输出：[05 证据目录](../evidence/05-concurrency-and-wait-any/logs/deterministic/test-all.txt)）；工单 05 `Status` 已回写为 integrated。

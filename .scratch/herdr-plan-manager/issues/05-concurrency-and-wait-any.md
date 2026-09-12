@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 — 跑通 Pi 单工单的启动、执行与成果交付。
 
-**Status:** delivered（待主脑确认集成；执行记录与证据：[../evidence/05-concurrency-and-wait-any/README.md](../evidence/05-concurrency-and-wait-any/README.md)）
+**Status:** integrated（已集成到 main：`0ee66d7`；执行记录与证据：[../evidence/05-concurrency-and-wait-any/README.md](../evidence/05-concurrency-and-wait-any/README.md)）
 
 > 接口变化（主脑与工单 07 需知）：新增 `init-run` 登记一次执行（确认 `kind/provider/model/thinking` 与 `max_workers`），`start` 必须带 `--run`；运行配置校验前移到 `init-run`，`start` 只校验传入值与会话确认值一致，不做静默替换。新增 `wait`／`ack`，管理目录增加 `runs/<run-id>/run.json` 与 `workers/<id>/ack.json`。
 

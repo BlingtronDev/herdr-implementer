@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+> 迁移基准（工单 05 已集成：`0ee66d7`）：新入口的 CLI 与存储布局以工单 05 落地的 `init-run`／`start --run`／`status --run`／`wait`／`ack` 及 `runs/`、`workers/<id>/ack.json` 为准；最终验收报告需覆盖这些入口与 README E07。
+
 ## 依据与边界
 
 依据：[项目重建方案](../项目重建方案.md)第 11、12、13 节。

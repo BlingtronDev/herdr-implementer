@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+> 接口现状（工单 05 已集成：`0ee66d7`）：并发与等待由 `bin/plan_manager.py` 的 `init-run`／`start --run`／`status --run`／`wait`／`ack` 提供，本工单的操作说明以此为准。一次确认写入 run（运行配置 + `max_workers`）；`wait` 默认无限等待，`--timeout` 只限制窗口且超时无结论；`ack` 输入 `<worker-id>/<item-id>`，不代表集成；`--handoff-tokens` 应高于新会话种子上下文（E05）。见 [README E07](README.md)。
+
 ## 依据与边界
 
 依据：[项目重建方案](../项目重建方案.md)第 1、3、4、5、6、7 节。
