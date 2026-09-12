@@ -1,0 +1,10 @@
+{
+  "acked": {
+    "w-smoke05-a/i001": {
+      "acked_at": "2026-09-12T11:56:38.212865Z",
+      "note": "A delivery reviewed for integration"
+    }
+  },
+  "version": 1,
+  "worker_id": "w-smoke05-a"
+}

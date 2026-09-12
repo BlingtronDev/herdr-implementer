@@ -48,6 +48,7 @@ class Harness:
         self.repo = tmp_path / "repo"
         self.repo.mkdir()
         self.started: list[str] = []
+        self.runs: dict[tuple[str, int], str] = {}
         self.git("init", "-b", "main")
         self.git("config", "user.name", "Test")
         self.git("config", "user.email", "test@example.com")
@@ -102,11 +103,56 @@ class Harness:
             timeout=timeout,
         )
 
+    def init_run(
+        self,
+        *,
+        run_id: str,
+        kind: str = "pi",
+        provider: str = "opencode-go",
+        model: str = "deepseek-v4.1-flash",
+        thinking: str = "max",
+        max_workers: int = 8,
+        timeout: float = 30,
+    ) -> subprocess.CompletedProcess[str]:
+        return self.run(
+            "init-run",
+            "--repo",
+            str(self.repo),
+            "--run-id",
+            run_id,
+            "--kind",
+            kind,
+            "--provider",
+            provider,
+            "--model",
+            model,
+            "--thinking",
+            thinking,
+            "--max-workers",
+            str(max_workers),
+            timeout=timeout,
+        )
+
+    def ensure_run(self, *, kind: str = "pi", max_workers: int = 8) -> str:
+        key = (kind, max_workers)
+        if key not in self.runs:
+            run_id = f"run-{kind}-{max_workers}-{len(self.runs) + 1}"
+            proc = self.init_run(run_id=run_id, kind=kind, max_workers=max_workers)
+            assert proc.returncode == 0, proc.stderr
+            self.runs[key] = run_id
+        return self.runs[key]
+
     def start(self, **overrides) -> subprocess.CompletedProcess[str]:
+        kind = overrides.get("kind", "pi")
+        run_id = overrides.get("run_id") or self.ensure_run(
+            kind=kind, max_workers=overrides.get("max_workers", 8)
+        )
         args = [
             "start",
             "--repo",
             str(self.repo),
+            "--run",
+            run_id,
             "--ticket-id",
             overrides.get("ticket_id", "02"),
             "--title",
@@ -116,7 +162,7 @@ class Harness:
             "--material",
             str(self.material),
             "--kind",
-            overrides.get("kind", "pi"),
+            kind,
             "--provider",
             "opencode-go",
             "--model",
@@ -156,6 +202,37 @@ class Harness:
         proc = self.run("status", "--repo", str(self.repo), "--worker", worker_id)
         assert proc.returncode == 0, proc.stderr
         return json.loads(proc.stdout)
+
+    def run_status(self, run_id: str) -> dict:
+        proc = self.run("status", "--repo", str(self.repo), "--run", run_id)
+        assert proc.returncode == 0, proc.stderr
+        return json.loads(proc.stdout)
+
+    def wait(
+        self, run_id: str, *, wait_seconds: float = 5, poll: float = 0.2, timeout: float = 30
+    ) -> dict:
+        proc = self.run(
+            "wait",
+            "--repo",
+            str(self.repo),
+            "--run",
+            run_id,
+            "--timeout",
+            str(wait_seconds),
+            "--poll",
+            str(poll),
+            timeout=timeout,
+        )
+        assert proc.returncode == 0, proc.stderr
+        return json.loads(proc.stdout)
+
+    def ack(self, *items: str, note: str = "") -> subprocess.CompletedProcess[str]:
+        args = ["ack", "--repo", str(self.repo)]
+        for item in items:
+            args += ["--item", item]
+        if note:
+            args += ["--note", note]
+        return self.run(*args)
 
     def stop(self, worker_id: str, *, timeout: float = 30) -> subprocess.CompletedProcess[str]:
         return self.run("stop", "--repo", str(self.repo), "--worker", worker_id, timeout=timeout)
@@ -344,13 +421,18 @@ def test_invalid_configuration_fails_before_delivery(make_harness):
     h = make_harness("deliver-code")
     bad_thinking = h.start(thinking="turbo")
     assert bad_thinking.returncode == 2
-    assert "unsupported thinking level" in bad_thinking.stderr
+    assert "does not match the confirmed run configuration" in bad_thinking.stderr
     bad_model = h.start(model="does-not-exist")
     assert bad_model.returncode == 2
-    assert "does not list model" in bad_model.stderr
+    assert "does not match the confirmed run configuration" in bad_model.stderr
     bad_base = h.start(base="deadbeef")
     assert bad_base.returncode == 2
     assert "full commit SHA" in bad_base.stderr
+    # The run configuration itself is validated when the run is registered.
+    bad_run = h.init_run(run_id="run-bad-thinking", thinking="turbo")
+    assert bad_run.returncode == 2
+    assert "unsupported thinking level" in bad_run.stderr
+    assert not (h.repo / ".git" / "herdr-plan-manager" / "runs" / "run-bad-thinking").exists()
     assert not (h.fake / "herdr.log.jsonl").exists()
     assert not list((h.repo / ".git" / "herdr-plan-manager").glob("workers/*"))
 
@@ -452,15 +534,19 @@ def test_opencode_rejects_unsupported_configuration_before_delivery(make_harness
 
     unknown_model = h.start(kind="opencode", model="does-not-exist")
     assert unknown_model.returncode == 2
-    assert "does not list model" in unknown_model.stderr
+    assert "does not match the confirmed run configuration" in unknown_model.stderr
 
     bad_variant = h.start(kind="opencode", thinking="turbo")
     assert bad_variant.returncode == 2
-    assert "does not support variant" in bad_variant.stderr
+    assert "does not match the confirmed run configuration" in bad_variant.stderr
 
-    no_variant = h.start(kind="opencode", model="no-variant-model")
+    no_variant = h.init_run(run_id="run-no-variant", kind="opencode", model="no-variant-model")
     assert no_variant.returncode == 2
     assert "no reasoning variants" in no_variant.stderr
+
+    unknown = h.init_run(run_id="run-unknown-model", kind="opencode", model="does-not-exist")
+    assert unknown.returncode == 2
+    assert "does not list model" in unknown.stderr
 
     assert not (h.fake / "herdr.log.jsonl").exists()
     assert not list((h.repo / ".git" / "herdr-plan-manager").glob("workers/*"))
@@ -809,3 +895,391 @@ def test_handoff_retry_reuses_valid_document(make_harness):
     assert [session["index"] for session in facts["sessions"]] == [1, 2]
     assert len(facts["handoff"]["history"]) == 1
     assert len(h.prompts(old_agent)) == 2, "the retry must reuse the valid document without re-requesting"
+
+
+# ---------------------------------------------------------------------------
+# Ticket 05: run-level concurrency, durable items, wait-any and ack
+# ---------------------------------------------------------------------------
+
+
+def test_init_run_registers_confirmed_configuration_and_quota(make_harness):
+    h = make_harness("deliver-code")
+    created = h.init_run(run_id="run-quota", max_workers=2)
+    assert created.returncode == 0, created.stderr
+    payload = json.loads(created.stdout)
+    assert payload["run_id"] == "run-quota"
+    assert payload["max_workers"] == 2
+    assert payload["runtime"] == {
+        "kind": "pi",
+        "provider": "opencode-go",
+        "model": "deepseek-v4.1-flash",
+        "thinking": "max",
+    }
+    duplicate = h.init_run(run_id="run-quota", max_workers=2)
+    assert duplicate.returncode == 2
+    assert "already registered" in duplicate.stderr
+    zero = h.init_run(run_id="run-zero", max_workers=0)
+    assert zero.returncode == 2
+    assert "positive integer" in zero.stderr
+    bad_id = h.init_run(run_id="Bad Run", max_workers=1)
+    assert bad_id.returncode == 2
+    assert "invalid run id" in bad_id.stderr
+
+    status = h.run_status("run-quota")
+    assert status["active_count"] == 0
+    assert status["active_worker_ids"] == []
+    assert status["pending_items"] == []
+    assert not (h.fake / "herdr.log.jsonl").exists()
+
+
+def test_concurrent_starts_cannot_exceed_max_workers(make_harness):
+    h = make_harness("slow")
+    h.init_run(run_id="run-race", max_workers=1)
+    common = [
+        sys.executable,
+        str(PLAN_MANAGER),
+        "start",
+        "--repo",
+        str(h.repo),
+        "--run",
+        "run-race",
+        "--ticket-id",
+        "05",
+        "--title",
+        "race",
+        "--base",
+        h.base,
+        "--material",
+        str(h.material),
+        "--kind",
+        "pi",
+        "--provider",
+        "opencode-go",
+        "--model",
+        "deepseek-v4.1-flash",
+        "--thinking",
+        "max",
+    ]
+    procs = [
+        subprocess.Popen(
+            [*common, "--worker-id", worker_id],
+            cwd=h.repo,
+            env=h.env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        for worker_id in ("w-race-a", "w-race-b")
+    ]
+    results = [(proc, *proc.communicate(timeout=30)) for proc in procs]
+    accepted = [(proc, out) for proc, out, err in results if proc.returncode == 0]
+    refused = [(proc, err) for proc, out, err in results if proc.returncode != 0]
+    assert len(accepted) == 1, [(proc.returncode, out, err) for proc, out, err in results]
+    assert len(refused) == 1
+    assert "concurrency limit" in refused[0][1]
+    accepted_worker = json.loads(accepted[0][1])["worker_id"]
+    assert json.loads(accepted[0][1])["max_workers"] == 1
+    h.started.append(accepted_worker)
+
+    facts = h.run_status("run-race")
+    assert facts["active_count"] == 1
+    assert facts["active_worker_ids"] == [accepted_worker]
+    assert facts["worker_count"] == 1
+    stopped = h.stop(accepted_worker)
+    assert stopped.returncode == 0, stopped.stderr
+    assert h.run_status("run-race")["active_count"] == 0
+
+
+def test_delivered_worker_frees_its_slot(make_harness):
+    h = make_harness("deliver-code")
+    h.init_run(run_id="run-slot", max_workers=1)
+    first = h.start(run_id="run-slot", worker_id="w-slot-a")
+    assert first.returncode == 0, first.stderr
+    h.wait_state("w-slot-a", {"delivered"})
+    assert h.run_status("run-slot")["active_count"] == 0
+
+    second = h.start(run_id="run-slot", worker_id="w-slot-b")
+    assert second.returncode == 0, second.stderr
+    h.wait_state("w-slot-b", {"delivered"})
+    stopped = h.stop("w-slot-a")
+    assert json.loads(stopped.stdout)["already_terminal"] is True
+
+
+def test_stopped_worker_frees_its_slot(make_harness):
+    h = make_harness("slow")
+    h.init_run(run_id="run-stop-slot", max_workers=1)
+    first = h.start(run_id="run-stop-slot", worker_id="w-stop-slot-a")
+    assert first.returncode == 0, first.stderr
+    h.wait_agent_status("w-stop-slot-a", "working")
+    refused = h.start(run_id="run-stop-slot", worker_id="w-stop-slot-b")
+    assert refused.returncode == 2
+    assert "concurrency limit" in refused.stderr
+    assert h.stop("w-stop-slot-a").returncode == 0
+    assert h.run_status("run-stop-slot")["active_count"] == 0
+    allowed = h.start(run_id="run-stop-slot", worker_id="w-stop-slot-b")
+    assert allowed.returncode == 0, allowed.stderr
+    assert h.stop("w-stop-slot-b").returncode == 0
+
+
+def test_session_handoff_does_not_consume_an_extra_slot(make_harness):
+    h = make_harness("handoff")
+    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HPM_SCENARIO_HANDOFF_DELAY"] = "1.5"
+    h.init_run(run_id="run-handoff-slot", max_workers=1)
+    proc = h.start(run_id="run-handoff-slot", worker_id="w-handoff-slot", handoff_tokens=50)
+    assert proc.returncode == 0, proc.stderr
+    h.wait_state("w-handoff-slot", {"handing-off"}, timeout=30)
+    during = h.run_status("run-handoff-slot")
+    assert during["active_count"] == 1
+    assert during["worker_count"] == 1
+    refused = h.start(run_id="run-handoff-slot", worker_id="w-handoff-extra")
+    assert refused.returncode == 2
+    assert "concurrency limit" in refused.stderr
+    facts = h.wait_state("w-handoff-slot", {"delivered"}, timeout=90)
+    assert [session["index"] for session in facts["sessions"]] == [1, 2]
+    assert h.run_status("run-handoff-slot")["active_count"] == 0
+
+
+def test_wait_returns_the_first_item_without_waiting_for_slow_workers(make_harness):
+    h = make_harness("slow")
+    run_id = h.ensure_run(max_workers=4)
+    started = h.start(run_id=run_id, worker_id="w-slow-01")
+    assert started.returncode == 0, started.stderr
+    h.wait_agent_status("w-slow-01", "working")
+    h.env["HPM_FAKE_SCENARIO_BEHAVIOR"] = "deliver-code"
+    fast = h.start(run_id=run_id, worker_id="w-fast-01")
+    assert fast.returncode == 0, fast.stderr
+    h.wait_state("w-fast-01", {"delivered"})
+
+    result = h.wait(run_id, wait_seconds=10)
+    assert result["timed_out"] is False
+    assert len(result["items"]) == 1
+    item = result["items"][0]
+    assert item["worker_id"] == "w-fast-01"
+    assert item["kind"] == "delivery"
+    assert item["code"] == "delivered"
+    assert item["acked"] is False
+    assert h.run_status(run_id)["active_worker_ids"] == ["w-slow-01"]
+    assert h.stop("w-slow-01").returncode == 0
+
+
+def test_wait_returns_a_result_recorded_before_the_call(make_harness):
+    h = make_harness("deliver-code")
+    run_id = h.ensure_run()
+    started = h.start(run_id=run_id, worker_id="w-early-01")
+    assert started.returncode == 0, started.stderr
+    h.wait_state("w-early-01", {"delivered"})
+    before = time.time()
+    result = h.wait(run_id, wait_seconds=5)
+    elapsed = time.time() - before
+    assert result["timed_out"] is False
+    assert [item["item_id"] for item in result["items"]] == ["w-early-01/i001"]
+    assert elapsed < 3, "an item recorded before wait must be returned immediately"
+
+
+def test_wait_waits_for_change_instead_of_external_polling(make_harness):
+    h = make_harness("deliver-code")
+    h.env["HPM_SCENARIO_DELAY"] = "1.2"
+    run_id = h.ensure_run()
+    started = h.start(run_id=run_id, worker_id="w-change-01")
+    assert started.returncode == 0, started.stderr
+    before = time.time()
+    result = h.wait(run_id, wait_seconds=15)
+    elapsed = time.time() - before
+    assert result["timed_out"] is False
+    assert result["items"][0]["worker_id"] == "w-change-01"
+    assert elapsed >= 0.5, "wait must block until a durable fact appears"
+
+
+def test_wait_timeout_is_not_a_result(make_harness):
+    h = make_harness("slow")
+    run_id = h.ensure_run()
+    started = h.start(run_id=run_id, worker_id="w-timeout-01")
+    assert started.returncode == 0, started.stderr
+    h.wait_agent_status("w-timeout-01", "working")
+    result = h.wait(run_id, wait_seconds=1.0)
+    assert result["timed_out"] is True
+    assert result["items"] == []
+    assert "not a task result" in result["note"]
+    facts = h.status("w-timeout-01")
+    assert facts["result"] is None
+    assert facts["lifecycle"]["state"] == "running"
+    assert not any(item["kind"] == "delivery" for item in facts["items"])
+    assert h.stop("w-timeout-01").returncode == 0
+
+
+def test_blocked_worker_forms_an_exception_not_a_success(make_harness):
+    h = make_harness("blocked")
+    run_id = h.ensure_run()
+    started = h.start(run_id=run_id, worker_id="w-blocked-01")
+    assert started.returncode == 0, started.stderr
+    result = h.wait(run_id, wait_seconds=10)
+    assert result["timed_out"] is False
+    item = result["items"][0]
+    assert item["code"] == "blocked"
+    assert item["kind"] == "exception"
+    facts = h.status("w-blocked-01")
+    assert facts["result"] is None
+    assert facts["lifecycle"]["state"] not in {"delivered", "failed", "needs-decision"}
+    acked = h.ack(item["item_id"])
+    assert acked.returncode == 0, acked.stderr
+    assert h.wait(run_id, wait_seconds=1.0)["items"] == []
+    assert h.stop("w-blocked-01").returncode == 0
+
+
+def test_ack_hides_a_handled_item_and_new_items_still_appear(make_harness):
+    h = make_harness("deliver-code")
+    run_id = h.ensure_run(max_workers=2)
+    started = h.start(run_id=run_id, worker_id="w-ack-01")
+    assert started.returncode == 0, started.stderr
+    first = h.wait(run_id, wait_seconds=15)
+    item_id = first["items"][0]["item_id"]
+    assert item_id == "w-ack-01/i001"
+
+    acked = h.ack(item_id, note="delivery reviewed")
+    assert acked.returncode == 0, acked.stderr
+    payload = json.loads(acked.stdout)["acked"][0]
+    assert payload["acked"] is True
+    assert payload["already_acked"] is False
+    assert payload["note"] == "delivery reviewed"
+    assert "integration conclusions are unchanged" in payload["effect"]
+
+    again = json.loads(h.ack(item_id).stdout)["acked"][0]
+    assert again["already_acked"] is True
+    assert h.wait(run_id, wait_seconds=1.0)["items"] == []
+    assert h.run_status(run_id)["pending_items"] == []
+    assert h.status("w-ack-01")["items"][0]["acked"] is True
+
+    h.env["HPM_FAKE_SCENARIO_BEHAVIOR"] = "needs-decision"
+    second = h.start(run_id=run_id, worker_id="w-ack-02")
+    assert second.returncode == 0, second.stderr
+    later = h.wait(run_id, wait_seconds=15)
+    assert [item["item_id"] for item in later["items"]] == ["w-ack-02/i001"]
+    assert later["items"][0]["code"] == "needs-decision"
+
+
+def test_ack_rejects_unknown_malformed_or_unregistered_items(make_harness):
+    h = make_harness("deliver-code")
+    run_id = h.ensure_run()
+    started = h.start(run_id=run_id, worker_id="w-ack-03")
+    assert started.returncode == 0, started.stderr
+    h.wait_state("w-ack-03", {"delivered"})
+
+    unknown = h.ack("w-ack-03/i999")
+    assert unknown.returncode == 2
+    assert "has no item" in unknown.stderr
+    malformed = h.ack("not-an-item")
+    assert malformed.returncode == 2
+    assert "invalid item id" in malformed.stderr
+    ghost = h.ack("w-ghost-01/i001")
+    assert ghost.returncode == 2
+    assert "not registered" in ghost.stderr
+
+
+def test_supervisor_missing_is_a_pending_exception(make_harness):
+    h = make_harness("slow")
+    run_id = h.ensure_run()
+    started = h.start(run_id=run_id, worker_id="w-sup-missing-01")
+    assert started.returncode == 0, started.stderr
+    h.wait_agent_status("w-sup-missing-01", "working")
+    h.kill_supervisor("w-sup-missing-01")
+
+    result = h.wait(run_id, wait_seconds=10)
+    assert result["timed_out"] is False
+    items = [item for item in result["items"] if item["code"] == "supervisor-missing"]
+    assert len(items) == 1
+    item = items[0]
+    assert item["item_id"] == "w-sup-missing-01/supervisor-missing"
+    assert item["kind"] == "exception"
+    assert "supervisor-missing" in h.status("w-sup-missing-01")["supervisor"]["warnings"]
+
+    acked = h.ack(item["item_id"])
+    assert acked.returncode == 0, acked.stderr
+    assert h.wait(run_id, wait_seconds=1.0)["items"] == []
+
+    stopped = h.stop("w-sup-missing-01")
+    assert stopped.returncode == 0, stopped.stderr
+    facts = h.status("w-sup-missing-01")
+    assert facts["lifecycle"]["state"] == "stopped"
+    assert facts["pending_items"] == []
+
+
+def test_wait_scopes_items_to_its_run(make_harness):
+    h = make_harness("deliver-code")
+    h.init_run(run_id="run-a", max_workers=2)
+    h.init_run(run_id="run-b", max_workers=2)
+    first = h.start(run_id="run-a", worker_id="w-run-a-01")
+    second = h.start(run_id="run-b", worker_id="w-run-b-01")
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    h.wait_state("w-run-a-01", {"delivered"})
+    h.wait_state("w-run-b-01", {"delivered"})
+
+    from_a = h.wait("run-a", wait_seconds=5)
+    assert [item["worker_id"] for item in from_a["items"]] == ["w-run-a-01"]
+    assert from_a["items"][0]["run_id"] == "run-a"
+    from_b = h.wait("run-b", wait_seconds=5)
+    assert [item["worker_id"] for item in from_b["items"]] == ["w-run-b-01"]
+    assert h.run_status("run-a")["worker_count"] == 1
+
+
+def test_stalled_start_is_a_pending_exception(make_harness):
+    h = make_harness("deliver-code")
+    run_id = h.ensure_run()
+    # A start process that died after registration but before its supervisor
+    # existed: the worker would silently hold a slot without any progress.
+    dead = subprocess.Popen(["sleep", "60"])
+    dead.kill()
+    dead.wait()
+    worker_dir = h.repo / ".git" / "herdr-plan-manager" / "workers" / "w-stalled-01"
+    worker_dir.mkdir(parents=True)
+    now = "2026-09-12T00:00:00Z"
+    state = {
+        "version": 3,
+        "worker_id": "w-stalled-01",
+        "run_id": run_id,
+        "ticket": {"id": "05", "title": "stalled start"},
+        "runtime": {
+            "kind": "pi",
+            "provider": "opencode-go",
+            "model": "deepseek-v4.1-flash",
+            "thinking": "max",
+        },
+        "repo": {"root": str(h.repo), "common_dir": str(h.repo / ".git"), "base": h.base},
+        "branch": "hpm/w-stalled-01",
+        "worktree": str(h.repo),
+        "herdr": {"workspace": "test-ws", "agent": "w-stalled-01", "tab": None, "pane": None},
+        "paths": {"result": str(worker_dir / "result.json")},
+        "lifecycle": {"state": "allocating", "reason": None, "started_at": now, "updated_at": now},
+        "supervisor": {
+            "pid": None,
+            "host": None,
+            "state": "starting",
+            "started_at": None,
+            "heartbeat_at": None,
+            "exit_reason": None,
+        },
+        "starter": {"pid": dead.pid, "host": os.uname().nodename},
+        "items": [],
+        "result": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+    (worker_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+
+    result = h.wait(run_id, wait_seconds=10)
+    items = [item for item in result["items"] if item["code"] == "start-stalled"]
+    assert len(items) == 1
+    assert items[0]["item_id"] == "w-stalled-01/start-stalled"
+    assert items[0]["kind"] == "exception"
+    assert "start-stalled" in h.status("w-stalled-01")["supervisor"]["warnings"]
+    assert h.run_status(run_id)["active_count"] == 1, "a stalled start still occupies its slot"
+
+    acked = h.ack(items[0]["item_id"])
+    assert acked.returncode == 0, acked.stderr
+    assert h.wait(run_id, wait_seconds=1.0)["items"] == []
+
+    stopped = h.stop("w-stalled-01")
+    assert stopped.returncode == 0, stopped.stderr
+    assert h.run_status(run_id)["active_count"] == 0

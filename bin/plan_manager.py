@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Herdr Plan Manager: single-worker lifecycle tool (tickets 02-04).
+"""Herdr Plan Manager: lifecycle tool for Herdr coding workers (tickets 02-05).
 
-Scope: start one isolated Pi or OpenCode worker from an explicit base SHA,
-register its resources, supervise it in the background, observe its context,
-hand the ticket to a fresh session of the same worker at the configured
-threshold, record a structured delivery or exception, and stop it while
-retaining the scene. Concurrency, wait/ack and cleanup belong to later
-tickets.
+Scope: confirm one execution (run) with its runtime configuration and
+max_workers, start isolated Pi or OpenCode workers from an explicit base SHA,
+register their resources, supervise them in the background, observe their
+context, hand the ticket to a fresh session of the same worker at the
+configured threshold, record structured deliveries or exceptions as durable
+items, wait for any pending item, and acknowledge it. The tool never orders
+tickets, picks new work, retries business tasks or merges results; cleanup
+belongs to ticket 06.
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import os
@@ -23,8 +26,9 @@ import sys
 import tempfile
 import time
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 MANAGER_VERSION = 3
 MANAGER_PATH = Path(__file__).resolve()
@@ -34,6 +38,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
 TICKET_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 OPENCODE_MODEL_LINE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+@-]*/[A-Za-z0-9][A-Za-z0-9._:/+@-]*$")
 WORKER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+RUN_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 SELECTION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+@-]*$")
 AGENT_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 RESULT_STATUSES = ("delivered", "failed", "needs-decision")
@@ -42,6 +47,12 @@ DEFAULT_HANDOFF_TOKENS = 300_000
 DEFAULT_HANDOFF_PCT = 0.8
 DEFAULT_CONTEXT_POLL_SECONDS = 15.0
 DEFAULT_HANDOFF_WAIT_SECONDS = 900.0
+DEFAULT_WAIT_POLL_SECONDS = 1.0
+DEFAULT_LOCK_TIMEOUT_SECONDS = 30.0
+SUPERVISOR_MISSING_ITEM = "supervisor-missing"
+START_STALLED_ITEM = "start-stalled"
+DERIVED_ITEM_IDS = (SUPERVISOR_MISSING_ITEM, START_STALLED_ITEM)
+STARTED_STATES = {"allocating", "prompting"}
 TERMINAL_STATES = {
     "delivered",
     "failed",
@@ -175,6 +186,34 @@ def contained(path: Path, root: Path) -> bool:
         return False
 
 
+@contextmanager
+def file_lock(path: Path, timeout: float | None = None) -> Iterator[None]:
+    """Serialize one read-check-write sequence across processes.
+
+    Allocation and acknowledgement are the only two operations that need
+    mutual exclusion; the lock stays a plain file so a crashed process
+    releases it through the OS instead of leaving a stale lock behind.
+    """
+    if timeout is None:
+        timeout = env_float("HPM_LOCK_TIMEOUT_SECONDS", DEFAULT_LOCK_TIMEOUT_SECONDS)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+    deadline = time.monotonic() + timeout
+    try:
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise ManagerError(f"timed out after {timeout}s waiting for lock {path}")
+                time.sleep(0.05)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
 def git(repo: Path, *args: str, check: bool = True, timeout: float = 60) -> subprocess.CompletedProcess[str]:
     return run(["git", *args], cwd=repo, check=check, timeout=timeout)
 
@@ -303,6 +342,35 @@ class Store:
         if not directory.is_dir():
             return []
         return sorted(item.name for item in directory.iterdir() if (item / "state.json").is_file())
+
+    def run_dir(self, run_id: str) -> Path:
+        return self.root / "runs" / run_id
+
+    def run_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / "run.json"
+
+    def run_lock_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / "allocate.lock"
+
+    def load_run(self, run_id: str) -> dict[str, Any] | None:
+        value = read_json(self.run_path(run_id))
+        return value if isinstance(value, dict) else None
+
+    def ack_path(self, worker_id: str) -> Path:
+        return self.worker_dir(worker_id) / "ack.json"
+
+    def ack_lock_path(self, worker_id: str) -> Path:
+        return self.worker_dir(worker_id) / "ack.lock"
+
+    def load_acks(self, worker_id: str) -> dict[str, dict[str, Any]]:
+        """Acknowledgements live in their own file: `ack` never rewrites state.json."""
+        value = read_json(self.ack_path(worker_id))
+        if not isinstance(value, dict):
+            return {}
+        acks = value.get("acked")
+        if not isinstance(acks, dict):
+            return {}
+        return {key: entry for key, entry in acks.items() if isinstance(entry, dict)}
 
 
 class Herdr:
@@ -698,12 +766,14 @@ def initial_state(
     store: Store,
     workspace: str | None,
     agent: str,
+    run_id: str,
 ) -> dict[str, Any]:
     worker_dir = store.worker_dir(worker_id)
     timestamp = utc_now()
     return {
         "version": MANAGER_VERSION,
         "worker_id": worker_id,
+        "run_id": run_id,
         "ticket": {"id": ticket_id, "title": title},
         "runtime": runtime,
         "repo": {"root": str(repo_root), "common_dir": str(common_dir), "base": base},
@@ -725,6 +795,7 @@ def initial_state(
             "heartbeat_at": None,
             "exit_reason": None,
         },
+        "starter": {"pid": os.getpid(), "host": os.uname().nodename},
         "recovery": {"re_report_sent_at": None, "settled_since": None, "parse_failures": 0},
         "prompt": None,
         "items": [],
@@ -752,7 +823,6 @@ def append_item(state: dict[str, Any], kind: str, code: str, message: str, detai
         "message": message,
         "details": details,
         "created_at": utc_now(),
-        "acked_at": None,
     }
     state["items"].append(item)
     return item
@@ -1388,16 +1458,19 @@ def record_handoff_failure(
     return "failed"
 
 
-def pid_alive(state: dict[str, Any]) -> bool:
-    pid = state.get("supervisor", {}).get("pid")
-    host = state.get("supervisor", {}).get("host")
-    if not isinstance(pid, int) or host != os.uname().nodename:
+def process_alive(pid: Any, host: Any) -> bool:
+    if not isinstance(pid, int) or isinstance(pid, bool) or host != os.uname().nodename:
         return False
     try:
         os.kill(pid, 0)
         return True
     except OSError:
         return False
+
+
+def pid_alive(state: dict[str, Any]) -> bool:
+    supervisor = state.get("supervisor", {})
+    return process_alive(supervisor.get("pid"), supervisor.get("host"))
 
 
 def supervisor_facts(state: dict[str, Any], control: dict[str, Any]) -> dict[str, Any]:
@@ -1415,6 +1488,8 @@ def supervisor_facts(state: dict[str, Any], control: dict[str, Any]) -> dict[str
             warnings.append("supervisor-missing")
         elif stale:
             warnings.append("supervisor-stale")
+        if start_stall_applies(state, control):
+            warnings.append("start-stalled")
     return {
         "pid": supervisor.get("pid"),
         "host": supervisor.get("host"),
@@ -1423,6 +1498,188 @@ def supervisor_facts(state: dict[str, Any], control: dict[str, Any]) -> dict[str
         "heartbeat_at": heartbeat,
         "exit_reason": supervisor.get("exit_reason"),
         "warnings": warnings,
+    }
+
+
+def item_id_for(worker_id: str, item: dict[str, Any]) -> str:
+    """Global identity of one durable item: `<worker-id>/<item-id>`."""
+    return f"{worker_id}/{item['id']}"
+
+
+def split_item_id(value: str) -> tuple[str, str]:
+    worker_id, _, item_id = value.partition("/")
+    if not worker_id or not item_id or not WORKER_ID_RE.fullmatch(worker_id):
+        raise ManagerError(f"invalid item id {value!r}; expected <worker-id>/<item-id>")
+    return worker_id, item_id
+
+
+def item_view(state: dict[str, Any], item: dict[str, Any], ack: dict[str, Any] | None) -> dict[str, Any]:
+    return {
+        "item_id": item_id_for(state["worker_id"], item),
+        "worker_id": state["worker_id"],
+        "run_id": state.get("run_id"),
+        "ticket": state["ticket"],
+        "kind": item["kind"],
+        "code": item["code"],
+        "message": item["message"],
+        "details": item.get("details"),
+        "created_at": item["created_at"],
+        "acked": ack is not None,
+        "acked_at": (ack or {}).get("acked_at"),
+        "lifecycle": state["lifecycle"]["state"],
+        "branch": state["branch"],
+        "worktree": state["worktree"],
+        "result_path": state["paths"]["result"],
+        "session": state.get("session_index"),
+    }
+
+
+def supervisor_missing_applies(state: dict[str, Any], control: dict[str, Any]) -> bool:
+    """A missing supervisor is a derived, currently actionable exception.
+
+    It only counts while the worker is not terminal and no stop was already
+    requested, so stopping the worker resolves the condition instead of
+    leaving a permanently pending item behind.
+    """
+    if state["lifecycle"]["state"] in TERMINAL_STATES:
+        return False
+    if control.get("stop_requested_at"):
+        return False
+    return state["supervisor"].get("state") == "running" and not pid_alive(state)
+
+
+def supervisor_missing_item(state: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": SUPERVISOR_MISSING_ITEM,
+        "kind": "exception",
+        "code": "supervisor-missing",
+        "message": (
+            "the worker supervisor is not running; the worker cannot progress, hand off or "
+            "report a result by itself"
+        ),
+        "details": {"pid": state["supervisor"].get("pid"), "host": state["supervisor"].get("host")},
+        "created_at": state["supervisor"].get("started_at") or state["created_at"],
+    }
+
+
+def start_stall_applies(state: dict[str, Any], control: dict[str, Any]) -> bool:
+    """A start that died before any supervisor existed silently holds a slot.
+
+    The start process records its own pid at registration; if that process is
+    gone while the lifecycle is still pre-supervisor, the worker cannot make
+    progress and must be surfaced instead of looking healthy.
+    """
+    if state["lifecycle"]["state"] not in STARTED_STATES:
+        return False
+    if control.get("stop_requested_at"):
+        return False
+    if state["supervisor"].get("state") != "starting":
+        return False
+    starter = state.get("starter") or {}
+    return not process_alive(starter.get("pid"), starter.get("host"))
+
+
+def start_stall_item(state: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": START_STALLED_ITEM,
+        "kind": "exception",
+        "code": "start-stalled",
+        "message": (
+            "the start process ended before a supervisor existed; the worker occupies a slot "
+            "without anyone able to progress or report it"
+        ),
+        "details": {"lifecycle": state["lifecycle"]["state"], "updated_at": state.get("updated_at")},
+        "created_at": state.get("updated_at") or state["created_at"],
+    }
+
+
+def annotated_items(store: Store, state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every durable item of one worker with its acknowledgement state."""
+    acks = store.load_acks(state["worker_id"])
+    return [
+        item_view(state, item, acks.get(item_id_for(state["worker_id"], item))) for item in state["items"]
+    ]
+
+
+def worker_pending_items(store: Store, state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Unacknowledged durable items plus a derived supervision exception if any."""
+    worker_id = state["worker_id"]
+    acks = store.load_acks(worker_id)
+    views = [
+        item_view(state, item, acks.get(item_id_for(worker_id, item)))
+        for item in state["items"]
+        if item_id_for(worker_id, item) not in acks
+    ]
+    control = store.load_control(worker_id)
+    if supervisor_missing_applies(state, control):
+        item = supervisor_missing_item(state)
+        item_id = item_id_for(worker_id, item)
+        if item_id not in acks:
+            views.append(item_view(state, item, acks.get(item_id)))
+    elif start_stall_applies(state, control):
+        item = start_stall_item(state)
+        item_id = item_id_for(worker_id, item)
+        if item_id not in acks:
+            views.append(item_view(state, item, acks.get(item_id)))
+    views.sort(key=lambda view: (view["created_at"], view["item_id"]))
+    return views
+
+
+def run_workers(store: Store, run_id: str) -> list[dict[str, Any]]:
+    states = []
+    for worker_id in store.worker_ids():
+        state = store.load_state(worker_id)
+        if state is not None and state.get("run_id") == run_id:
+            states.append(state)
+    return states
+
+
+def is_active_worker(state: dict[str, Any]) -> bool:
+    """A worker occupies one slot until its lifecycle reaches a terminal state."""
+    return state["lifecycle"]["state"] not in TERMINAL_STATES
+
+
+def active_workers(store: Store, run_id: str) -> list[dict[str, Any]]:
+    return [state for state in run_workers(store, run_id) if is_active_worker(state)]
+
+
+def run_pending_items(store: Store, run_id: str) -> list[dict[str, Any]]:
+    views: list[dict[str, Any]] = []
+    for state in run_workers(store, run_id):
+        views.extend(worker_pending_items(store, state))
+    views.sort(key=lambda view: (view["created_at"], view["item_id"]))
+    return views
+
+
+def run_summary(store: Store, run: dict[str, Any]) -> dict[str, Any]:
+    run_id = run["run_id"]
+    workers = run_workers(store, run_id)
+    active = [state for state in workers if is_active_worker(state)]
+    pending = run_pending_items(store, run_id)
+    return {
+        "run_id": run_id,
+        "repo_root": run.get("repo_root"),
+        "runtime": run.get("runtime"),
+        "max_workers": run.get("max_workers"),
+        "created_at": run.get("created_at"),
+        "active_count": len(active),
+        "active_worker_ids": [state["worker_id"] for state in active],
+        "worker_count": len(workers),
+        "pending_item_count": len(pending),
+        "workers": [
+            {
+                "worker_id": state["worker_id"],
+                "ticket": state["ticket"],
+                "lifecycle": state["lifecycle"]["state"],
+                "active": is_active_worker(state),
+                "session": state.get("session_index"),
+                "branch": state["branch"],
+                "worktree": state["worktree"],
+                "pending_items": len(worker_pending_items(store, state)),
+            }
+            for state in workers
+        ],
+        "pending_items": pending,
     }
 
 
@@ -1882,6 +2139,8 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
             dirty = None
     return {
         "worker_id": state["worker_id"],
+        "run_id": state.get("run_id"),
+        "run": store.load_run(state["run_id"]) if state.get("run_id") else None,
         "ticket": state["ticket"],
         "runtime": state["runtime"],
         "repo": state["repo"],
@@ -1896,7 +2155,8 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
         "sessions": state.get("sessions") or [],
         "handoff": state.get("handoff") or {},
         "supervisor": supervisor_facts(state, store.load_control(worker_id)),
-        "items": state["items"],
+        "items": annotated_items(store, state),
+        "pending_items": worker_pending_items(store, state),
         "result": state["result"],
         "paths": state["paths"],
         "control": store.load_control(worker_id),
@@ -1904,13 +2164,34 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
 
 
 def cmd_start(args: argparse.Namespace) -> int:
-    adapter = get_adapter(args.kind)
-    for label, value in (("provider", args.provider), ("model", args.model)):
-        if not SELECTION_RE.fullmatch(value):
-            raise ManagerError(f"{label} contains unsupported characters: {value!r}")
     if not TICKET_ID_RE.fullmatch(args.ticket_id):
         raise ManagerError(f"invalid ticket id: {args.ticket_id!r}")
     repo_root, common_dir = repo_context(Path(args.repo))
+    store = Store.resolve(common_dir, args.management_root)
+    run = store.load_run(args.run)
+    if run is None:
+        raise ManagerError(f"run {args.run!r} is not registered under {store.root}; create it with init-run")
+    run_repo = Path(str(run.get("repo_root") or ".")).resolve()
+    if run_repo != repo_root:
+        raise ManagerError(f"run {args.run!r} belongs to repository {run_repo}; refusing to mix repositories")
+    run_runtime = run.get("runtime") if isinstance(run.get("runtime"), dict) else {}
+    effective: dict[str, str] = {}
+    for field in ("kind", "provider", "model", "thinking"):
+        requested = getattr(args, field)
+        confirmed = run_runtime.get(field)
+        if requested and confirmed and requested != confirmed:
+            raise ManagerError(
+                f"worker {field} {requested!r} does not match the confirmed run configuration {confirmed!r}; "
+                "runtime configuration is confirmed once per run"
+            )
+        chosen = requested or confirmed
+        if not chosen:
+            raise ManagerError(f"run {args.run!r} does not define {field}; pass it explicitly")
+        effective[field] = str(chosen)
+    adapter = get_adapter(effective["kind"])
+    for label, value in (("provider", effective["provider"]), ("model", effective["model"])):
+        if not SELECTION_RE.fullmatch(value):
+            raise ManagerError(f"{label} contains unsupported characters: {value!r}")
     base = args.base.strip().lower()
     if not SHA_RE.fullmatch(base):
         raise ManagerError("--base must be a full commit SHA (40-64 lowercase hex characters)")
@@ -1931,7 +2212,7 @@ def cmd_start(args: argparse.Namespace) -> int:
         raise ManagerError("--handoff-pct must be within (0, 1]")
     if args.context_window < 0:
         raise ManagerError("--context-window must not be negative")
-    adapter.validate(args.provider, args.model, args.thinking)
+    adapter.validate(effective["provider"], effective["model"], effective["thinking"])
 
     worker_id = args.worker_id or worker_id_for(args.ticket_id)
     if not WORKER_ID_RE.fullmatch(worker_id):
@@ -1945,35 +2226,46 @@ def cmd_start(args: argparse.Namespace) -> int:
         worktree = (Path(args.management_root).resolve() / "worktrees" / worker_id).resolve()
     else:
         worktree = (common_dir / "herdr-plan-manager" / "worktrees" / worker_id).resolve()
-    store = Store.resolve(common_dir, args.management_root)
     agent = agent_name_for(worker_id)
-
-    if store.worker_dir(worker_id).exists():
-        raise ManagerError(f"worker id {worker_id!r} is already registered at {store.worker_dir(worker_id)}")
-    if git(repo_root, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
-        raise ManagerError(f"branch {branch!r} already exists; refusing to reuse an unowned branch")
-    if worktree.exists():
-        raise ManagerError(f"worktree path already exists: {worktree}")
     herdr = Herdr(workspace)
-    if herdr.agent_exists(agent):
-        raise ManagerError(f"a live Herdr agent is already named {agent!r}")
-
-    runtime = {"kind": args.kind, "provider": args.provider, "model": args.model, "thinking": args.thinking}
-    tab_env = adapter.tab_env(args.provider, args.model, args.thinking)
+    runtime: dict[str, Any] = dict(effective)
+    tab_env = adapter.tab_env(effective["provider"], effective["model"], effective["thinking"])
     if tab_env:
         runtime["env"] = tab_env
-    state = initial_state(
-        worker_id, args.ticket_id, args.title or args.ticket_id, runtime, repo_root, common_dir, base,
-        branch, worktree, store, workspace, agent,
-    )
-    state["handoff"].update(
-        tokens=args.handoff_tokens,
-        pct=args.handoff_pct,
-        window=args.context_window or None,
-    )
+    max_workers = run.get("max_workers")
+    if not isinstance(max_workers, int) or isinstance(max_workers, bool) or max_workers < 1:
+        raise ManagerError(f"run {args.run!r} has no usable max_workers; re-create the run")
+
     tab = ""
     pane = ""
     agent_started = False
+    # The slot claim is the registration itself: quota check and initial state
+    # write happen under one lock, so concurrent starts cannot oversubscribe.
+    with file_lock(store.run_lock_path(args.run)):
+        if store.worker_dir(worker_id).exists():
+            raise ManagerError(f"worker id {worker_id!r} is already registered at {store.worker_dir(worker_id)}")
+        if git(repo_root, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
+            raise ManagerError(f"branch {branch!r} already exists; refusing to reuse an unowned branch")
+        if worktree.exists():
+            raise ManagerError(f"worktree path already exists: {worktree}")
+        if herdr.agent_exists(agent):
+            raise ManagerError(f"a live Herdr agent is already named {agent!r}")
+        active = active_workers(store, args.run)
+        if len(active) >= max_workers:
+            raise ManagerError(
+                f"run {args.run!r} is at its concurrency limit: {len(active)} active worker(s) of "
+                f"max_workers={max_workers} ({', '.join(item['worker_id'] for item in active)})"
+            )
+        state: dict[str, Any] = initial_state(
+            worker_id, args.ticket_id, args.title or args.ticket_id, runtime, repo_root, common_dir, base,
+            branch, worktree, store, workspace, agent, args.run,
+        )
+        state["handoff"].update(
+            tokens=args.handoff_tokens,
+            pct=args.handoff_pct,
+            window=args.context_window or None,
+        )
+        store.save_state(worker_id, state)
     try:
         manifest = snapshot_materials(store.worker_dir(worker_id), sources, worker_id)
         contract_path = store.contract_path(worker_id)
@@ -1989,10 +2281,10 @@ def cmd_start(args: argparse.Namespace) -> int:
                 "WORKER_ID": worker_id,
                 "TICKET_ID": args.ticket_id,
                 "TICKET_TITLE": args.title or args.ticket_id,
-                "KIND": args.kind,
-                "PROVIDER": args.provider,
-                "MODEL": args.model,
-                "THINKING": args.thinking,
+                "KIND": effective["kind"],
+                "PROVIDER": effective["provider"],
+                "MODEL": effective["model"],
+                "THINKING": effective["thinking"],
                 "BASE_SHA": base,
                 "BRANCH": branch,
                 "WORKTREE": str(worktree),
@@ -2012,7 +2304,12 @@ def cmd_start(args: argparse.Namespace) -> int:
         state["herdr"]["pane"] = pane
         store.save_state(worker_id, state)
 
-        herdr.agent_start(agent, args.kind, pane, adapter.start_args(args.provider, args.model, args.thinking))
+        herdr.agent_start(
+            agent,
+            effective["kind"],
+            pane,
+            adapter.start_args(effective["provider"], effective["model"], effective["thinking"]),
+        )
         agent_started = True
         if not herdr.wait_interactive(agent):
             raise ManagerError(f"agent {agent} never reached an interactive state")
@@ -2043,6 +2340,7 @@ def cmd_start(args: argparse.Namespace) -> int:
         print_json(
             {
                 "worker_id": worker_id,
+                "run_id": args.run,
                 "ticket_id": args.ticket_id,
                 "agent": agent,
                 "tab": tab,
@@ -2051,6 +2349,8 @@ def cmd_start(args: argparse.Namespace) -> int:
                 "worktree": str(worktree),
                 "base": base,
                 "runtime": runtime,
+                "max_workers": max_workers,
+                "active_workers": len(active_workers(store, args.run)),
                 "prompt_attempts": state["prompt"]["attempts"],
                 "session": state.get("session_index"),
                 "result_path": str(store.result_path(worker_id)),
@@ -2082,8 +2382,51 @@ def cmd_start(args: argparse.Namespace) -> int:
         return 2
 
 
+def cmd_init_run(args: argparse.Namespace) -> int:
+    """Register one execution: the confirmed runtime config and its quota."""
+    run_id = args.run_id or f"run-{uuid.uuid4().hex[:8]}"
+    if not RUN_ID_RE.fullmatch(run_id):
+        raise ManagerError(f"invalid run id: {run_id!r}")
+    if args.max_workers < 1:
+        raise ManagerError("--max-workers must be a positive integer")
+    for label, value in (("provider", args.provider), ("model", args.model)):
+        if not SELECTION_RE.fullmatch(value):
+            raise ManagerError(f"{label} contains unsupported characters: {value!r}")
+    adapter = get_adapter(args.kind)
+    repo_root, common_dir = repo_context(Path(args.repo))
+    store = Store.resolve(common_dir, args.management_root)
+    if store.load_run(run_id) is not None:
+        raise ManagerError(f"run id {run_id!r} is already registered at {store.run_path(run_id)}")
+    adapter.validate(args.provider, args.model, args.thinking)
+    run = {
+        "version": 1,
+        "run_id": run_id,
+        "repo_root": str(repo_root),
+        "runtime": {
+            "kind": args.kind,
+            "provider": args.provider,
+            "model": args.model,
+            "thinking": args.thinking,
+        },
+        "max_workers": args.max_workers,
+        "created_at": utc_now(),
+    }
+    with file_lock(store.run_lock_path(run_id)):
+        if store.load_run(run_id) is not None:
+            raise ManagerError(f"run id {run_id!r} is already registered at {store.run_path(run_id)}")
+        atomic_json(store.run_path(run_id), run)
+    print_json(run)
+    return 0
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     store = resolve_store(args)
+    if args.run:
+        run = store.load_run(args.run)
+        if run is None:
+            raise ManagerError(f"run {args.run!r} is not registered under {store.root}")
+        print_json(run_summary(store, run))
+        return 0
     if args.worker:
         print_json(worker_facts(store, args.worker))
         return 0
@@ -2095,15 +2438,108 @@ def cmd_status(args: argparse.Namespace) -> int:
         workers.append(
             {
                 "worker_id": state["worker_id"],
+                "run_id": state.get("run_id"),
                 "ticket": state["ticket"],
                 "lifecycle": state["lifecycle"]["state"],
                 "session": state.get("session_index"),
                 "items": len(state["items"]),
+                "pending_items": len(worker_pending_items(store, state)),
                 "branch": state["branch"],
                 "worktree": state["worktree"],
             }
         )
     print_json({"management_root": str(store.root), "workers": workers})
+    return 0
+
+
+def cmd_wait(args: argparse.Namespace) -> int:
+    """Return any unacknowledged delivery or exception, waiting for change.
+
+    A timeout only means no item appeared in the wait window; it is not a
+    result and implies nothing about the workers. Herdr events are not needed
+    for correctness: every returned fact is read from durable state.
+    """
+    store = resolve_store(args)
+    run = store.load_run(args.run)
+    if run is None:
+        raise ManagerError(f"run {args.run!r} is not registered under {store.root}")
+    poll = args.poll if args.poll > 0 else env_float("HPM_WAIT_POLL_SECONDS", DEFAULT_WAIT_POLL_SECONDS)
+    poll = max(0.05, poll)
+    deadline = None if args.timeout <= 0 else time.monotonic() + args.timeout
+    while True:
+        items = run_pending_items(store, run["run_id"])
+        if items:
+            print_json(
+                {
+                    "run_id": run["run_id"],
+                    "items": items,
+                    "timed_out": False,
+                    "observed_at": utc_now(),
+                    "note": (
+                        "each item is a durable fact awaiting ack; a delivery is not integration and "
+                        "an idle terminal is not a result"
+                    ),
+                }
+            )
+            return 0
+        if deadline is not None and time.monotonic() >= deadline:
+            print_json(
+                {
+                    "run_id": run["run_id"],
+                    "items": [],
+                    "timed_out": True,
+                    "observed_at": utc_now(),
+                    "note": (
+                        "no pending item within the wait window; a wait timeout is not a task result "
+                        "and implies nothing about the workers"
+                    ),
+                }
+            )
+            return 0
+        remaining = poll
+        if deadline is not None:
+            remaining = min(poll, max(0.05, deadline - time.monotonic()))
+        time.sleep(remaining)
+
+
+def cmd_ack(args: argparse.Namespace) -> int:
+    """Mark items as handled; acknowledgement never changes delivery or integration."""
+    store = resolve_store(args)
+    results = []
+    for raw in args.item:
+        worker_id, item_id = split_item_id(raw)
+        state = store.load_state(worker_id)
+        if state is None:
+            raise ManagerError(f"worker {worker_id!r} is not registered under {store.root}")
+        if item_id not in DERIVED_ITEM_IDS:
+            known = {item["id"] for item in state["items"]}
+            if item_id not in known:
+                raise ManagerError(f"worker {worker_id!r} has no item {item_id!r}")
+        with file_lock(store.ack_lock_path(worker_id)):
+            payload = read_json(store.ack_path(worker_id))
+            acks = payload.get("acked") if isinstance(payload, dict) else None
+            if not isinstance(acks, dict):
+                acks = {}
+            already = raw in acks
+            if not already:
+                acks[raw] = {"acked_at": utc_now(), "note": args.note or ""}
+                atomic_json(
+                    store.ack_path(worker_id),
+                    {"version": 1, "worker_id": worker_id, "acked": acks},
+                )
+            entry = acks[raw] if isinstance(acks.get(raw), dict) else {}
+        results.append(
+            {
+                "item_id": raw,
+                "worker_id": worker_id,
+                "acked": True,
+                "already_acked": already,
+                "acked_at": entry.get("acked_at"),
+                "note": entry.get("note") or "",
+                "effect": "acknowledgement only; delivery and integration conclusions are unchanged",
+            }
+        )
+    print_json({"acked": results})
     return 0
 
 
@@ -2251,33 +2687,47 @@ def cmd_stop(args: argparse.Namespace) -> int:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="plan_manager.py",
-        description="Single-worker lifecycle manager for Herdr coding agents (tickets 02-04).",
+        description="Lifecycle manager for Herdr coding workers on one confirmed run (tickets 02-05).",
         epilog=(
             "Example:\n"
-            "  plan_manager.py start --repo /repo --ticket-id 04 --base <full-sha> "
-            "--material /path/spec.md --kind pi --provider <p> --model <m> --thinking <t> "
-            "--handoff-tokens 300000 --handoff-pct 0.8\n"
-            "  plan_manager.py start --repo /repo --ticket-id 04 --base <full-sha> "
-            "--material /path/spec.md --kind opencode --provider <p> --model <m> --thinking <variant>\n"
-            "  plan_manager.py status --repo /repo --worker <worker-id>\n"
+            "  plan_manager.py init-run --repo /repo --run-id plan-01 --kind pi --provider <p> --model <m> "
+            "--thinking <t> --max-workers 2\n"
+            "  plan_manager.py start --repo /repo --run plan-01 --ticket-id 05 --base <full-sha> "
+            "--material /path/ticket.md\n"
+            "  plan_manager.py status --repo /repo --run plan-01\n"
+            "  plan_manager.py wait --repo /repo --run plan-01 --timeout 600\n"
+            "  plan_manager.py ack --repo /repo --item w-05-abc123/i001\n"
             "  plan_manager.py read --repo /repo --worker <worker-id>\n"
-            "  plan_manager.py handoff --repo /repo --worker <worker-id> --reason <why>\n"
             "  plan_manager.py stop --repo /repo --worker <worker-id>"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
+    init_run = sub.add_parser(
+        "init-run", help="register one execution with its confirmed configuration and worker quota"
+    )
+    init_run.add_argument("--repo", required=True, help="path to the target repository")
+    init_run.add_argument("--management-root", default="", help="override the management directory")
+    init_run.add_argument("--run-id", default="", help="stable execution id; generated when omitted")
+    init_run.add_argument("--kind", required=True, choices=["pi", "opencode"])
+    init_run.add_argument("--provider", required=True)
+    init_run.add_argument("--model", required=True)
+    init_run.add_argument("--thinking", required=True)
+    init_run.add_argument("--max-workers", type=int, required=True, help="maximum active workers for this run")
+    init_run.set_defaults(func=cmd_init_run)
+
     start = sub.add_parser("start", help="start one isolated worker from an explicit base SHA")
     start.add_argument("--repo", required=True, help="path to the target repository")
+    start.add_argument("--run", required=True, help="registered run that owns the worker and its quota")
     start.add_argument("--ticket-id", required=True)
     start.add_argument("--title", default="")
     start.add_argument("--base", required=True, help="full commit SHA the worker branch starts from")
     start.add_argument("--material", action="append", required=True, help="ticket material file or directory (repeatable)")
-    start.add_argument("--kind", required=True, choices=["pi", "opencode"], help="worker runtime")
-    start.add_argument("--provider", required=True)
-    start.add_argument("--model", required=True)
-    start.add_argument("--thinking", required=True)
+    start.add_argument("--kind", default="", choices=["pi", "opencode"], help="must match the run when given")
+    start.add_argument("--provider", default="", help="must match the run when given")
+    start.add_argument("--model", default="", help="must match the run when given")
+    start.add_argument("--thinking", default="", help="must match the run when given")
     start.add_argument("--worker-id", default="")
     start.add_argument("--branch", default="")
     start.add_argument("--worktree", default="")
@@ -2303,11 +2753,32 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     start.set_defaults(func=cmd_start)
 
-    status = sub.add_parser("status", help="show execution facts for one or all workers")
+    status = sub.add_parser("status", help="show execution facts for one run, one worker, or all workers")
     status.add_argument("--repo", default="")
     status.add_argument("--management-root", default="")
+    status.add_argument("--run", default="")
     status.add_argument("--worker", default="")
     status.set_defaults(func=cmd_status)
+
+    wait = sub.add_parser("wait", help="return any pending delivery or exception, waiting for change")
+    wait.add_argument("--repo", default="")
+    wait.add_argument("--management-root", default="")
+    wait.add_argument("--run", required=True)
+    wait.add_argument(
+        "--timeout",
+        type=float,
+        default=0.0,
+        help="seconds to wait; 0 waits until an item appears; a timeout is not a task result",
+    )
+    wait.add_argument("--poll", type=float, default=0.0, help="seconds between fact checks (default 1s)")
+    wait.set_defaults(func=cmd_wait)
+
+    ack = sub.add_parser("ack", help="acknowledge pending items without changing delivery or integration")
+    ack.add_argument("--repo", default="")
+    ack.add_argument("--management-root", default="")
+    ack.add_argument("--item", action="append", required=True, help="<worker-id>/<item-id> (repeatable)")
+    ack.add_argument("--note", default="", help="optional note about how the item was handled")
+    ack.set_defaults(func=cmd_ack)
 
     read = sub.add_parser("read", help="read the worker's recent terminal output")
     read.add_argument("--repo", default="")

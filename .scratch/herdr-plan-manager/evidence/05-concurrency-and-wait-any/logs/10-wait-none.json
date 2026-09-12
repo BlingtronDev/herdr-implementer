@@ -1,0 +1,7 @@
+{
+  "items": [],
+  "note": "no pending item within the wait window; a wait timeout is not a task result and implies nothing about the workers",
+  "observed_at": "2026-09-12T11:56:55.031635Z",
+  "run_id": "smoke-05",
+  "timed_out": true
+}

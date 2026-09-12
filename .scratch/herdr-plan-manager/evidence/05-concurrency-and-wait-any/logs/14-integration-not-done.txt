@@ -1,0 +1,23 @@
+=== main branch (integration target) ===
+090d7ad init smoke repo
+
+=== worker branches ===
+13a2245 (hpm/w-smoke05-b) add artifact b
+fe10135 (hpm/w-smoke05-a) add artifact a
+090d7ad (HEAD -> main, hpm/w-smoke05-c) init smoke repo
+
+=== A delivery commit ===
+fe10135 add artifact a
+ artifact-a.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+=== B delivery commit ===
+13a2245 add artifact b
+ artifact-b.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+=== worktrees ===
+/tmp/opencode/hpm-exp05/repo                                                090d7ad [main]
+/tmp/opencode/hpm-exp05/repo/.git/herdr-plan-manager/worktrees/w-smoke05-a  fe10135 [hpm/w-smoke05-a]
+/tmp/opencode/hpm-exp05/repo/.git/herdr-plan-manager/worktrees/w-smoke05-b  13a2245 [hpm/w-smoke05-b]
+/tmp/opencode/hpm-exp05/repo/.git/herdr-plan-manager/worktrees/w-smoke05-c  090d7ad [hpm/w-smoke05-c]

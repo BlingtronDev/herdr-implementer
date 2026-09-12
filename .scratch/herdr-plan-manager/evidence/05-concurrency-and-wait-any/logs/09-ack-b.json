@@ -1,0 +1,13 @@
+{
+  "acked": [
+    {
+      "acked": true,
+      "acked_at": "2026-09-12T11:56:49.870712Z",
+      "already_acked": false,
+      "effect": "acknowledgement only; delivery and integration conclusions are unchanged",
+      "item_id": "w-smoke05-b/i001",
+      "note": "B delivery reviewed for integration",
+      "worker_id": "w-smoke05-b"
+    }
+  ]
+}

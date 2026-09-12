@@ -1,0 +1,11 @@
+{
+  "branch": "hpm/w-smoke05-c",
+  "items": 0,
+  "lifecycle": "stopped",
+  "reason": "stop-requested",
+  "result_path": "/tmp/opencode/hpm-exp05/repo/.git/herdr-plan-manager/workers/w-smoke05-c/result.json",
+  "session": 1,
+  "stopped": true,
+  "worker_id": "w-smoke05-c",
+  "worktree": "/tmp/opencode/hpm-exp05/repo/.git/herdr-plan-manager/worktrees/w-smoke05-c"
+}

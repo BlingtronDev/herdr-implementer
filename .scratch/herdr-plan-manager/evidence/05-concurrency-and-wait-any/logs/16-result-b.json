@@ -1,0 +1,20 @@
+{
+  "ticket_id": "B",
+  "worker_id": "w-smoke05-b",
+  "status": "delivered",
+  "summary": "Created artifact-b.txt in the worktree root containing exactly the line BETA-05, staged it, and committed it on branch hpm/w-smoke05-b with the message 'add artifact b' (commit 13a2245958c8c6792a5b5b1bb2609f20928f4195).",
+  "acceptance": [
+    {"criterion": "artifact-b.txt exists in a commit on your branch and contains BETA-05", "met": true, "evidence": "artifact-b.txt:1 content 'BETA-05' (od -c shows 'B E T A - 0 5 \\n'); git ls-tree -r HEAD lists artifact-b.txt; git show HEAD:artifact-b.txt prints BETA-05; commit 13a2245 'add artifact b' on branch hpm/w-smoke05-b"}
+  ],
+  "verification": [
+    {"command": "cat artifact-b.txt", "exit_code": 0, "summary": "output: BETA-05"},
+    {"command": "od -c artifact-b.txt", "exit_code": 0, "summary": "bytes: B E T A - 0 5 \\n, exact expected line"},
+    {"command": "git status --short", "exit_code": 0, "summary": "empty output, worktree clean with nothing uncommitted"},
+    {"command": "git show HEAD:artifact-b.txt", "exit_code": 0, "summary": "output: BETA-05, file present in commit"},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "13a2245958c8c6792a5b5b1bb2609f20928f4195"},
+    {"command": "git log --oneline -2", "exit_code": 0, "summary": "13a2245 add artifact b; 090d7ad init smoke repo"}
+  ],
+  "head": "13a2245958c8c6792a5b5b1bb2609f20928f4195",
+  "artifacts": ["artifact-b.txt"],
+  "remaining": ""
+}

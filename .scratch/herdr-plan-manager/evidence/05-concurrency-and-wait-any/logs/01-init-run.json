@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-09-12T11:55:40.802093Z",
+  "max_workers": 2,
+  "repo_root": "/tmp/opencode/hpm-exp05/repo",
+  "run_id": "smoke-05",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "version": 1
+}
