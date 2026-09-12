@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--ff-only",
+    "fb1194fb6c3db7bf4181794fdc6a88764ba363f2"
+  ],
+  "cwd": "/tmp/hpm07-real-l6liisu5/pi",
+  "exit_code": 0,
+  "stdout": "Updating b9dda99..fb1194f\nFast-forward\n api.txt     | 1 +\n resumed.txt | 1 +\n 2 files changed, 2 insertions(+)\n create mode 100644 api.txt\n create mode 100644 resumed.txt\n",
+  "stderr": ""
+}

@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "wait",
+    "--repo",
+    "/tmp/hpm07-real-l6liisu5/pi",
+    "--run",
+    "issue07-pi",
+    "--timeout",
+    "30"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"items\": [],\n  \"note\": \"no pending item within the wait window; a wait timeout is not a task result and implies nothing about the workers\",\n  \"observed_at\": \"2026-09-12T14:40:04.243286Z\",\n  \"run_id\": \"issue07-pi\",\n  \"timed_out\": true\n}\n",
+  "stderr": ""
+}

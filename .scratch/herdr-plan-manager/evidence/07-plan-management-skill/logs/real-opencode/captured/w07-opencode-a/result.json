@@ -1,0 +1,26 @@
+{
+  "ticket_id": "A",
+  "worker_id": "w07-opencode-a",
+  "status": "delivered",
+  "summary": "Continuation session resumed from handoff-001.md without rereading the corpus: created api.txt (exactly `HPM07_API_V1` + newline) and resumed.txt (exactly `HPM07_RESUMED_OK` + newline, proof the handoff was read), asserted both exact contents, and committed ONLY those two files as c0dd4f2. seed-note.txt from the initial session is intentionally left uncommitted and is reported in remaining.",
+  "acceptance": [
+    {"criterion": "A creates api.txt containing exactly `HPM07_API_V1\\n` after an automatic session handoff.", "met": true, "evidence": "api.txt:1 = HPM07_API_V1, committed in c0dd4f2 after the tool-requested handoff (initial session stopped at the checkpoint without creating api.txt; this continuation session created it)"},
+    {"criterion": "The next session must NOT reread corpus, must create api.txt with HPM07_API_V1 plus newline, and must create resumed.txt with HPM07_RESUMED_OK plus newline as proof of reading this handoff.", "met": true, "evidence": "No corpus read occurred in this session; api.txt (13 bytes) and resumed.txt (17 bytes) created with exact token + newline"},
+    {"criterion": "Assert exact api.txt/resumed.txt contents and record commands and exit codes.", "met": true, "evidence": "verification entries 1-2 below, both exit code 0"},
+    {"criterion": "Commit ONLY api.txt and resumed.txt; leave seed-note.txt uncommitted intentionally.", "met": true, "evidence": "git show --stat HEAD -> c0dd4f2 changes only api.txt and resumed.txt; git status --porcelain -> `?? seed-note.txt`; git ls-files does not list seed-note.txt"},
+    {"criterion": "Deliver and report the uncommitted note in remaining.", "met": true, "evidence": "This result file; see remaining"}
+  ],
+  "verification": [
+    {"command": "[ \"$(cat api.txt)\" = \"HPM07_API_V1\" ]", "exit_code": 0, "summary": "api.txt content exact: PASS"},
+    {"command": "[ \"$(cat resumed.txt)\" = \"HPM07_RESUMED_OK\" ]", "exit_code": 0, "summary": "resumed.txt content exact: PASS"},
+    {"command": "[ \"$(cat seed-note.txt)\" = \"seed prepared before handoff\" ]", "exit_code": 0, "summary": "seed-note.txt content exact: PASS"},
+    {"command": "wc -c api.txt resumed.txt", "exit_code": 0, "summary": "13 api.txt, 17 resumed.txt (token + newline each)"},
+    {"command": "git status --porcelain", "exit_code": 0, "summary": "only `?? seed-note.txt`; nothing else uncommitted"},
+    {"command": "git show --stat --oneline HEAD", "exit_code": 0, "summary": "c0dd4f2 Add HPM07 API output and handoff-resume marker; only api.txt and resumed.txt changed (2 files, 2 insertions)"},
+    {"command": "git ls-files", "exit_code": 0, "summary": ".gitignore, README.md, api.txt, resumed.txt; seed-note.txt not tracked"},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "c0dd4f2f7ce93b534541fdc9550b324b557e808a"}
+  ],
+  "head": "c0dd4f2f7ce93b534541fdc9550b324b557e808a",
+  "artifacts": ["api.txt", "resumed.txt", "seed-note.txt"],
+  "remaining": "seed-note.txt (29 bytes, exact content `seed prepared before handoff` + newline) is intentionally uncommitted/untracked in the worktree per the ticket; it is expected to remain so."
+}

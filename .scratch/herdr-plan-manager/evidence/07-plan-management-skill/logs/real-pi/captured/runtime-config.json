@@ -1,0 +1,118 @@
+[
+  {
+    "worker": "w07-pi-a",
+    "session": 1,
+    "ref": "/home/blingtron/.pi/agent/sessions/--tmp-hpm07-real-l6liisu5-pi-.git-herdr-plan-manager-worktrees-w07-pi-a--/2026-09-12T14-39-19-393Z_01a0960e-fb60-75a7-a32d-bd279ff7708e.jsonl",
+    "events": [
+      {
+        "type": "session",
+        "version": 3,
+        "id": "01a0960e-fb60-75a7-a32d-bd279ff7708e",
+        "timestamp": "2026-09-12T14:39:19.393Z",
+        "cwd": "/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/worktrees/w07-pi-a"
+      },
+      {
+        "type": "model_change",
+        "id": "0226e6e9",
+        "parentId": null,
+        "timestamp": "2026-09-12T14:39:20.625Z",
+        "provider": "opencode-go",
+        "modelId": "deepseek-v4.1-flash"
+      },
+      {
+        "type": "thinking_level_change",
+        "id": "01514b63",
+        "parentId": "0226e6e9",
+        "timestamp": "2026-09-12T14:39:20.625Z",
+        "thinkingLevel": "max"
+      }
+    ]
+  },
+  {
+    "worker": "w07-pi-a",
+    "session": 2,
+    "ref": "/home/blingtron/.pi/agent/sessions/--tmp-hpm07-real-l6liisu5-pi-.git-herdr-plan-manager-worktrees-w07-pi-a--/2026-09-12T14-41-13-010Z_01a09610-b730-7302-b000-03c4bcdd15fe.jsonl",
+    "events": [
+      {
+        "type": "session",
+        "version": 3,
+        "id": "01a09610-b730-7302-b000-03c4bcdd15fe",
+        "timestamp": "2026-09-12T14:41:13.010Z",
+        "cwd": "/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/worktrees/w07-pi-a"
+      },
+      {
+        "type": "model_change",
+        "id": "10ec81c5",
+        "parentId": null,
+        "timestamp": "2026-09-12T14:41:14.262Z",
+        "provider": "opencode-go",
+        "modelId": "deepseek-v4.1-flash"
+      },
+      {
+        "type": "thinking_level_change",
+        "id": "1fc132a4",
+        "parentId": "10ec81c5",
+        "timestamp": "2026-09-12T14:41:14.262Z",
+        "thinkingLevel": "max"
+      }
+    ]
+  },
+  {
+    "worker": "w07-pi-b",
+    "session": 1,
+    "ref": "/home/blingtron/.pi/agent/sessions/--tmp-hpm07-real-l6liisu5-pi-.git-herdr-plan-manager-worktrees-w07-pi-b--/2026-09-12T14-39-11-250Z_01a0960e-db91-718d-896c-5040b56bce4f.jsonl",
+    "events": [
+      {
+        "type": "session",
+        "version": 3,
+        "id": "01a0960e-db91-718d-896c-5040b56bce4f",
+        "timestamp": "2026-09-12T14:39:11.250Z",
+        "cwd": "/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/worktrees/w07-pi-b"
+      },
+      {
+        "type": "model_change",
+        "id": "ec2a8bac",
+        "parentId": null,
+        "timestamp": "2026-09-12T14:39:12.439Z",
+        "provider": "opencode-go",
+        "modelId": "deepseek-v4.1-flash"
+      },
+      {
+        "type": "thinking_level_change",
+        "id": "da2548cf",
+        "parentId": "ec2a8bac",
+        "timestamp": "2026-09-12T14:39:12.439Z",
+        "thinkingLevel": "max"
+      }
+    ]
+  },
+  {
+    "worker": "w07-pi-c",
+    "session": 1,
+    "ref": "/home/blingtron/.pi/agent/sessions/--tmp-hpm07-real-l6liisu5-pi-.git-herdr-plan-manager-worktrees-w07-pi-c--/2026-09-12T14-42-38-472Z_01a09612-0507-7539-8eab-be53f5a1f8ab.jsonl",
+    "events": [
+      {
+        "type": "session",
+        "version": 3,
+        "id": "01a09612-0507-7539-8eab-be53f5a1f8ab",
+        "timestamp": "2026-09-12T14:42:38.472Z",
+        "cwd": "/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/worktrees/w07-pi-c"
+      },
+      {
+        "type": "model_change",
+        "id": "7b89064e",
+        "parentId": null,
+        "timestamp": "2026-09-12T14:42:39.648Z",
+        "provider": "opencode-go",
+        "modelId": "deepseek-v4.1-flash"
+      },
+      {
+        "type": "thinking_level_change",
+        "id": "b19b9770",
+        "parentId": "7b89064e",
+        "timestamp": "2026-09-12T14:42:39.648Z",
+        "thinkingLevel": "max"
+      }
+    ]
+  }
+]

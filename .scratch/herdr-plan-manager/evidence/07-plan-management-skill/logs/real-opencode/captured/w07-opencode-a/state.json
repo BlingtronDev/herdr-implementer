@@ -1,0 +1,305 @@
+{
+  "branch": "hpm/w07-opencode-a",
+  "created_at": "2026-09-12T14:44:15.457446Z",
+  "handoff": {
+    "auto_suppressed": false,
+    "handled_request_id": null,
+    "history": [
+      {
+        "at": "2026-09-12T14:46:43.408414Z",
+        "doc": "/tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/workers/w07-opencode-a/handoffs/handoff-001.md",
+        "from": 1,
+        "reason": "context threshold reached (tokens)",
+        "sample": {
+          "context_ref": "ses_f69ec3b03ffe33gmo2Cdi3AJ4I",
+          "freshness": "completed-call",
+          "kind": "opencode",
+          "model": "deepseek-v4.1-flash",
+          "observed_at": "2026-09-12T14:45:24.551000Z",
+          "pct": 0.037078,
+          "provider": "opencode-go",
+          "sampled_at": "2026-09-12T14:45:33.304706Z",
+          "session": 1,
+          "source": "precise",
+          "state": "current",
+          "total": 37078,
+          "window": 1000000
+        },
+        "to": 2,
+        "trigger": "tokens"
+      }
+    ],
+    "pct": 0.8,
+    "tokens": 35000,
+    "window": null
+  },
+  "herdr": {
+    "agent": "w07-opencode-a-s2",
+    "pane": "wJ:p1E",
+    "tab": "wJ:t1E",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "code": "delivered",
+      "created_at": "2026-09-12T14:47:39.056973Z",
+      "details": {
+        "artifacts": [
+          "api.txt",
+          "resumed.txt",
+          "seed-note.txt"
+        ],
+        "head": "c0dd4f2f7ce93b534541fdc9550b324b557e808a"
+      },
+      "id": "i001",
+      "kind": "delivery",
+      "message": "Continuation session resumed from handoff-001.md without rereading the corpus: created api.txt (exactly `HPM07_API_V1` + newline) and resumed.txt (exactly `HPM07_RESUMED_OK` + newline, proof the handoff was read), asserted both exact contents, and committed ONLY those two files as c0dd4f2. seed-note.txt from the initial session is intentionally left uncommitted and is reported in remaining."
+    }
+  ],
+  "lifecycle": {
+    "reason": "result-recorded",
+    "started_at": "2026-09-12T14:44:15.457446Z",
+    "state": "delivered",
+    "updated_at": "2026-09-12T14:44:15.457446Z"
+  },
+  "paths": {
+    "contract": "/tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/workers/w07-opencode-a/contract.md",
+    "management": "/tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/workers/w07-opencode-a",
+    "result": "/tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/workers/w07-opencode-a/result.json",
+    "supervisor_log": "/tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/workers/w07-opencode-a/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 2,
+    "confirmed_at": "2026-09-12T14:44:33.608874Z"
+  },
+  "recovery": {
+    "parse_failures": 0,
+    "re_report_sent_at": null,
+    "settled_since": null
+  },
+  "repo": {
+    "base": "b9dda994bc983a01791c78bc70b479a591906533",
+    "common_dir": "/tmp/hpm07-real-l6liisu5/opencode/.git",
+    "root": "/tmp/hpm07-real-l6liisu5/opencode"
+  },
+  "result": {
+    "acceptance": [
+      {
+        "criterion": "A creates api.txt containing exactly `HPM07_API_V1\\n` after an automatic session handoff.",
+        "evidence": "api.txt:1 = HPM07_API_V1, committed in c0dd4f2 after the tool-requested handoff (initial session stopped at the checkpoint without creating api.txt; this continuation session created it)",
+        "met": true
+      },
+      {
+        "criterion": "The next session must NOT reread corpus, must create api.txt with HPM07_API_V1 plus newline, and must create resumed.txt with HPM07_RESUMED_OK plus newline as proof of reading this handoff.",
+        "evidence": "No corpus read occurred in this session; api.txt (13 bytes) and resumed.txt (17 bytes) created with exact token + newline",
+        "met": true
+      },
+      {
+        "criterion": "Assert exact api.txt/resumed.txt contents and record commands and exit codes.",
+        "evidence": "verification entries 1-2 below, both exit code 0",
+        "met": true
+      },
+      {
+        "criterion": "Commit ONLY api.txt and resumed.txt; leave seed-note.txt uncommitted intentionally.",
+        "evidence": "git show --stat HEAD -> c0dd4f2 changes only api.txt and resumed.txt; git status --porcelain -> `?? seed-note.txt`; git ls-files does not list seed-note.txt",
+        "met": true
+      },
+      {
+        "criterion": "Deliver and report the uncommitted note in remaining.",
+        "evidence": "This result file; see remaining",
+        "met": true
+      }
+    ],
+    "artifacts": [
+      "api.txt",
+      "resumed.txt",
+      "seed-note.txt"
+    ],
+    "head": "c0dd4f2f7ce93b534541fdc9550b324b557e808a",
+    "remaining": "seed-note.txt (29 bytes, exact content `seed prepared before handoff` + newline) is intentionally uncommitted/untracked in the worktree per the ticket; it is expected to remain so.",
+    "status": "delivered",
+    "summary": "Continuation session resumed from handoff-001.md without rereading the corpus: created api.txt (exactly `HPM07_API_V1` + newline) and resumed.txt (exactly `HPM07_RESUMED_OK` + newline, proof the handoff was read), asserted both exact contents, and committed ONLY those two files as c0dd4f2. seed-note.txt from the initial session is intentionally left uncommitted and is reported in remaining.",
+    "ticket_id": "A",
+    "verification": [
+      {
+        "command": "[ \"$(cat api.txt)\" = \"HPM07_API_V1\" ]",
+        "exit_code": 0,
+        "summary": "api.txt content exact: PASS"
+      },
+      {
+        "command": "[ \"$(cat resumed.txt)\" = \"HPM07_RESUMED_OK\" ]",
+        "exit_code": 0,
+        "summary": "resumed.txt content exact: PASS"
+      },
+      {
+        "command": "[ \"$(cat seed-note.txt)\" = \"seed prepared before handoff\" ]",
+        "exit_code": 0,
+        "summary": "seed-note.txt content exact: PASS"
+      },
+      {
+        "command": "wc -c api.txt resumed.txt",
+        "exit_code": 0,
+        "summary": "13 api.txt, 17 resumed.txt (token + newline each)"
+      },
+      {
+        "command": "git status --porcelain",
+        "exit_code": 0,
+        "summary": "only `?? seed-note.txt`; nothing else uncommitted"
+      },
+      {
+        "command": "git show --stat --oneline HEAD",
+        "exit_code": 0,
+        "summary": "c0dd4f2 Add HPM07 API output and handoff-resume marker; only api.txt and resumed.txt changed (2 files, 2 insertions)"
+      },
+      {
+        "command": "git ls-files",
+        "exit_code": 0,
+        "summary": ".gitignore, README.md, api.txt, resumed.txt; seed-note.txt not tracked"
+      },
+      {
+        "command": "git rev-parse HEAD",
+        "exit_code": 0,
+        "summary": "c0dd4f2f7ce93b534541fdc9550b324b557e808a"
+      }
+    ],
+    "worker_id": "w07-opencode-a"
+  },
+  "run_id": "issue07-opencode",
+  "runtime": {
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{\"agent\":{\"build\":{\"model\":\"opencode-go/deepseek-v4.1-flash\",\"variant\":\"max\"}}}"
+    },
+    "kind": "opencode",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session_index": 2,
+  "sessions": [
+    {
+      "agent": "w07-opencode-a",
+      "context": {
+        "context_ref": "ses_f69ec3b03ffe33gmo2Cdi3AJ4I",
+        "freshness": "completed-call",
+        "kind": "opencode",
+        "model": "deepseek-v4.1-flash",
+        "observed_at": "2026-09-12T14:45:24.551000Z",
+        "pct": 0.037078,
+        "provider": "opencode-go",
+        "sampled_at": "2026-09-12T14:45:33.304706Z",
+        "session": 1,
+        "source": "precise",
+        "state": "current",
+        "total": 37078,
+        "window": 1000000
+      },
+      "context_ref": "ses_f69ec3b03ffe33gmo2Cdi3AJ4I",
+      "end_state": "replaced",
+      "ended_at": "2026-09-12T14:46:43.408414Z",
+      "handoff": {
+        "agent": "w07-opencode-a",
+        "completed_at": "2026-09-12T14:46:43.408414Z",
+        "correction_sent_at": null,
+        "doc": "/tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/workers/w07-opencode-a/handoffs/handoff-001.md",
+        "document_source": "requested-path",
+        "document_validated_at": "2026-09-12T14:46:20.106290Z",
+        "error": null,
+        "index": 1,
+        "phase": "ending-old-session",
+        "reason": "context threshold reached (tokens)",
+        "request_attempts": 1,
+        "requested_at": "2026-09-12T14:45:33.313484Z",
+        "sample": {
+          "context_ref": "ses_f69ec3b03ffe33gmo2Cdi3AJ4I",
+          "freshness": "completed-call",
+          "kind": "opencode",
+          "model": "deepseek-v4.1-flash",
+          "observed_at": "2026-09-12T14:45:24.551000Z",
+          "pct": 0.037078,
+          "provider": "opencode-go",
+          "sampled_at": "2026-09-12T14:45:33.304706Z",
+          "session": 1,
+          "source": "precise",
+          "state": "current",
+          "total": 37078,
+          "window": 1000000
+        },
+        "status": "completed",
+        "trigger": "tokens"
+      },
+      "index": 1,
+      "pane": "wJ:p1D",
+      "prompt": {
+        "attempts": 2,
+        "confirmed_at": "2026-09-12T14:44:33.608907Z"
+      },
+      "runtime": {
+        "kind": "opencode",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-12T14:44:22.598256Z",
+      "status": "replaced",
+      "tab": "wJ:t1D"
+    },
+    {
+      "agent": "w07-opencode-a-s2",
+      "context": {
+        "context_ref": "ses_f69ea40fcffeVI6OcmSsP0eZ42",
+        "freshness": "completed-call",
+        "kind": "opencode",
+        "model": "deepseek-v4.1-flash",
+        "observed_at": "2026-09-12T14:47:14.709000Z",
+        "pct": 0.016989,
+        "provider": "opencode-go",
+        "sampled_at": "2026-09-12T14:47:23.294573Z",
+        "session": 2,
+        "source": "precise",
+        "state": "current",
+        "total": 16989,
+        "window": 1000000
+      },
+      "context_ref": "ses_f69ea40fcffeVI6OcmSsP0eZ42",
+      "end_state": "delivered",
+      "ended_at": "2026-09-12T14:47:39.057002Z",
+      "handoff": null,
+      "handoff_from": 1,
+      "index": 2,
+      "pane": "wJ:p1E",
+      "prompt": {
+        "confirmed_at": "2026-09-12T14:46:43.408389Z",
+        "continuation_attempts": 2
+      },
+      "runtime": {
+        "kind": "opencode",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-12T14:46:43.404271Z",
+      "status": "ended",
+      "tab": "wJ:t1E"
+    }
+  ],
+  "starter": {
+    "host": "BlingtronPC",
+    "pid": 2704719
+  },
+  "supervisor": {
+    "exit_reason": "result-recorded",
+    "heartbeat_at": "2026-09-12T14:47:39.057064Z",
+    "host": "BlingtronPC",
+    "pid": 2705603,
+    "started_at": "2026-09-12T14:44:33.765525Z",
+    "state": "exited"
+  },
+  "ticket": {
+    "id": "A",
+    "title": "real dynamic smoke A"
+  },
+  "updated_at": "2026-09-12T14:49:20.099955Z",
+  "version": 3,
+  "worker_id": "w07-opencode-a",
+  "worktree": "/tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/worktrees/w07-opencode-a"
+}

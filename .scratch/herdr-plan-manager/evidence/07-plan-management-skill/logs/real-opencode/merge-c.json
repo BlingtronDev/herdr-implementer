@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--no-edit",
+    "6cde2aef235f0b8d550bae5e326b3bccd7008f0b"
+  ],
+  "cwd": "/tmp/hpm07-real-l6liisu5/opencode",
+  "exit_code": 0,
+  "stdout": "Updating c0dd4f2..6cde2ae\nFast-forward\n consumer.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 consumer.txt\n",
+  "stderr": ""
+}

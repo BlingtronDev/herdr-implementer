@@ -3,6 +3,7 @@
 
 Environment:
 - HPM_FAKE_DIR               marker/counter directory (required for counters)
+- HPM_FAKE_CONTEXT_COUNTER   counter filename, shared across sessions (default context_calls)
 - HPM_FAKE_CONTEXT_MODE      ok (default) | stale | error
 - HPM_FAKE_CONTEXT_TOTAL     baseline current-context tokens (default 10)
 - HPM_FAKE_CONTEXT_WINDOW    model context window (default 1000)
@@ -50,7 +51,7 @@ def main() -> int:
     calls = 0
     root = os.environ.get("HPM_FAKE_DIR")
     if root:
-        counter = Path(root) / "context_calls"
+        counter = Path(root) / os.environ.get("HPM_FAKE_CONTEXT_COUNTER", "context_calls")
         calls = int(counter.read_text()) + 1 if counter.is_file() else 1
         counter.write_text(str(calls))
 

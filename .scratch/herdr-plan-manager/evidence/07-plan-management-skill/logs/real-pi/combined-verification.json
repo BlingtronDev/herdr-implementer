@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "-c",
+    "from pathlib import Path; expected={'api.txt':'HPM07_API_V1\\n','resumed.txt':'HPM07_RESUMED_OK\\n','consumer.txt':'consumer:HPM07_API_V1\\n','b.txt':'HPM07_B_OK\\n'}; [None if Path(p).read_text()==v else (_ for _ in ()).throw(AssertionError(p)) for p,v in expected.items()]; print('all four integrated outputs match')"
+  ],
+  "cwd": "/tmp/hpm07-real-l6liisu5/pi",
+  "exit_code": 0,
+  "stdout": "all four integrated outputs match\n",
+  "stderr": ""
+}

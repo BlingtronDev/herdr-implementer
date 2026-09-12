@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "wait",
+    "--repo",
+    "/tmp/hpm07-real-l6liisu5/pi",
+    "--run",
+    "issue07-pi",
+    "--timeout",
+    "30"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"items\": [\n    {\n      \"acked\": false,\n      \"acked_at\": null,\n      \"branch\": \"hpm/w07-pi-b\",\n      \"code\": \"delivered\",\n      \"created_at\": \"2026-09-12T14:43:11.096986Z\",\n      \"details\": {\n        \"artifacts\": [\n          \"b.txt\"\n        ],\n        \"head\": \"c944516dda6d5cf0a91f50190ba81455e54a3519\"\n      },\n      \"item_id\": \"w07-pi-b/i001\",\n      \"kind\": \"delivery\",\n      \"lifecycle\": \"delivered\",\n      \"message\": \"Created worktree file b.txt containing exactly b'HPM07_B_OK\\\\n' (11 bytes), ran an exact byte-content assertion before and after the gate release, committed it as c944516 on branch hpm/w07-pi-b, and waited in a foreground Python loop (read gate existence + 1s sleep, no deadline) until the master checkpoint /tmp/hpm07-real-l6liisu5/pi/.git/release-b appeared after ~179.5s. The gate was only observed, never created or modified. Worktree is clean.\",\n      \"result_path\": \"/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/workers/w07-pi-b/result.json\",\n      \"run_id\": \"issue07-pi\",\n      \"session\": 1,\n      \"ticket\": {\n        \"id\": \"B\",\n        \"title\": \"real dynamic smoke B\"\n      },\n      \"worker_id\": \"w07-pi-b\",\n      \"worktree\": \"/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/worktrees/w07-pi-b\"\n    }\n  ],\n  \"note\": \"each item is a durable fact awaiting ack; a delivery is not integration and an idle terminal is not a result\",\n  \"observed_at\": \"2026-09-12T14:43:11.816730Z\",\n  \"run_id\": \"issue07-pi\",\n  \"timed_out\": false\n}\n",
+  "stderr": ""
+}

@@ -160,3 +160,15 @@
 - 处置与负责人：主脑于 2026-09-12 确认集成并同步后续工单：工单 07 增加“接口现状”说明（cleanup 决定参数、分支政策、归档／丢弃选择、交付后无自动交接），工单 09 增加新入口提示。
 - 后续工单／计划变更：无新增工单；依赖图不变（07 仍等 05、06）。
 - 解决与验证：`git merge-base --is-ancestor 3a60d48 main` 成立，工作区干净；`python3 -m pytest tests/ -q` 为 111 passed（原始输出：[06 证据目录](../evidence/06-retention-and-cleanup/logs/deterministic/test-all.txt)）；工单 06 `Status` 已回写为 integrated。
+
+### E09：工单 07 的真实组合冒烟待本轮运行配置授权
+
+- 发现时间：2026-09-12
+- 关联工单：[07 主脑动态管理计划](07-plan-management-skill.md)
+- 状态：已解决（2026-09-12 用户补充授权，双运行时真实组合冒烟通过）
+- 预期与实际：07 要求双运行时交接、多 worker 等待和动态集成的首次组合验证。本轮用户最初授权开始实施第 7 张工单，但没有指定 Pi／OpenCode 各自的 provider、model、thinking 和并发上限；历史冒烟配置不视为本轮启动授权。主脑先询问并完成文档／确定性验证，在收到下述用户授权后才启动真实 worker。
+- 证据：[07 证据索引](../evidence/07-plan-management-skill/README.md)；[真实冒烟步骤](../../../docs/plan-management/validation.md)。
+- 影响：初期只阻塞 07 真实组合验收，文档与确定性验证可继续。现全部验收已通过，07 标记 delivered；本项目交付尚未提交／集成，08 仍须在所需成果实际集成后启动，不能用冒烟仓库的集成 SHA 代替。
+- 处置与负责人：主脑先完成不需真实 provider 的实现与测试。用户补充两套显式配置、总并发 3 和 OpenCode `--auto` 授权后，主脑顺序执行 Pi、OpenCode 的真实 A／B／C 冒烟，并完成正常集成、状态回写与证据留存。
+- 后续工单／计划变更：无新增工单，依赖图不变。预览文件位于 `docs/plan-management/`，正式入口和旧实现迁移仍留给 09。
+- 解决与验证：确定性全量测试 113 passed。2026-09-12 用户明确授权两种运行时均为 `opencode-go / deepseek-v4.1-flash / max`（目录核验正式 provider 标识为 `opencode-go`），总并发上限 3，OpenCode 使用 `--auto`。真实两轮均在 A 自动交接一次并集成后、B 仍 working 时启动 C，最终正常合并三项成果、组合检查通过；实际 8 个会话配置／cwd 一致，总活跃峰值 2。全部 worker 已停止，A 未提交笔记归档后清理、分支及 B／C 现场保留。见 [07 真实证据](../evidence/07-plan-management-skill/README.md#4-真实组合验收2026-09-12)、[验证输出](../evidence/07-plan-management-skill/logs/verify-real.txt)。

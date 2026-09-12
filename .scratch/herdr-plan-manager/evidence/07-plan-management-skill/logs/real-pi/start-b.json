@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "start",
+    "--repo",
+    "/tmp/hpm07-real-l6liisu5/pi",
+    "--run",
+    "issue07-pi",
+    "--ticket-id",
+    "B",
+    "--worker-id",
+    "w07-pi-b",
+    "--title",
+    "real dynamic smoke B",
+    "--base",
+    "b9dda994bc983a01791c78bc70b479a591906533",
+    "--material",
+    "/tmp/hpm07-real-l6liisu5/pi/.scratch/spec.md",
+    "--material",
+    "/tmp/hpm07-real-l6liisu5/pi/.scratch/B.md",
+    "--instructions",
+    "Read the single ticket and spec. Follow the staged acceptance exactly. Do not spawn subagents."
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"active_workers\": 1,\n  \"agent\": \"w07-pi-b\",\n  \"base\": \"b9dda994bc983a01791c78bc70b479a591906533\",\n  \"branch\": \"hpm/w07-pi-b\",\n  \"management_dir\": \"/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/workers/w07-pi-b\",\n  \"max_workers\": 3,\n  \"pane\": \"wJ:p18\",\n  \"prompt_attempts\": 1,\n  \"result_path\": \"/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/workers/w07-pi-b/result.json\",\n  \"run_id\": \"issue07-pi\",\n  \"runtime\": {\n    \"kind\": \"pi\",\n    \"model\": \"deepseek-v4.1-flash\",\n    \"provider\": \"opencode-go\",\n    \"thinking\": \"max\"\n  },\n  \"session\": 1,\n  \"supervisor_pid\": 2697862,\n  \"tab\": \"wJ:t18\",\n  \"ticket_id\": \"B\",\n  \"worker_id\": \"w07-pi-b\",\n  \"worktree\": \"/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/worktrees/w07-pi-b\"\n}\n",
+  "stderr": ""
+}

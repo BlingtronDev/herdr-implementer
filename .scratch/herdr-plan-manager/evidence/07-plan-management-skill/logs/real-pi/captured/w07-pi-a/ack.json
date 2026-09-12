@@ -1,0 +1,10 @@
+{
+  "acked": {
+    "w07-pi-a/i001": {
+      "acked_at": "2026-09-12T14:42:33.639537Z",
+      "note": "A accepted; integration pending"
+    }
+  },
+  "version": 1,
+  "worker_id": "w07-pi-a"
+}

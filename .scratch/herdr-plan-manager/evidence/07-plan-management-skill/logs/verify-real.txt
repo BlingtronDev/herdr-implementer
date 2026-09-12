@@ -1,0 +1,3 @@
+pi: 4 sessions verified; automatic handoff 38993 tokens; A integrated -> C started while B working; all outputs integrated; stopped and archived safely
+opencode: 4 sessions verified; automatic handoff 37078 tokens; A integrated -> C started while B working; all outputs integrated; stopped and archived safely
+PASS: both real runtimes; total concurrency <= 3 (runs executed sequentially)

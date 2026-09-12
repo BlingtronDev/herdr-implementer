@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--ff-only",
+    "c0dd4f2f7ce93b534541fdc9550b324b557e808a"
+  ],
+  "cwd": "/tmp/hpm07-real-l6liisu5/opencode",
+  "exit_code": 0,
+  "stdout": "Updating b9dda99..c0dd4f2\nFast-forward\n api.txt     | 1 +\n resumed.txt | 1 +\n 2 files changed, 2 insertions(+)\n create mode 100644 api.txt\n create mode 100644 resumed.txt\n",
+  "stderr": ""
+}

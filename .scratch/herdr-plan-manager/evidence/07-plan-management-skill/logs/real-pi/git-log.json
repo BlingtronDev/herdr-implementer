@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "git",
+    "log",
+    "--oneline",
+    "--graph",
+    "--all"
+  ],
+  "cwd": "/tmp/hpm07-real-l6liisu5/pi",
+  "exit_code": 0,
+  "stdout": "*   7cc8b92 Merge commit 'c944516dda6d5cf0a91f50190ba81455e54a3519'\n|\\  \n| * c944516 Add b.txt with HPM07_B_OK smoke marker\n* | 6c5bc24 C: add consumer.txt derived from api.txt\n* | fb1194f A: add api.txt and resumed.txt for handoff smoke\n|/  \n* b9dda99 initialize smoke fixture\n",
+  "stderr": ""
+}

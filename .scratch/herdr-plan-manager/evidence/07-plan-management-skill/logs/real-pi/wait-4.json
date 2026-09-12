@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "wait",
+    "--repo",
+    "/tmp/hpm07-real-l6liisu5/pi",
+    "--run",
+    "issue07-pi",
+    "--timeout",
+    "30"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"items\": [\n    {\n      \"acked\": false,\n      \"acked_at\": null,\n      \"branch\": \"hpm/w07-pi-a\",\n      \"code\": \"delivered\",\n      \"created_at\": \"2026-09-12T14:42:16.311487Z\",\n      \"details\": {\n        \"artifacts\": [\n          \"api.txt\",\n          \"resumed.txt\"\n        ],\n        \"head\": \"fb1194fb6c3db7bf4181794fdc6a88764ba363f2\"\n      },\n      \"item_id\": \"w07-pi-a/i001\",\n      \"kind\": \"delivery\",\n      \"lifecycle\": \"delivered\",\n      \"message\": \"Continuation session completed ticket A after the automatic context handoff. Did not reread corpus.txt; created api.txt with exactly HPM07_API_V1\\\\\\\\n and resumed.txt with exactly HPM07_RESUMED_OK\\\\\\\\n, asserted both exact contents, and committed ONLY api.txt and resumed.txt (commit fb1194f). seed-note.txt remains intentionally uncommitted as the ticket requires.\",\n      \"result_path\": \"/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/workers/w07-pi-a/result.json\",\n      \"run_id\": \"issue07-pi\",\n      \"session\": 2,\n      \"ticket\": {\n        \"id\": \"A\",\n        \"title\": \"real dynamic smoke A\"\n      },\n      \"worker_id\": \"w07-pi-a\",\n      \"worktree\": \"/tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/worktrees/w07-pi-a\"\n    }\n  ],\n  \"note\": \"each item is a durable fact awaiting ack; a delivery is not integration and an idle terminal is not a result\",\n  \"observed_at\": \"2026-09-12T14:42:17.144476Z\",\n  \"run_id\": \"issue07-pi\",\n  \"timed_out\": false\n}\n",
+  "stderr": ""
+}

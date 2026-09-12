@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "ack",
+    "--repo",
+    "/tmp/hpm07-real-l6liisu5/pi",
+    "--item",
+    "w07-pi-a/i001",
+    "--note",
+    "A accepted; integration pending"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"acked\": [\n    {\n      \"acked\": true,\n      \"acked_at\": \"2026-09-12T14:42:33.639537Z\",\n      \"already_acked\": false,\n      \"effect\": \"acknowledgement only; delivery and integration conclusions are unchanged\",\n      \"item_id\": \"w07-pi-a/i001\",\n      \"note\": \"A accepted; integration pending\",\n      \"worker_id\": \"w07-pi-a\"\n    }\n  ]\n}\n",
+  "stderr": ""
+}

@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--no-edit",
+    "6c5bc24afa841b22e327c33fadc099b943c5951d"
+  ],
+  "cwd": "/tmp/hpm07-real-l6liisu5/pi",
+  "exit_code": 0,
+  "stdout": "Updating fb1194f..6c5bc24\nFast-forward\n consumer.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 consumer.txt\n",
+  "stderr": ""
+}

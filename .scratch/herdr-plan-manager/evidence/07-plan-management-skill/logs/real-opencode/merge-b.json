@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--no-edit",
+    "6703980188c6c80852e374c84c9242c31b38b3d3"
+  ],
+  "cwd": "/tmp/hpm07-real-l6liisu5/opencode",
+  "exit_code": 0,
+  "stdout": "Merge made by the 'ort' strategy.\n b.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 b.txt\n",
+  "stderr": ""
+}

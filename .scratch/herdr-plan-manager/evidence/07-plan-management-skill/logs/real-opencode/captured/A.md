@@ -1,0 +1,7 @@
+# Ticket A (no dependency)
+This ticket's acceptance specifically tests automatic context handoff with meaningful remaining work.
+INITIAL SESSION ONLY: read corpus.txt from the materials snapshot in chunks of at most 400 lines to bring corpus rows into your model context (not a summary/hash). Stop after 2400 rows or when the tool requests handoff, whichever comes first.
+After at least one chunk, save uncommitted seed-note.txt saying `seed prepared before handoff` in your worktree.
+Do NOT create api.txt or declare delivered in the initial session. After reading, keep a foreground Python sleep loop running until the lifecycle tool interrupts it and asks for handoff. This pause is the controlled handoff acceptance checkpoint, not a need for user input.
+Follow the tool's handoff instructions. In the handoff Next steps, include the exact token HPM07_RESUMED_OK and say the next session must NOT reread corpus, must create api.txt with HPM07_API_V1 plus newline, and must create resumed.txt with HPM07_RESUMED_OK plus newline as proof of reading this handoff.
+CONTINUATION SESSION (when given a previous-session handoff by the tool): immediately perform those Next steps, assert exact api.txt/resumed.txt contents, commit ONLY api.txt and resumed.txt, leave seed-note.txt uncommitted intentionally, and deliver. Report the uncommitted note in remaining. Do not return to the initial-session corpus/checkpoint.
