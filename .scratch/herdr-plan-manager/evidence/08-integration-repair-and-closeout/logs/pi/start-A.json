@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "start",
+    "--repo",
+    "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+    "--run",
+    "issue08-pi",
+    "--ticket-id",
+    "A",
+    "--title",
+    "issue08 pi A",
+    "--worker-id",
+    "w08-pi-a",
+    "--base",
+    "7e5e435a56637ea054d8af0a763f2eabb232312f",
+    "--material",
+    "/tmp/opencode/hpm08-real-4blmm7a6/pi/.scratch/spec.md",
+    "--material",
+    "/tmp/opencode/hpm08-real-4blmm7a6/pi/.scratch/A.md",
+    "--instructions",
+    "Read spec and your one ticket; implement and verify in your assigned worktree. Commit code and publish your contract result. Do not spawn subagents."
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"active_workers\": 1,\n  \"agent\": \"w08-pi-a\",\n  \"base\": \"7e5e435a56637ea054d8af0a763f2eabb232312f\",\n  \"branch\": \"hpm/w08-pi-a\",\n  \"management_dir\": \"/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-a\",\n  \"max_workers\": 3,\n  \"pane\": \"wJ:p1J\",\n  \"prompt_attempts\": 1,\n  \"result_path\": \"/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-a/result.json\",\n  \"run_id\": \"issue08-pi\",\n  \"runtime\": {\n    \"kind\": \"pi\",\n    \"model\": \"deepseek-v4.1-flash\",\n    \"provider\": \"opencode-go\",\n    \"thinking\": \"max\"\n  },\n  \"session\": 1,\n  \"supervisor_pid\": 2882932,\n  \"tab\": \"wJ:t1J\",\n  \"ticket_id\": \"A\",\n  \"worker_id\": \"w08-pi-a\",\n  \"worktree\": \"/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/worktrees/w08-pi-a\"\n}\n",
+  "stderr": ""
+}

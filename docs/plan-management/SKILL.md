@@ -36,17 +36,17 @@ Ask the user when a requirement trade-off cannot be inferred, the goal would exp
 
 ## Integrate and preserve results
 
-Before a merge, verify the target checkout is on the intended branch, no unfinished Git operation exists, and the worktree is suitable for the operation. Preserve and clarify user changes that cannot safely be distinguished. Check the delivered HEAD and save the pre-merge target SHA.
+Before the first merge, read [Capture and release a conflicted target](repair-and-closeout.md#capture-and-release-a-conflicted-target) for the evidence to retain **before** an operation starts. Before each merge, verify the intended target branch and delivered HEAD and save the target SHA, tracked/untracked status, and absence of unfinished Git operations. Preserve and clarify user changes that cannot safely be distinguished.
 
 Perform normal merges **serially**, following repository policy rather than imposing a universal ff, no-ff, or squash rule. Record the ticket, delivered SHA, and actual integration SHA before unlocking dependents. For squash or other non-ancestry integration, retain the explicit mapping and evidence.
 
-You may read code and run checks to support judgment. Assign implementation, conflict resolution, and behavioral repairs to workers. On a conflict, retain the incoming SHA, target baseline, and conflict summary. Abort only a merge you initiated with known-safe preconditions. If abort fails or user work cannot be separated, preserve the scene and report it rather than forcing a reset. Detailed isolated repair scenarios are completed in the subsequent repair workstream.
+You may read code and run checks to support judgment. Assign implementation, conflict resolution, and behavioral repairs to workers. **On a merge conflict, behavioral failure, or target change during repair**, read [Integration repair](repair-and-closeout.md) before acting. Capture both inputs and requirements, abort only your own merge with known-safe preconditions, and dispatch a new isolated worker with a [repair brief](repair-brief.md). Keep affected dependencies blocked until the repair is integrated with compatibility evidence.
 
-Delivery ends automatic handoff; the result and scene remain available. Before releasing resources, read [Stop and clean up](operations.md#stop-and-clean-up). Require confirmed stopping, an explicit integration or disposition decision, and a safe destination for uncommitted work. Failed scenes and unintegrated results are not automatically destroyed.
+Delivery ends automatic handoff; a valid delivery with a clean worktree also releases the worker terminal, while the result and scene remain available. Before releasing other resources, read [Stop and clean up](operations.md#stop-and-clean-up); `status --worker` records a retained tab and its reason under `release`. Require confirmed stopping, an explicit integration or disposition decision, and a safe destination for uncommitted work. Failed scenes and unintegrated results are not automatically destroyed.
 
 ## Close the goal
 
-Compare the integrated result with the plan, acceptance evidence, and unresolved findings. Assign a new worker for necessary cross-module verification; reuse sufficient existing evidence instead of requiring a fixed final-review role. Known integration failures require repair and keep affected dependencies blocked.
+At closeout, follow [Decide overall completion](repair-and-closeout.md#decide-overall-completion) to map every plan-level goal to integrated results, applicable acceptance evidence, and remaining gaps. Assign a new worker for necessary cross-module verification; reuse sufficient existing evidence instead of requiring a fixed final-review role.
 
 Report completion only when the overall goal is met, not merely when every worker has delivered. Include the main integration results, verification summary, unresolved items, and retained resource locations.
 

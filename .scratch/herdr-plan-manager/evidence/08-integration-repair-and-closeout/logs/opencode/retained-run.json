@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "status",
+    "--repo",
+    "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+    "--run",
+    "issue08-opencode"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"active_count\": 0,\n  \"active_worker_ids\": [],\n  \"created_at\": \"2026-09-12T19:22:21.454781Z\",\n  \"max_workers\": 3,\n  \"pending_item_count\": 0,\n  \"pending_items\": [],\n  \"repo_root\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode\",\n  \"run_id\": \"issue08-opencode\",\n  \"runtime\": {\n    \"kind\": \"opencode\",\n    \"model\": \"deepseek-v4.1-flash\",\n    \"provider\": \"opencode-go\",\n    \"thinking\": \"max\"\n  },\n  \"worker_count\": 3,\n  \"workers\": [\n    {\n      \"active\": false,\n      \"branch\": \"hpm/w08-opencode-a\",\n      \"lifecycle\": \"delivered\",\n      \"pending_items\": 0,\n      \"session\": 1,\n      \"ticket\": {\n        \"id\": \"A\",\n        \"title\": \"issue08 opencode A\"\n      },\n      \"worker_id\": \"w08-opencode-a\",\n      \"worktree\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a\"\n    },\n    {\n      \"active\": false,\n      \"branch\": \"hpm/w08-opencode-b\",\n      \"lifecycle\": \"delivered\",\n      \"pending_items\": 0,\n      \"session\": 1,\n      \"ticket\": {\n        \"id\": \"B\",\n        \"title\": \"issue08 opencode B\"\n      },\n      \"worker_id\": \"w08-opencode-b\",\n      \"worktree\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b\"\n    },\n    {\n      \"active\": false,\n      \"branch\": \"hpm/w08-opencode-r\",\n      \"lifecycle\": \"delivered\",\n      \"pending_items\": 0,\n      \"session\": 1,\n      \"ticket\": {\n        \"id\": \"R\",\n        \"title\": \"issue08 opencode R\"\n      },\n      \"worker_id\": \"w08-opencode-r\",\n      \"worktree\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r\"\n    }\n  ]\n}\n",
+  "stderr": ""
+}

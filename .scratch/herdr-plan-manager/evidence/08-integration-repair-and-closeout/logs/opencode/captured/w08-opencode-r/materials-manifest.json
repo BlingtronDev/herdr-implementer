@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-09-12T19:24:21.062902Z",
+  "materials": [
+    {
+      "index": 1,
+      "kind": "file",
+      "sha256": "58da1bce59a067c94f072d5b05038e3a0659fb23a0b5f58ed0e07cbf5c25a254",
+      "snapshot": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/workers/w08-opencode-r/materials/01-spec.md",
+      "source": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.scratch/spec.md"
+    },
+    {
+      "index": 2,
+      "kind": "file",
+      "sha256": "8d146f3f7e9b13f7980dcaef54257689c466a234b7f9284353aab1bf3c7d5951",
+      "snapshot": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/workers/w08-opencode-r/materials/02-R.md",
+      "source": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.scratch/R.md"
+    }
+  ],
+  "worker_id": "w08-opencode-r"
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "type": "session",
+    "version": 3,
+    "id": "01a09741-9d3d-7055-a896-b8196761bd84",
+    "timestamp": "2026-09-12T20:14:14.846Z",
+    "cwd": "/tmp/opencode/hpm08-tabs-he0r3x0j/source/.git/herdr-plan-manager/worktrees/w08-tab-release"
+  },
+  {
+    "type": "model_change",
+    "id": "99b94712",
+    "parentId": null,
+    "timestamp": "2026-09-12T20:14:16.312Z",
+    "provider": "opencode-go",
+    "modelId": "deepseek-v4.1-flash"
+  },
+  {
+    "type": "thinking_level_change",
+    "id": "8f212c11",
+    "parentId": "99b94712",
+    "timestamp": "2026-09-12T20:14:16.312Z",
+    "thinkingLevel": "max"
+  }
+]

@@ -1,0 +1,174 @@
+{
+  "branch": "hpm/w08-pi-a",
+  "created_at": "2026-09-12T19:19:51.870584Z",
+  "handoff": {
+    "auto_suppressed": false,
+    "handled_request_id": null,
+    "history": [],
+    "pct": 0.8,
+    "tokens": 300000,
+    "window": null
+  },
+  "herdr": {
+    "agent": "w08-pi-a",
+    "pane": "wJ:p1J",
+    "tab": "wJ:t1J",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "code": "delivered",
+      "created_at": "2026-09-12T19:20:44.945370Z",
+      "details": {
+        "artifacts": [],
+        "head": "97d7f44edf32c62e4aaec86e0ad2e1547be0750d"
+      },
+      "id": "i001",
+      "kind": "delivery",
+      "message": "Added whitespace normalization to format_user in formatter.py (str.strip of the name). Committed only formatter.py; both required assertions pass on the committed HEAD."
+    }
+  ],
+  "lifecycle": {
+    "reason": "result-recorded",
+    "started_at": "2026-09-12T19:19:51.870584Z",
+    "state": "delivered",
+    "updated_at": "2026-09-12T19:19:51.870584Z"
+  },
+  "paths": {
+    "contract": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-a/contract.md",
+    "management": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-a",
+    "result": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-a/result.json",
+    "supervisor_log": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-a/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 1,
+    "confirmed_at": "2026-09-12T19:19:59.017790Z"
+  },
+  "recovery": {
+    "parse_failures": 0,
+    "re_report_sent_at": null,
+    "settled_since": null
+  },
+  "repo": {
+    "base": "7e5e435a56637ea054d8af0a763f2eabb232312f",
+    "common_dir": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git",
+    "root": "/tmp/opencode/hpm08-real-4blmm7a6/pi"
+  },
+  "result": {
+    "acceptance": [
+      {
+        "criterion": "format_user(' Ada ') == 'Ada'",
+        "evidence": "python3 assertion run on committed HEAD printed \"both assertions passed: 'Ada' 'Bob'\" with exit code 0.",
+        "met": true
+      },
+      {
+        "criterion": "format_user('Bob') == 'Bob'",
+        "evidence": "Same exit-0 assertion run on committed HEAD; format_user('Bob') returned 'Bob'.",
+        "met": true
+      },
+      {
+        "criterion": "Commit only formatter.py",
+        "evidence": "git show --stat HEAD reports \"1 file changed, 1 insertion(+), 1 deletion(-)\" for formatter.py only; git diff --stat 7e5e435..HEAD lists only formatter.py; git status --short is empty (clean).",
+        "met": true
+      }
+    ],
+    "artifacts": [],
+    "head": "97d7f44edf32c62e4aaec86e0ad2e1547be0750d",
+    "remaining": "",
+    "status": "delivered",
+    "summary": "Added whitespace normalization to format_user in formatter.py (str.strip of the name). Committed only formatter.py; both required assertions pass on the committed HEAD.",
+    "ticket_id": "A",
+    "verification": [
+      {
+        "command": "python3 -c \"from formatter import format_user; assert format_user(' Ada ') == 'Ada'; assert format_user('Bob') == 'Bob'; print('both assertions passed:', repr(format_user(' Ada ')), repr(format_user('Bob')))\"",
+        "exit_code": 0,
+        "summary": "both assertions passed: 'Ada' 'Bob' (run after committing, on HEAD)"
+      },
+      {
+        "command": "git show --stat --oneline HEAD",
+        "exit_code": 0,
+        "summary": "97d7f44 Add whitespace normalization in format_user; 1 file changed: formatter.py"
+      },
+      {
+        "command": "git diff --stat 7e5e435a56637ea054d8af0a763f2eabb232312f HEAD",
+        "exit_code": 0,
+        "summary": "formatter.py | 2 +- ; no other files differ from base"
+      },
+      {
+        "command": "git status --short",
+        "exit_code": 0,
+        "summary": "empty output; working tree clean, no uncommitted content"
+      }
+    ],
+    "worker_id": "w08-pi-a"
+  },
+  "run_id": "issue08-pi",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session_index": 1,
+  "sessions": [
+    {
+      "agent": "w08-pi-a",
+      "context": {
+        "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm08-real-4blmm7a6-pi-.git-herdr-plan-manager-worktrees-w08-pi-a--/2026-09-12T19-19-55-926Z_01a0970f-e313-7570-8d01-4732bdcd48ca.jsonl",
+        "freshness": "completed-call",
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "observed_at": "2026-09-12T19:20:35.103Z",
+        "pct": 0.0210113525390625,
+        "pi_package_version": "/home/blingtron/.nvm/versions/node/v24.9.0/lib/node_modules/@earendil-works/pi-coding-agent",
+        "provider": "opencode-go",
+        "sampled_at": "2026-09-12T19:20:38.529724Z",
+        "session": 1,
+        "source": "precise",
+        "state": "current",
+        "total": 22032,
+        "window": 1048576,
+        "window_source": "pi --list-models"
+      },
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm08-real-4blmm7a6-pi-.git-herdr-plan-manager-worktrees-w08-pi-a--/2026-09-12T19-19-55-926Z_01a0970f-e313-7570-8d01-4732bdcd48ca.jsonl",
+      "end_state": "delivered",
+      "ended_at": "2026-09-12T19:20:44.945397Z",
+      "handoff": null,
+      "index": 1,
+      "pane": "wJ:p1J",
+      "prompt": {
+        "attempts": 1,
+        "confirmed_at": "2026-09-12T19:19:59.017835Z"
+      },
+      "runtime": {
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-12T19:19:58.455151Z",
+      "status": "ended",
+      "tab": "wJ:t1J"
+    }
+  ],
+  "starter": {
+    "host": "BlingtronPC",
+    "pid": 2882270
+  },
+  "supervisor": {
+    "exit_reason": "result-recorded",
+    "heartbeat_at": "2026-09-12T19:20:44.945444Z",
+    "host": "BlingtronPC",
+    "pid": 2882932,
+    "started_at": "2026-09-12T19:19:59.191307Z",
+    "state": "exited"
+  },
+  "ticket": {
+    "id": "A",
+    "title": "issue08 pi A"
+  },
+  "updated_at": "2026-09-12T19:22:16.728684Z",
+  "version": 3,
+  "worker_id": "w08-pi-a",
+  "worktree": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/worktrees/w08-pi-a"
+}

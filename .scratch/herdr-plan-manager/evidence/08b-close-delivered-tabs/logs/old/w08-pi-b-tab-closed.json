@@ -1,0 +1,8 @@
+[
+  {
+    "at": 1789248119.539722,
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "{\"error\":{\"code\":\"tab_not_found\",\"message\":\"tab wJ:t1K not found\"},\"id\":\"cli:tab:get\"}\n"
+  }
+]

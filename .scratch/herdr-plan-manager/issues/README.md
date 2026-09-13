@@ -13,8 +13,12 @@
 | 05 | [并发与待处理事项等待](05-concurrency-and-wait-any.md) | 并发额度、wait-any、持久事项及 ack | 02 |
 | 06 | [成果保留与按决定清理](06-retention-and-cleanup.md) | 交付及异常保留现场，协调停止、交接和明确清理 | 04 |
 | 07 | [主脑动态管理计划](07-plan-management-skill.md) | 一次授权、动态派发、正常合并和执行记录 | 05、06 |
-| 08 | [修复冲突与目标收口](08-integration-repair-and-closeout.md) | 派新 worker 修复冲突及行为问题，由主脑判断整体完成 | 07 |
+| 08 | [修复冲突与目标收口](08-integration-repair-and-closeout.md) | 派新 worker 修复冲突及行为问题，由主脑判断整体完成 | 07；收口另需补充 08-R1、08-R2 |
 | 09 | [端到端验收与迁移](09-end-to-end-and-migration.md) | 核验全部验收场景，切换新入口并移除被替代的旧实现 | 08 |
+
+补充工单：[08-R1 稳定陈旧上下文样本测试](08a-stabilize-stale-context-test.md)，前置 07；E11 在 08 验证中引出，修复证据纳入 08 后再解锁 09。
+
+补充工单：[08-R2 正常交付后自动关闭 worker tab](08b-close-delivered-tabs.md)，前置 07、08-R1；用户在 08 交付后确认补齐终端释放行为，见 E12。
 
 各工单文件的 `Status` 和验收清单记录该工单的实际进展，本页不复制一份独立状态表。`ready-for-agent` 表示工单已具备执行说明，是否可以派发仍取决于前置成果是否可用。
 
@@ -23,6 +27,8 @@
 ```text
 01 → 02 → 03 → 04 → 06 ─┐
       └──────→ 05 ──────┴→ 07 → 08 → 09
+                           └→ 08-R1 → 08（08 收口前纳入）
+                                └→ 08-R2 → 08
 ```
 
 - 从 01 开始；02 完成并集成后，03 和 05 可以并行推进。
@@ -168,7 +174,44 @@
 - 状态：已解决（2026-09-12 用户补充授权，双运行时真实组合冒烟通过）
 - 预期与实际：07 要求双运行时交接、多 worker 等待和动态集成的首次组合验证。本轮用户最初授权开始实施第 7 张工单，但没有指定 Pi／OpenCode 各自的 provider、model、thinking 和并发上限；历史冒烟配置不视为本轮启动授权。主脑先询问并完成文档／确定性验证，在收到下述用户授权后才启动真实 worker。
 - 证据：[07 证据索引](../evidence/07-plan-management-skill/README.md)；[真实冒烟步骤](../../../docs/plan-management/validation.md)。
-- 影响：初期只阻塞 07 真实组合验收，文档与确定性验证可继续。现全部验收已通过，07 标记 delivered；本项目交付尚未提交／集成，08 仍须在所需成果实际集成后启动，不能用冒烟仓库的集成 SHA 代替。
+- 影响：初期只阻塞 07 真实组合验收，文档与确定性验证可继续。验收后曾标记 delivered；2026-09-13 已核实本项目成果进入 main（`44abad7`，后续提示词更新 `70ded9f`、`6f754e7`），08 前置已满足。冒烟仓库的集成 SHA 不代替本项目集成证据。
 - 处置与负责人：主脑先完成不需真实 provider 的实现与测试。用户补充两套显式配置、总并发 3 和 OpenCode `--auto` 授权后，主脑顺序执行 Pi、OpenCode 的真实 A／B／C 冒烟，并完成正常集成、状态回写与证据留存。
 - 后续工单／计划变更：无新增工单，依赖图不变。预览文件位于 `docs/plan-management/`，正式入口和旧实现迁移仍留给 09。
 - 解决与验证：确定性全量测试 113 passed。2026-09-12 用户明确授权两种运行时均为 `opencode-go / deepseek-v4.1-flash / max`（目录核验正式 provider 标识为 `opencode-go`），总并发上限 3，OpenCode 使用 `--auto`。真实两轮均在 A 自动交接一次并集成后、B 仍 working 时启动 C，最终正常合并三项成果、组合检查通过；实际 8 个会话配置／cwd 一致，总活跃峰值 2。全部 worker 已停止，A 未提交笔记归档后清理、分支及 B／C 现场保留。见 [07 真实证据](../evidence/07-plan-management-skill/README.md#4-真实组合验收2026-09-12)、[验证输出](../evidence/07-plan-management-skill/logs/verify-real.txt)。
+
+### E10：07 集成后状态滞后，08 启动时核实修正
+
+- 发现时间：2026-09-13
+- 关联工单：07、08
+- 状态：已解决
+- 预期与实际：07 文件和 E09 仍写未提交／未集成；实际当前 main 已包含 `44abad7` 及两次后续提示词更新。
+- 证据：`git merge-base --is-ancestor 44abad7 HEAD` 成功；`git branch --show-current` 为 main；`git show --stat 44abad7` 包含 07 方法、测试和真实证据。
+- 影响：08 的前置已满足；历史冒烟不被解释为对后续英文提示词的重新验证。
+- 处置与负责人：主脑即时回写 07 Status 和 E09，按当前合同开展 08 验证。
+- 后续工单／计划变更：无。
+- 解决与验证：前置祖先关系核实通过；用户在本轮确认沿用 Pi／OpenCode `opencode-go / deepseek-v4.1-flash / max`、总并发 3、OpenCode `--auto`，允许一次性仓库隔离 worker 提交修复成果。
+
+### E11：08 全量检查暴露已有上下文测试的采样时序问题
+
+- 发现时间：2026-09-13
+- 关联工单：08；涉及 04 的 `test_stale_context_sample_never_triggers_a_handoff`
+- 状态：已解决（测试修复已纳入 08 当前交付工作区，本项目提交／集成仍待完成）
+- 预期与实际：发现时 08 仅新增方法文档及证据脚本，生产代码与原测试未改动。完整检查得到 112 passed、1 failed：worker 已 delivered，但 `sessions[0].context` 为 None，测试对其 `state` 取值时报 TypeError；未发生错误交接。当时尚不能据此判断是产品错误还是测试未保证采样先于交付。
+- 证据：[08 全量输出](../evidence/08-integration-repair-and-closeout/logs/checks/test-all.json)。前一次调用被 240 秒工具窗口中止，未形成测试结论，见同目录 `interrupted.json`；本次已用足够窗口取得完整结果（301.91 秒）。
+- 影响：两组真实修复实验与六会话证据检查均通过；初期阻塞全量检查结论。现修复后的同一实现已获 113 passed，主脑核对补丁一致性并本地复核通过，解除 08 验证阻塞。
+- 处置与负责人：主脑单独运行该测试仍得到相同失败（2.20 秒）。新增 08-R1，由独立 Pi worker 在一次性项目副本的隔离 worktree 验证三种解释：交付先于采样、适配器无输出、结果覆盖采样；优先修正测试同步，保留生产交付语义。
+- 后续工单／计划变更：新增 [08-R1](08a-stabilize-stale-context-test.md)，作为 08 收口必要修复；初始目标不扩大。
+- 解决与验证：`w08-stale-test-fix` 确认快速交付可能先于首次采样，非适配器错误或结果覆盖。仅将该测试改用 slow 场景并等待实际 stale 与后续采样，保留“不交接”强断言；变异实验能捕获移除 stale 保护的错误。副本提交 `93c02f7`，全量 113 passed in 310.20s；主脑原样纳入工作区，专项 1 passed in 4.80s，证据见 [08-R1 交付](../evidence/08-integration-repair-and-closeout/logs/test-repair/captured/result.json)、[证据复用核对](../evidence/08-integration-repair-and-closeout/logs/checks/worker-suite-reuse.json)。Worker 已停止，现场保留。
+
+### E12：正常交付后 tab 释放被绑定到 worktree cleanup
+
+- 发现时间：2026-09-13
+- 关联工单：06、08；新增 08-R2，影响 09 验收
+- 状态：已解决（08-R2 已纳入当前交付工作区；本项目未提交／未集成）
+- 预期与实际：用户期望正常完成后 Herdr tab 消失。实际监督进程记录交付后退出，stop 只暂停业务，只有 cleanup 才关闭 tab 并删除 worktree；本轮 7 个已完成 worker 因保留磁盘现场而一起保留了 tab。
+- 证据：`bin/plan_manager.py` 的 `stop_registered_sessions`、`cmd_stop`、`supervise` settled 结果处理及 `cmd_cleanup`；08 证据的 stop／retained-run 记录。
+- 用户决定：选择“正常交付后自动关闭”，已保存有效结果、停止业务且无未保存内容时关闭登记 tab，保留分支/worktree/结果；失败与异常继续保留。
+- 影响：终端释放需要从磁盘清理解耦；更新未来行为，历史证据保留原事实。
+- 处置与负责人：新增 [08-R2](08b-close-delivered-tabs.md)，由独立 worker 实现与测试，主脑验证真实双运行时关闭，并用统一受控路径处理本轮 7 个已完成登记 tab。
+- 后续工单／计划变更：08 在追加修复完成前恢复 in-progress；09 增加正常交付自动关闭与磁盘资源保留的回归关注。
+- 解决与验证：副本提交 `6d0a7e0`，完整测试 144 passed、专项 38 passed；主脑核实 5 文件逐字节一致并纳入工作区。真实 Pi／OpenCode 正常交付后 tab 自动关闭，模型配置/cwd 与磁盘成果保留验证通过。本轮 7 个旧 worker tab 经相同 stop 路径关闭，结果哈希、HEAD、worktree 状态不变，重复 stop 幂等；实现 worker tab 也已关闭。状态新增 `release` 供查询关闭／保留原因。完整记录见 [08-R2 证据](../evidence/08b-close-delivered-tabs/README.md)。

@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--no-edit",
+    "646f7725e7ab572c6a5d8e4222d9f239f2cb2fe2"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+  "exit_code": 0,
+  "stdout": "Merge made by the 'ort' strategy.\n formatter.py      |  2 +-\n test_formatter.py | 20 ++++++++++++++++++++\n 2 files changed, 21 insertions(+), 1 deletion(-)\n create mode 100644 test_formatter.py\n",
+  "stderr": ""
+}

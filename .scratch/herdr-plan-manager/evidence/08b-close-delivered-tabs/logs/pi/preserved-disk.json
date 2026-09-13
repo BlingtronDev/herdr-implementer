@@ -1,0 +1,11 @@
+{
+  "worker": "w08-tabs-pi",
+  "worktree": "/tmp/opencode/hpm08-tabs-he0r3x0j/pi-smoke/.git/herdr-plan-manager/worktrees/w08-tabs-pi",
+  "branch": "hpm/w08-tabs-pi",
+  "head": "f8469f0b69192e39d75c16d3ebc58d25b9d78877",
+  "status": "",
+  "result_sha256": "ab32777ad862ea55215ba4709d125a1d84623d61df17c85493448826c13161f9",
+  "tabs": [
+    "wJ:t1T"
+  ]
+}

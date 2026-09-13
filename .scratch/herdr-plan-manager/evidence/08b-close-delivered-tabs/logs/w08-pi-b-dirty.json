@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "status",
+    "--porcelain"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/worktrees/w08-pi-b",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

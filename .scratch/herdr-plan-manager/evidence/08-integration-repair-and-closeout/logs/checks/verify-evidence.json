@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/.scratch/herdr-plan-manager/evidence/08-integration-repair-and-closeout/verify_evidence.py"
+  ],
+  "cwd": "/home/blingtron/.agents/skills/herdr-ticket-dispatcher",
+  "exit_code": 0,
+  "stdout": "PASS pi: actual configuration/cwd, new isolated repair, commit/test attribution, ack/integration, stopped retention\nPASS opencode: actual configuration/cwd, new isolated repair, commit/test attribution, ack/integration, stopped retention\nPASS conflict/abort, moving target, behavior failure then repair, preserved abort failure; 6 real sessions, peak=2 <= 3\n",
+  "stderr": ""
+}

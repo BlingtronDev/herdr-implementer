@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "git",
+    "diff",
+    "--name-only",
+    "6f754e76f597d9de74d42e454d4e9c7872f1b7ca",
+    "--",
+    "bin",
+    "tests",
+    "prompts"
+  ],
+  "cwd": "/home/blingtron/.agents/skills/herdr-ticket-dispatcher",
+  "exit_code": 0,
+  "stdout": "tests/test_plan_manager.py\n",
+  "stderr": ""
+}

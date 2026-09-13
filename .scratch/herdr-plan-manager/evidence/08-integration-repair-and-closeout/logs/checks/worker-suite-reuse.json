@@ -1,0 +1,7 @@
+{
+  "base": "6f754e76f597d9de74d42e454d4e9c7872f1b7ca",
+  "worker_head": "93c02f7240a73e70edcfd88ce920fb5946d97f46",
+  "test_file_byte_identical": true,
+  "other_bin_tests_prompts_unchanged": true,
+  "reason": "reuse delivered worker full-suite evidence for identical implementation; local focused regression confirms patch transfer"
+}

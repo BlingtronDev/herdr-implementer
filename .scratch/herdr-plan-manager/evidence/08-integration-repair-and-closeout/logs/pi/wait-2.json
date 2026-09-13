@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "wait",
+    "--repo",
+    "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+    "--run",
+    "issue08-pi",
+    "--timeout",
+    "30"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"items\": [\n    {\n      \"acked\": false,\n      \"acked_at\": null,\n      \"branch\": \"hpm/w08-pi-r\",\n      \"code\": \"delivered\",\n      \"created_at\": \"2026-09-12T19:22:04.329294Z\",\n      \"details\": {\n        \"artifacts\": [\n          \"formatter.py\",\n          \"test_formatter.py\"\n        ],\n        \"head\": \"646f7725e7ab572c6a5d8e4222d9f239f2cb2fe2\"\n      },\n      \"item_id\": \"w08-pi-r/i001\",\n      \"kind\": \"delivery\",\n      \"lifecycle\": \"delivered\",\n      \"message\": \"Merged incoming B commit 141bade into hpm/w08-pi-r with git merge --no-edit, captured the real content conflict in formatter.py, and resolved it to `return f\\\"Hello, {name.strip()}!\\\"`, preserving both whitespace normalization (A) and greeting (B) intents. Completed the merge as 2fbcc5e (parents 97d7f44 and 141bade) and committed regression test test_formatter.py as 646f772. Both the regression suite and the required combined verification pass; worktree is clean.\",\n      \"result_path\": \"/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-r/result.json\",\n      \"run_id\": \"issue08-pi\",\n      \"session\": 1,\n      \"ticket\": {\n        \"id\": \"R\",\n        \"title\": \"issue08 pi R\"\n      },\n      \"worker_id\": \"w08-pi-r\",\n      \"worktree\": \"/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/worktrees/w08-pi-r\"\n    }\n  ],\n  \"note\": \"each item is a durable fact awaiting ack; a delivery is not integration and an idle terminal is not a result\",\n  \"observed_at\": \"2026-09-12T19:22:04.789469Z\",\n  \"run_id\": \"issue08-pi\",\n  \"timed_out\": false\n}\n",
+  "stderr": ""
+}

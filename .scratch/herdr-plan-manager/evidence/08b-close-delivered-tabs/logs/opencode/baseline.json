@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "rev-parse",
+    "HEAD"
+  ],
+  "cwd": "/tmp/opencode/hpm08-tabs-he0r3x0j/opencode-smoke",
+  "exit_code": 0,
+  "stdout": "7c1a6139dd0060e5e5c8aa838c5bc3ee1bc5ceb7\n",
+  "stderr": ""
+}

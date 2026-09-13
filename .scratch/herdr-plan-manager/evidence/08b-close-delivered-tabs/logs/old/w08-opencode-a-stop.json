@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "stop",
+    "--repo",
+    "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+    "--worker",
+    "w08-opencode-a",
+    "--reason",
+    "user confirmed closing normally delivered tabs; retain all disk resources"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"already_terminal\": true,\n  \"branch\": \"hpm/w08-opencode-a\",\n  \"business_stopped\": true,\n  \"items\": 1,\n  \"lifecycle\": \"delivered\",\n  \"management_dir\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/workers/w08-opencode-a\",\n  \"reason\": \"result-recorded\",\n  \"release\": {\n    \"at\": \"2026-09-12T21:22:01.939131Z\",\n    \"attempts\": 1,\n    \"closed_tabs\": [\n      \"wJ:t1N\"\n    ],\n    \"first_at\": \"2026-09-12T21:22:01.939160Z\",\n    \"message\": \"the delivered worker tab was closed; branch, worktree and result are retained\",\n    \"reason\": \"delivered-worktree-clean\",\n    \"state\": \"closed\",\n    \"tabs\": {\n      \"closed\": [\n        \"wJ:t1N\"\n      ],\n      \"registered\": [\n        \"wJ:t1N\"\n      ]\n    }\n  },\n  \"result_path\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/workers/w08-opencode-a/result.json\",\n  \"session\": 1,\n  \"sessions\": [\n    {\n      \"agent\": \"w08-opencode-a\",\n      \"agent_live\": true,\n      \"agent_status\": \"done\",\n      \"index\": 1,\n      \"session_status\": \"ended\",\n      \"stopped\": true,\n      \"tab\": \"wJ:t1N\"\n    }\n  ],\n  \"stopped\": true,\n  \"worker_id\": \"w08-opencode-a\",\n  \"worktree\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a\"\n}\n",
+  "stderr": ""
+}

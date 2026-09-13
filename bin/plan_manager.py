@@ -380,6 +380,9 @@ class Store:
     def cleanup_lock_path(self, worker_id: str) -> Path:
         return self.worker_dir(worker_id) / "cleanup.lock"
 
+    def stop_lock_path(self, worker_id: str) -> Path:
+        return self.worker_dir(worker_id) / "stop.lock"
+
     def load_cleanup(self, worker_id: str) -> dict[str, Any]:
         value = read_json(self.cleanup_path(worker_id))
         return value if isinstance(value, dict) else {}
@@ -417,6 +420,103 @@ class Herdr:
     def agent_status(self, name: str) -> tuple[int, str | None]:
         rc, payload = self.agent_get(name)
         return rc, find_agent_status(payload) if rc == 0 else None
+
+    def pane_list(self) -> list[dict[str, Any]]:
+        """Every pane in this workspace, for registered-tab occupancy checks."""
+        args = ["pane", "list"]
+        if self.workspace:
+            args += ["--workspace", self.workspace]
+        payload = self.json_command(args)
+        result = payload.get("result")
+        if not isinstance(result, dict):
+            raise ManagerError("herdr pane list response has a non-object result")
+        panes = result.get("panes")
+        if not isinstance(panes, list):
+            raise ManagerError("herdr pane list response has no result.panes list")
+        for index, pane in enumerate(panes):
+            if not isinstance(pane, dict):
+                raise ManagerError(f"herdr pane list entry {index} is not an object")
+            if (
+                not isinstance(pane.get("pane_id"), str)
+                or not pane["pane_id"]
+                or not isinstance(pane.get("tab_id"), str)
+                or not pane["tab_id"]
+            ):
+                raise ManagerError(f"herdr pane list entry {index} has no usable pane_id/tab_id")
+        return panes
+
+    def agent_list(self) -> list[dict[str, Any]]:
+        """Every live agent Herdr knows, for registered-pane occupancy checks."""
+        payload = self.json_command(["agent", "list"])
+        result = payload.get("result")
+        if not isinstance(result, dict):
+            raise ManagerError("herdr agent list response has a non-object result")
+        agents = result.get("agents")
+        if not isinstance(agents, list):
+            raise ManagerError("herdr agent list response has no result.agents list")
+        for index, agent in enumerate(agents):
+            if not isinstance(agent, dict):
+                raise ManagerError(f"herdr agent list entry {index} is not an object")
+            if (
+                not isinstance(agent.get("pane_id"), str)
+                or not agent["pane_id"]
+                or not isinstance(agent.get("tab_id"), str)
+                or not agent["tab_id"]
+            ):
+                raise ManagerError(f"herdr agent list entry {index} has no usable pane_id/tab_id")
+        return agents
+
+    def agent_fact(self, name: str) -> dict[str, Any]:
+        """Strict lookup: only an explicit agent_not_found proves the agent exited."""
+        proc = run(["herdr", "agent", "get", name], timeout=30)
+        if proc.returncode == 0:
+            try:
+                payload = json.loads(proc.stdout)
+            except json.JSONDecodeError:
+                payload = None
+            if not isinstance(payload, dict):
+                return {"known": False, "exists": False, "status": None, "error": "agent get returned unreadable JSON"}
+            result = payload.get("result")
+            agent = result.get("agent") if isinstance(result, dict) else None
+            if not isinstance(agent, dict):
+                return {
+                    "known": False,
+                    "exists": False,
+                    "status": None,
+                    "error": "agent get response has no result.agent object",
+                }
+            status = find_agent_status(payload)
+            if not isinstance(status, str) or not status:
+                return {
+                    "known": True,
+                    "exists": True,
+                    "status": None,
+                    "error": "agent get response has no usable status",
+                }
+            return {"known": True, "exists": True, "status": status, "error": None}
+        code = herdr_error_code(proc)
+        if code == "agent_not_found":
+            return {"known": True, "exists": False, "status": None, "error": None}
+        detail = code or proc.stderr.strip() or proc.stdout.strip() or "agent get failed"
+        return {"known": False, "exists": False, "status": None, "error": detail}
+
+    def wait_agent_exited(self, name: str, *, timeout: float = 15.0) -> tuple[bool, str | None]:
+        """Only an explicit agent_not_found confirms exit; errors never do."""
+        deadline = time.monotonic() + timeout
+        detail: str | None = None
+        while True:
+            fact = self.agent_fact(name)
+            if fact["known"] and not fact["exists"]:
+                return True, None
+            if fact["error"]:
+                detail = fact["error"]
+            elif fact["exists"]:
+                detail = f"still present with status {fact['status']!r}"
+            else:
+                detail = "exit could not be confirmed"
+            if time.monotonic() >= deadline:
+                return False, detail
+            time.sleep(0.25)
 
     def agent_start(self, name: str, kind: str, pane: str, argv: list[str]) -> dict[str, Any]:
         command = ["herdr", "agent", "start", name, "--kind", kind, "--pane", pane]
@@ -1407,6 +1507,479 @@ def close_registered_sessions(
     }
 
 
+def registered_tab_facts(state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Tabs registered to this worker, with the panes and agents it owns in each."""
+    tabs: dict[str, dict[str, Any]] = {}
+    sessions = state.get("sessions") if isinstance(state.get("sessions"), list) else []
+    records = sessions or [
+        {
+            "tab": (state.get("herdr") or {}).get("tab"),
+            "pane": (state.get("herdr") or {}).get("pane"),
+            "agent": (state.get("herdr") or {}).get("agent"),
+        }
+    ]
+    for session in records:
+        if not isinstance(session, dict):
+            continue
+        tab = session.get("tab")
+        if not isinstance(tab, str) or not tab:
+            continue
+        entry = tabs.setdefault(tab, {"tab": tab, "panes": [], "agents": []})
+        pane = session.get("pane")
+        if isinstance(pane, str) and pane and pane not in entry["panes"]:
+            entry["panes"].append(pane)
+        agent = session.get("agent")
+        if isinstance(agent, str) and agent and agent not in entry["agents"]:
+            entry["agents"].append(agent)
+    return list(tabs.values())
+
+
+def worktree_status_facts(worktree: Path) -> dict[str, Any]:
+    """Uncommitted content for the release decision; an unreadable status is not clean."""
+    if not worktree.exists():
+        return {"confirmed": False, "entries": [], "error": f"worktree {worktree} does not exist"}
+    proc = git(worktree, "status", "--porcelain=v1", check=False)
+    if proc.returncode != 0:
+        return {
+            "confirmed": False,
+            "entries": [],
+            "error": proc.stderr.strip() or proc.stdout.strip() or "git status failed",
+        }
+    entries = [
+        {"code": line[:2].strip() or "??", "path": line[3:]}
+        for line in proc.stdout.splitlines()
+        if line.strip()
+    ]
+    return {"confirmed": True, "entries": entries, "error": None}
+
+
+def registered_agent_facts(herdr: Herdr, state: dict[str, Any]) -> dict[str, Any]:
+    """Strictly classify the worker's registered agents for release decisions.
+
+    Only an explicit `agent_not_found` proves that a session is gone. A query
+    error, a missing status or a missing agent name is an unconfirmed state
+    that must retain the terminal instead of being read as an exit.
+    """
+    sessions = state.get("sessions") if isinstance(state.get("sessions"), list) else []
+    records = sessions or [state.get("herdr") or {}]
+    unknown: list[dict[str, Any]] = []
+    seen: list[tuple[Any, str]] = []
+    for position, session in enumerate(records):
+        if not isinstance(session, dict):
+            unknown.append({"index": None, "agent": "", "error": "the session record is not an object"})
+            continue
+        index = session.get("index", position)
+        agent = session.get("agent")
+        if not isinstance(agent, str) or not agent:
+            if session.get("tab"):
+                unknown.append({"index": index, "agent": "", "error": "the session record has no agent name"})
+            continue
+        if (index, agent) not in seen:
+            seen.append((index, agent))
+    facts: list[dict[str, Any]] = []
+    busy: list[dict[str, Any]] = []
+    for index, agent in seen:
+        fact = herdr.agent_fact(agent)
+        entry = {
+            "index": index,
+            "agent": agent,
+            "exists": fact["exists"],
+            "status": fact["status"],
+            "error": fact["error"],
+        }
+        facts.append(entry)
+        if fact["error"]:
+            unknown.append(entry)
+        elif fact["exists"] and fact["status"] not in SETTLED_STATES:
+            busy.append(entry)
+    return {"agents": facts, "unknown": unknown, "busy": busy, "names": [agent for _, agent in seen]}
+
+
+def tab_occupancy_facts(herdr: Herdr, tabs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Check that registered tabs still host only this worker's panes and agents.
+
+    Both listings are shape-validated by `Herdr`; a malformed response is an
+    unconfirmed state, not an empty one. A registered pane reported under a
+    tab other than the one it was registered for is a conflict, never an
+    unrelated pane. An agent on one of our panes that cannot be attributed to
+    one of our registered names is also foreign.
+    """
+    try:
+        panes = herdr.pane_list()
+        agents = herdr.agent_list()
+    except ManagerError as exc:
+        return {"confirmed": False, "error": str(exc), "foreign": [], "agents": []}
+    tab_ids = {entry["tab"] for entry in tabs}
+    pane_tabs: dict[str, set[str]] = {}
+    for entry in tabs:
+        for pane in entry["panes"]:
+            pane_tabs.setdefault(pane, set()).add(entry["tab"])
+    registered_agents = {agent for entry in tabs for agent in entry["agents"]}
+    foreign: list[dict[str, Any]] = []
+    for pane in panes:
+        pane_id = pane["pane_id"]
+        tab_id = pane["tab_id"]
+        owned_tabs = pane_tabs.get(pane_id)
+        if owned_tabs is not None:
+            if tab_id not in owned_tabs:
+                foreign.append(
+                    {
+                        "tab": tab_id,
+                        "pane": pane_id,
+                        "reason": "pane-tab-conflict",
+                        "registered_tabs": sorted(owned_tabs),
+                    }
+                )
+            continue
+        if tab_id in tab_ids:
+            foreign.append({"tab": tab_id, "pane": pane_id, "reason": "unregistered-pane"})
+    for agent in agents:
+        pane_id = agent["pane_id"]
+        tab_id = agent["tab_id"]
+        name = agent.get("name")
+        owned_tabs = pane_tabs.get(pane_id)
+        if owned_tabs is not None:
+            if tab_id not in owned_tabs:
+                foreign.append(
+                    {
+                        "tab": tab_id,
+                        "pane": pane_id,
+                        "agent": name if isinstance(name, str) and name else None,
+                        "reason": "pane-tab-conflict",
+                        "registered_tabs": sorted(owned_tabs),
+                    }
+                )
+                continue
+            if isinstance(name, str) and name and name in registered_agents:
+                continue
+            foreign.append(
+                {
+                    "tab": tab_id,
+                    "pane": pane_id,
+                    "agent": name if isinstance(name, str) and name else None,
+                    "reason": "foreign-agent" if isinstance(name, str) and name else "unidentified-agent",
+                }
+            )
+            continue
+        if tab_id in tab_ids:
+            foreign.append(
+                {
+                    "tab": tab_id,
+                    "pane": pane_id,
+                    "agent": name if isinstance(name, str) and name else None,
+                    "reason": "foreign-agent" if isinstance(name, str) and name else "unidentified-agent",
+                }
+            )
+    return {"confirmed": True, "error": None, "foreign": foreign, "agents": agents}
+
+
+def release_delivered_tabs(
+    herdr: Herdr,
+    adapter: RuntimeAdapter,
+    state: dict[str, Any],
+    *,
+    timeout: float = DEFAULT_SESSION_CLOSE_TIMEOUT,
+) -> dict[str, Any]:
+    """Release a delivered worker's terminals without touching its other resources.
+
+    This runs only after a valid delivery is durable, and `stop` reuses the
+    same path for records whose supervisor already exited. A tab is closed
+    only when every registered session is confirmed exited, the assigned
+    worktree status is confirmable and clean, and the tab still holds only
+    this worker's panes and agents. Those checks are repeated after the exit
+    waits, because that state ages while a TUI shuts down. Unknown agent
+    queries are never exit evidence. Otherwise the scene stays and the reason
+    is recorded in `state['release']` for `status`. A close failure never
+    changes the delivery or retries on its own.
+    """
+    previous = state.get("release") if isinstance(state.get("release"), dict) else {}
+    tabs = registered_tab_facts(state)
+
+    def remember(outcome: str, reason: str, **extra: Any) -> dict[str, Any]:
+        closed_tabs = [tab for tab in (previous.get("tabs") or {}).get("closed") or [] if isinstance(tab, str)]
+        for tab in extra.get("closed_tabs") or []:
+            if tab not in closed_tabs:
+                closed_tabs.append(tab)
+        record: dict[str, Any] = {
+            "state": outcome,
+            "reason": reason,
+            "message": extra.pop("message", reason),
+            "at": utc_now(),
+            "first_at": previous.get("first_at") or utc_now(),
+            "attempts": int(previous.get("attempts") or 0) + 1,
+            "tabs": {"closed": closed_tabs, "registered": [entry["tab"] for entry in tabs]},
+        }
+        record.update(extra)
+        state["release"] = record
+        return {"attempted": True, "closed": outcome == "closed", "reason": reason, "tabs": tabs, "record": record}
+
+    recorded = state.get("result") if isinstance(state.get("result"), dict) else None
+    if not (recorded and recorded.get("status") == "delivered"):
+        if previous.get("reason") == "no-valid-delivery":
+            return {"attempted": False, "closed": False, "reason": "no-valid-delivery", "tabs": tabs}
+        return remember(
+            "retained",
+            "no-valid-delivery",
+            message="no valid delivered result is recorded; the terminal is retained",
+        )
+    if not tabs:
+        return remember("not-applicable", "no-registered-tab", message="the worker has no registered tab")
+
+    def registered_busy(occupancy: dict[str, Any], names: list[str]) -> list[dict[str, Any]]:
+        known = set(names)
+        return [
+            {"agent": agent.get("name"), "status": agent.get("agent_status"), "pane": agent.get("pane_id")}
+            for agent in occupancy.get("agents") or []
+            if isinstance(agent.get("name"), str)
+            and agent["name"] in known
+            and agent.get("agent_status") not in SETTLED_STATES
+        ]
+
+    sessions = registered_agent_facts(herdr, state)
+    if previous.get("state") == "closed" and not sessions["busy"] and not sessions["unknown"]:
+        return {
+            "attempted": False,
+            "closed": True,
+            "already_closed": True,
+            "reason": "already-released",
+            "tabs": tabs,
+        }
+    if sessions["unknown"]:
+        return remember(
+            "retained",
+            "session-state-unknown",
+            message="a registered session state cannot be confirmed; the terminal is retained",
+            sessions=sessions["unknown"],
+        )
+    if sessions["busy"]:
+        return remember(
+            "retained",
+            "session-not-settled",
+            message="a registered session has not settled after delivery; the terminal is retained",
+            sessions=sessions["busy"],
+        )
+    status = worktree_status_facts(Path(state["worktree"]))
+    if not status["confirmed"]:
+        return remember(
+            "retained",
+            "worktree-status-unverified",
+            message="the worktree status cannot be confirmed; the terminal is retained",
+            error=status["error"],
+        )
+    if status["entries"]:
+        return remember(
+            "retained",
+            "uncommitted-content",
+            message="the worktree has uncommitted or untracked content; the terminal is retained",
+            uncommitted=status["entries"][:50],
+        )
+    occupancy = tab_occupancy_facts(herdr, tabs)
+    if not occupancy["confirmed"]:
+        return remember(
+            "retained",
+            "tab-occupancy-unverified",
+            message="the registered tab contents cannot be confirmed; the terminal is retained",
+            error=occupancy["error"],
+        )
+    if occupancy["foreign"]:
+        return remember(
+            "retained",
+            "foreign-occupancy",
+            message="a registered tab holds an unregistered pane or another agent; it is not closed",
+            foreign=occupancy["foreign"],
+        )
+    listed = registered_busy(occupancy, sessions["names"])
+    if listed:
+        return remember(
+            "retained",
+            "session-not-settled",
+            message="Herdr still lists a registered agent as active; the terminal is retained",
+            sessions=listed,
+        )
+
+    remaining: list[dict[str, Any]] = []
+    for fact in sessions["agents"]:
+        if not fact["exists"]:
+            continue
+        agent = fact["agent"]
+        gone = False
+        detail: str | None = None
+        for keys in adapter.exit_sequences():
+            try:
+                herdr.send_keys(agent, keys)
+            except ManagerError as exc:
+                detail = str(exc)
+                break
+            gone, detail = herdr.wait_agent_exited(agent, timeout=timeout)
+            if gone:
+                break
+        if not gone:
+            remaining.append({"index": fact["index"], "agent": agent, "status": fact["status"], "detail": detail})
+    if remaining:
+        return remember(
+            "retained",
+            "session-exit-failed",
+            message="a registered session could not be confirmed exited; the terminal is retained",
+            remaining_sessions=remaining,
+        )
+
+    # The exit waits took time: re-verify ownership and the worktree on the
+    # state that exists now, not the one observed before the exits.
+    after = registered_agent_facts(herdr, state)
+    if after["unknown"]:
+        return remember(
+            "retained",
+            "session-state-unknown",
+            message="a session state cannot be confirmed after the exit attempt; the terminal is retained",
+            phase="post-exit",
+            sessions=after["unknown"],
+        )
+    if after["busy"]:
+        return remember(
+            "retained",
+            "session-exit-failed",
+            message="a registered session is still present after the exit attempt; the terminal is retained",
+            phase="post-exit",
+            remaining_sessions=after["busy"],
+        )
+    status_after = worktree_status_facts(Path(state["worktree"]))
+    if not status_after["confirmed"]:
+        return remember(
+            "retained",
+            "worktree-status-unverified",
+            message="the worktree status cannot be confirmed after the exit attempt; the terminal is retained",
+            phase="post-exit",
+            error=status_after["error"],
+        )
+    if status_after["entries"]:
+        return remember(
+            "retained",
+            "uncommitted-content",
+            message="the worktree gained uncommitted content during the exit; the terminal is retained",
+            phase="post-exit",
+            uncommitted=status_after["entries"][:50],
+        )
+    occupancy_after = tab_occupancy_facts(herdr, tabs)
+    if not occupancy_after["confirmed"]:
+        return remember(
+            "retained",
+            "tab-occupancy-unverified",
+            message="the registered tab contents cannot be confirmed after the exit attempt; the terminal is retained",
+            phase="post-exit",
+            error=occupancy_after["error"],
+        )
+    if occupancy_after["foreign"]:
+        return remember(
+            "retained",
+            "foreign-occupancy",
+            message="a registered tab gained an unregistered pane or another agent during the exit; it is not closed",
+            phase="post-exit",
+            foreign=occupancy_after["foreign"],
+        )
+    listed_after = registered_busy(occupancy_after, after["names"])
+    if listed_after:
+        return remember(
+            "retained",
+            "session-not-settled",
+            message="Herdr lists a registered agent as active after the exit attempt; the terminal is retained",
+            phase="post-exit",
+            sessions=listed_after,
+        )
+
+    def tab_conditions(tab: str) -> dict[str, Any] | None:
+        """Re-verify one tab immediately before its close; None means go ahead.
+
+        Herdr exposes no conditional close that checks ownership in the same
+        operation, so closing earlier tabs leaves any snapshot stale. Each
+        tab is checked on the state that exists at its own close time.
+        """
+        fresh = registered_agent_facts(herdr, state)
+        if fresh["unknown"]:
+            return {
+                "reason": "session-state-unknown",
+                "message": "a registered session state cannot be confirmed before closing a tab; the tab is retained",
+                "phase": "pre-close",
+                "tab": tab,
+                "sessions": fresh["unknown"],
+            }
+        if fresh["busy"]:
+            return {
+                "reason": "session-exit-failed",
+                "message": "a registered session is active before closing a tab; the tab is retained",
+                "phase": "pre-close",
+                "tab": tab,
+                "remaining_sessions": fresh["busy"],
+            }
+        fresh_status = worktree_status_facts(Path(state["worktree"]))
+        if not fresh_status["confirmed"]:
+            return {
+                "reason": "worktree-status-unverified",
+                "message": "the worktree status cannot be confirmed before closing a tab; the tab is retained",
+                "phase": "pre-close",
+                "tab": tab,
+                "error": fresh_status["error"],
+            }
+        if fresh_status["entries"]:
+            return {
+                "reason": "uncommitted-content",
+                "message": "the worktree gained uncommitted content before closing a tab; the tab is retained",
+                "phase": "pre-close",
+                "tab": tab,
+                "uncommitted": fresh_status["entries"][:50],
+            }
+        fresh_occupancy = tab_occupancy_facts(herdr, [entry for entry in tabs if entry["tab"] == tab])
+        if not fresh_occupancy["confirmed"]:
+            return {
+                "reason": "tab-occupancy-unverified",
+                "message": "the tab contents cannot be confirmed before its close; the tab is retained",
+                "phase": "pre-close",
+                "tab": tab,
+                "error": fresh_occupancy["error"],
+            }
+        if fresh_occupancy["foreign"]:
+            return {
+                "reason": "foreign-occupancy",
+                "message": "a tab gained an unregistered pane or another agent before its close; it is not closed",
+                "phase": "pre-close",
+                "tab": tab,
+                "foreign": fresh_occupancy["foreign"],
+            }
+        fresh_listed = registered_busy(fresh_occupancy, fresh["names"])
+        if fresh_listed:
+            return {
+                "reason": "session-not-settled",
+                "message": "Herdr lists a registered agent as active before closing a tab; the tab is retained",
+                "phase": "pre-close",
+                "tab": tab,
+                "sessions": fresh_listed,
+            }
+        return None
+
+    closed: list[str] = []
+    for entry in tabs:
+        blocked = tab_conditions(entry["tab"])
+        if blocked:
+            reason = blocked.pop("reason")
+            return remember("retained", reason, closed_tabs=closed, **blocked)
+        rc, code = herdr.tab_close(entry["tab"])
+        if rc == 0 or code == "tab_not_found":
+            closed.append(entry["tab"])
+            continue
+        return remember(
+            "retained",
+            "tab-close-failed",
+            message="a registered tab could not be closed; the delivered result and worktree are retained",
+            closed_tabs=closed,
+            failed_tabs=[{"tab": entry["tab"], "error": code or "tab-close-failed"}],
+        )
+    return remember(
+        "closed",
+        "delivered-worktree-clean",
+        message="the delivered worker tab was closed; branch, worktree and result are retained",
+        closed_tabs=closed,
+    )
+
+
 def worker_paths(store: Store, state: dict[str, Any]) -> dict[str, str]:
     """Resolve management paths, tolerating legacy states with a partial `paths` map."""
     paths = state.get("paths") if isinstance(state.get("paths"), dict) else {}
@@ -2311,6 +2884,13 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                 finalize(state, "agent-exited", "agent-exited-without-result")
                 supervisor_log("agent exited without a result")
             store.save_state(worker_id, state)
+            if outcome in {"recorded", "protocol-failure"}:
+                release = release_delivered_tabs(herdr, adapter, state)
+                store.save_state(worker_id, state)
+                if release.get("attempted"):
+                    supervisor_log(
+                        f"tab release {release['reason']}: {'closed' if release['closed'] else 'retained'}"
+                    )
             return 0
 
         if status in SETTLED_STATES:
@@ -2321,7 +2901,14 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                 state["supervisor"]["exit_reason"] = state["lifecycle"]["reason"]
                 state["supervisor"]["state"] = "exited"
                 state["supervisor"]["heartbeat_at"] = utc_now()
+                # The delivery record must be durable before its terminal is released.
                 store.save_state(worker_id, state)
+                release = release_delivered_tabs(herdr, adapter, state)
+                store.save_state(worker_id, state)
+                if release.get("attempted"):
+                    supervisor_log(
+                        f"tab release {release['reason']}: {'closed' if release['closed'] else 'retained'}"
+                    )
                 return 0
             if outcome == "transient":
                 supervisor_log("result file present but not readable yet; will retry")
@@ -2569,6 +3156,7 @@ def worker_facts(store: Store, worker_id: str) -> dict[str, Any]:
         "items": annotated_items(store, state),
         "pending_items": worker_pending_items(store, state),
         "result": state["result"],
+        "release": state.get("release"),
         "cleanup": cleanup_state_facts(store, state, live=live_sessions),
         "paths": state["paths"],
         "control": store.load_control(worker_id),
@@ -3045,6 +3633,7 @@ def cmd_stop(args: argparse.Namespace) -> int:
             "worktree": state["worktree"],
             "result_path": paths["result"],
             "management_dir": paths["management"],
+            "release": state.get("release"),
             "items": len(state["items"]),
         }
         payload.update(extra)
@@ -3056,17 +3645,28 @@ def cmd_stop(args: argparse.Namespace) -> int:
         print_json(payload, stream=sys.stderr)
         return 3
 
+    def release_after_stop(stop_facts: dict[str, Any]) -> None:
+        """Reuse the delivered-release path; the caller persists the state."""
+        if stop_facts["business_stopped"]:
+            release_delivered_tabs(herdr, adapter, state)
+
     if life == "stopped" and not pid_alive(state):
-        stop_facts = stop_registered_sessions(herdr, adapter, state)
-        store.save_state(args.worker, state)
+        with file_lock(store.stop_lock_path(args.worker)):
+            state = store.load_state(args.worker) or state
+            stop_facts = stop_registered_sessions(herdr, adapter, state)
+            release_after_stop(stop_facts)
+            store.save_state(args.worker, state)
         if not stop_facts["business_stopped"]:
             return stop_incomplete(stop_facts, "a registered session is still working; the scene is retained")
         print_json(stop_payload(stop_facts, already_stopped=True))
         return 0
 
     if life in TERMINAL_STATES and not pid_alive(state):
-        stop_facts = stop_registered_sessions(herdr, adapter, state)
-        store.save_state(args.worker, state)
+        with file_lock(store.stop_lock_path(args.worker)):
+            state = store.load_state(args.worker) or state
+            stop_facts = stop_registered_sessions(herdr, adapter, state)
+            release_after_stop(stop_facts)
+            store.save_state(args.worker, state)
         if not stop_facts["business_stopped"]:
             return stop_incomplete(
                 stop_facts, "a registered session is still working; the scene is retained", already_terminal=True
@@ -3094,43 +3694,54 @@ def cmd_stop(args: argparse.Namespace) -> int:
             if not pid_alive(state):
                 break
             time.sleep(0.25)
-        if pid_alive(state) and state["lifecycle"]["state"] not in TERMINAL_STATES:
+        # A live supervisor owns the state until it exits, even when the
+        # lifecycle already looks terminal: the supervisor writes the delivery
+        # first and then releases the terminal, so taking over here would add
+        # a second writer and a second release.
+        if pid_alive(state):
             stop_facts = {"business_stopped": False, "sessions": live_session_facts(herdr, state)}
             return stop_incomplete(
                 stop_facts,
-                "the supervisor is still finishing an in-flight step; retry stop or inspect the scene",
+                "the supervisor is still running; retry stop after it exits",
             )
-    state = store.load_state(args.worker) or state
 
-    outcome = record_result(store, state)
-    stop_facts = stop_registered_sessions(herdr, adapter, state)
-    if outcome in {"recorded", "protocol-failure"}:
-        state["lifecycle"]["reason"] = state["lifecycle"].get("reason") or "stop-requested"
-        state["supervisor"].update(
-            state="exited",
-            exit_reason=state["supervisor"].get("exit_reason") or "stop-requested",
-            heartbeat_at=utc_now(),
-        )
-        store.save_state(args.worker, state)
-        if not stop_facts["business_stopped"]:
-            return stop_incomplete(stop_facts, "a registered session is still working; the scene is retained")
-        print_json(stop_payload(stop_facts, already_terminal=state["lifecycle"]["state"] != "stopped"))
-        return 0
+    # Concurrent stops for the same worker serialize here, so an exit or a
+    # release decision cannot be duplicated or overwritten.
+    with file_lock(store.stop_lock_path(args.worker)):
+        state = store.load_state(args.worker) or state
+        outcome = record_result(store, state)
+        stop_facts = stop_registered_sessions(herdr, adapter, state)
+        if outcome in {"recorded", "protocol-failure"}:
+            state["lifecycle"]["reason"] = state["lifecycle"].get("reason") or "stop-requested"
+            state["supervisor"].update(
+                state="exited",
+                exit_reason=state["supervisor"].get("exit_reason") or "stop-requested",
+                heartbeat_at=utc_now(),
+            )
+            store.save_state(args.worker, state)
+            if not stop_facts["business_stopped"]:
+                return stop_incomplete(stop_facts, "a registered session is still working; the scene is retained")
+            release_after_stop(stop_facts)
+            store.save_state(args.worker, state)
+            print_json(stop_payload(stop_facts, already_terminal=state["lifecycle"]["state"] != "stopped"))
+            return 0
+        if stop_facts["business_stopped"]:
+            finalize(state, "stopped", "stop-requested")
+            store.save_state(args.worker, state)
+        else:
+            if not any(item.get("code") == "stop-incomplete" for item in state["items"]):
+                append_item(
+                    state,
+                    "exception",
+                    "stop-incomplete",
+                    "business execution could not be confirmed stopped after the stop request; the scene is retained",
+                    {"sessions": stop_facts["sessions"]},
+                )
+            state["supervisor"].update(state="exited", exit_reason="stop-incomplete", heartbeat_at=utc_now())
+            store.save_state(args.worker, state)
     if stop_facts["business_stopped"]:
-        finalize(state, "stopped", "stop-requested")
-        store.save_state(args.worker, state)
         print_json(stop_payload(stop_facts))
         return 0
-    if not any(item.get("code") == "stop-incomplete" for item in state["items"]):
-        append_item(
-            state,
-            "exception",
-            "stop-incomplete",
-            "business execution could not be confirmed stopped after the stop request; the scene is retained",
-            {"sessions": stop_facts["sessions"]},
-        )
-    state["supervisor"].update(state="exited", exit_reason="stop-incomplete", heartbeat_at=utc_now())
-    store.save_state(args.worker, state)
     return stop_incomplete(stop_facts, "business execution could not be confirmed stopped; the scene is retained")
 
 

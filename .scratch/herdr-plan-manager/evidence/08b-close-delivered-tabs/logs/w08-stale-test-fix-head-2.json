@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "rev-parse",
+    "hpm/w08-stale-test-fix"
+  ],
+  "cwd": "/tmp/opencode/hpm08-test-repair",
+  "exit_code": 0,
+  "stdout": "93c02f7240a73e70edcfd88ce920fb5946d97f46\n",
+  "stderr": ""
+}

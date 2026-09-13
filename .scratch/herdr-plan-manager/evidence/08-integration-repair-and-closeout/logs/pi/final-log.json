@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "git",
+    "log",
+    "--oneline",
+    "--graph",
+    "--all"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+  "exit_code": 0,
+  "stdout": "*   b744d42 Merge commit '646f7725e7ab572c6a5d8e4222d9f239f2cb2fe2'\n|\\  \n| * 646f772 Add regression test for combined normalization and greeting\n| *   2fbcc5e Merge commit '141bade1844afa55ce66641c4299d9333ead83f5' into hpm/w08-pi-r\n| |\\  \n| | * 141bade B: add greeting to format_user\n* | |   8d8dd7e Merge commit '0c2b208fe35b0edf27d087bde2cf0acc72f8ae56'\n|\\ \\ \\  \n| |/ /  \n|/| |   \n| * | 0c2b208 document isolated experiment\n| |/  \n* / 97d7f44 Add whitespace normalization in format_user\n|/  \n* 7e5e435 initialize repair experiment\n",
+  "stderr": ""
+}

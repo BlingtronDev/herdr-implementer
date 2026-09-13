@@ -1,0 +1,282 @@
+{
+  "repo": "/tmp/opencode/hpm08-abort-iptd7add",
+  "target": "7092b1bfa19a1f9046bd15f85d873b1821ca3a3f",
+  "incoming": "71b1a6e591817bb737b084d0dd6fdf5e5f5ba247",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "init",
+        "-b",
+        "main"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "Initialized empty Git repository in /tmp/opencode/hpm08-abort-iptd7add/.git/\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "add",
+        "feature.txt"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "seed abort boundary fixture"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "[main (root-commit) 5977b1a] seed abort boundary fixture\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "switch",
+        "-c",
+        "incoming"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Switched to a new branch 'incoming'\n"
+    },
+    {
+      "argv": [
+        "git",
+        "add",
+        "feature.txt"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "incoming fixture change"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "[incoming 71b1a6e] incoming fixture change\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "71b1a6e591817bb737b084d0dd6fdf5e5f5ba247\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "switch",
+        "main"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Switched to branch 'main'\n"
+    },
+    {
+      "argv": [
+        "git",
+        "add",
+        "feature.txt"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "target fixture change"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "[main 686f590] target fixture change\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "686f590f94f44e48a5e6c0bb5a9184ed501c7bb5\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "?? user-note.txt\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "686f590f94f44e48a5e6c0bb5a9184ed501c7bb5\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "add",
+        "user-note.txt"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "commit",
+        "-m",
+        "preserve identified fixture note"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "[main 7092b1b] preserve identified fixture note\n 1 file changed, 1 insertion(+)\n create mode 100644 user-note.txt\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "7092b1bfa19a1f9046bd15f85d873b1821ca3a3f\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "merge",
+        "--no-edit",
+        "71b1a6e591817bb737b084d0dd6fdf5e5f5ba247"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 1,
+      "stdout": "Auto-merging feature.txt\nCONFLICT (content): Merge conflict in feature.txt\nAutomatic merge failed; fix conflicts and then commit the result.\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "MERGE_HEAD"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "71b1a6e591817bb737b084d0dd6fdf5e5f5ba247\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "7092b1bfa19a1f9046bd15f85d873b1821ca3a3f\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "merge",
+        "--abort"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 128,
+      "stdout": "",
+      "stderr": "fatal: Unable to create '/tmp/opencode/hpm08-abort-iptd7add/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository, e.g.\nan editor opened by 'git commit'. Please make sure all processes\nare terminated then try again. If it still fails, a git process\nmay have crashed in this repository earlier:\nremove the file manually to continue.\n"
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/tmp/opencode/hpm08-abort-iptd7add",
+      "exit_code": 0,
+      "stdout": "7092b1bfa19a1f9046bd15f85d873b1821ca3a3f\n",
+      "stderr": ""
+    }
+  ],
+  "user_work_decision": "defer merge; preserve and clarify user work",
+  "unowned_decision": "retain operation and report unknown ownership; no abort",
+  "abort_failure_decision": "blocked; preserve scene and lock, report; no reset or clean",
+  "before": {
+    "feature.txt": "e06096eca5c1564c444b3badda75f165db596a2efd8bda6c5f904f21afd51d05",
+    ".git/index": "55023b7d467121362b79f48355bc7d4ecdd6313bbf64294fd1b4fad3b3e8f4cd",
+    ".git/MERGE_HEAD": "759c5d6993a54bdf7176c9584a7ffcd7dd00a99ca57cef077d964aec5236073c"
+  },
+  "after": {
+    "feature.txt": "e06096eca5c1564c444b3badda75f165db596a2efd8bda6c5f904f21afd51d05",
+    ".git/index": "55023b7d467121362b79f48355bc7d4ecdd6313bbf64294fd1b4fad3b3e8f4cd",
+    ".git/MERGE_HEAD": "759c5d6993a54bdf7176c9584a7ffcd7dd00a99ca57cef077d964aec5236073c"
+  },
+  "preserved": true,
+  "scope": "real Git plus controlled fault injection; coordinator procedure, no runtime worker"
+}

@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "init-run",
+    "--repo",
+    "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+    "--run-id",
+    "issue08-opencode",
+    "--kind",
+    "opencode",
+    "--provider",
+    "opencode-go",
+    "--model",
+    "deepseek-v4.1-flash",
+    "--thinking",
+    "max",
+    "--max-workers",
+    "3"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"created_at\": \"2026-09-12T19:22:21.454781Z\",\n  \"max_workers\": 3,\n  \"repo_root\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode\",\n  \"run_id\": \"issue08-opencode\",\n  \"runtime\": {\n    \"kind\": \"opencode\",\n    \"model\": \"deepseek-v4.1-flash\",\n    \"provider\": \"opencode-go\",\n    \"thinking\": \"max\"\n  },\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

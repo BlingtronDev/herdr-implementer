@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "start",
+    "--repo",
+    "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+    "--run",
+    "issue08-opencode",
+    "--ticket-id",
+    "A",
+    "--title",
+    "issue08 opencode A",
+    "--worker-id",
+    "w08-opencode-a",
+    "--base",
+    "c2644a481edf69e902e38e6359d33833bdb5bb57",
+    "--material",
+    "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.scratch/spec.md",
+    "--material",
+    "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.scratch/A.md",
+    "--instructions",
+    "Read spec and your one ticket; implement and verify in your assigned worktree. Commit code and publish your contract result. Do not spawn subagents."
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"active_workers\": 1,\n  \"agent\": \"w08-opencode-a\",\n  \"base\": \"c2644a481edf69e902e38e6359d33833bdb5bb57\",\n  \"branch\": \"hpm/w08-opencode-a\",\n  \"management_dir\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/workers/w08-opencode-a\",\n  \"max_workers\": 3,\n  \"pane\": \"wJ:p1N\",\n  \"prompt_attempts\": 2,\n  \"result_path\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/workers/w08-opencode-a/result.json\",\n  \"run_id\": \"issue08-opencode\",\n  \"runtime\": {\n    \"env\": {\n      \"OPENCODE_CONFIG_CONTENT\": \"{\\\"agent\\\":{\\\"build\\\":{\\\"model\\\":\\\"opencode-go/deepseek-v4.1-flash\\\",\\\"variant\\\":\\\"max\\\"}}}\"\n    },\n    \"kind\": \"opencode\",\n    \"model\": \"deepseek-v4.1-flash\",\n    \"provider\": \"opencode-go\",\n    \"thinking\": \"max\"\n  },\n  \"session\": 1,\n  \"supervisor_pid\": 2886646,\n  \"tab\": \"wJ:t1N\",\n  \"ticket_id\": \"A\",\n  \"worker_id\": \"w08-opencode-a\",\n  \"worktree\": \"/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a\"\n}\n",
+  "stderr": "2026-09-12T19:22:43.778543Z prompt attempt 1 to w08-opencode-a was not picked up (status idle); retrying\n"
+}

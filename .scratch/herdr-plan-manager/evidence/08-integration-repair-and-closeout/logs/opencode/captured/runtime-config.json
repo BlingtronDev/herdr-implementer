@@ -1,0 +1,433 @@
+[
+  {
+    "worker": "w08-opencode-a",
+    "session": 1,
+    "ref": "ses_f68ed8bfbffevOmbLTvgGXAdwl",
+    "messages": [
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-a"
+        }
+      }
+    ]
+  },
+  {
+    "worker": "w08-opencode-b",
+    "session": 1,
+    "ref": "ses_f68ed2f79ffeiU82Vs9tgUMMYe",
+    "messages": [
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-b"
+        }
+      }
+    ]
+  },
+  {
+    "worker": "w08-opencode-r",
+    "session": 1,
+    "ref": "ses_f68ebc776ffezXF2Ux3GCK5NYI",
+    "messages": [
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      },
+      {
+        "role": "assistant",
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "path": {
+          "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r",
+          "root": "/tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/herdr-plan-manager/worktrees/w08-opencode-r"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "add",
+    "."
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

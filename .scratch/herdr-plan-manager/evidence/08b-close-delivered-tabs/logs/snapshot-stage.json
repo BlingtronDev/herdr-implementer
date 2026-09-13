@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "git",
+    "add",
+    "bin",
+    "tests",
+    "docs",
+    "prompts"
+  ],
+  "cwd": "/tmp/opencode/hpm08-tabs-he0r3x0j/source",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

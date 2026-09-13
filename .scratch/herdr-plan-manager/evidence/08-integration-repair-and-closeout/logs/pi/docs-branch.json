@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "switch",
+    "-c",
+    "fixture-docs"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "Switched to a new branch 'fixture-docs'\n"
+}

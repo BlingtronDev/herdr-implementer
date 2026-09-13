@@ -1,0 +1,214 @@
+{
+  "branch": "hpm/w08-stale-test-fix",
+  "created_at": "2026-09-12T19:41:43.567323Z",
+  "handoff": {
+    "auto_suppressed": false,
+    "handled_request_id": null,
+    "history": [],
+    "pct": 0.8,
+    "tokens": 300000,
+    "window": null
+  },
+  "herdr": {
+    "agent": "w08-stale-test-fix",
+    "pane": "wJ:p1R",
+    "tab": "wJ:t1R",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "code": "delivered",
+      "created_at": "2026-09-12T20:00:39.108769Z",
+      "details": {
+        "artifacts": [],
+        "head": "93c02f7240a73e70edcfd88ce920fb5946d97f46"
+      },
+      "id": "i001",
+      "kind": "delivery",
+      "message": "根因：测试用 deliver-code 在 0.3s 内交付并转为 idle，而 supervisor 启动后的第一次 agent_status 轮询常看到已 settle 的终端，于是直接 record_result 返回，从未为 session 1 采样，sessions[0].context 保持 null（失败运行 supervisor.log 仅有两行：supervisor started → terminal settled; result recorded）。受控实验排除另两种解释：同一 get_context 适配器在 worker 仍在执行时稳定输出 stale 样本（slow 场景与延迟交付场景均得到 freshness=stale-model-change 的样本）；context 仅在 sample_current_session 写入，延迟交付实验中样本在 delivered 之后仍保留，说明结果收集没有覆盖样本。修复仅改测试（tests/test_plan_manager.py，41+/3-）：改用既有 slow 场景，让 worker 全程 working 且不写结果，等待观测到 stale 样本，并等待同一会话的第二次采样作为“未触发交接”的正向证据（交接会同步阻塞 supervisor，不可能继续采样），随后沿用既有 stop 机制结束并复核现场；保留了“超过阈值仍不触发交接”的断言，未放宽断言、未增加固定 sleep、未修改生产语义。提交 HEAD 93c02f7，完整测试 113 passed（此前 112 passed / 1 failed）。"
+    }
+  ],
+  "lifecycle": {
+    "reason": "result-recorded",
+    "started_at": "2026-09-12T19:41:43.567323Z",
+    "state": "delivered",
+    "updated_at": "2026-09-12T19:41:43.567323Z"
+  },
+  "paths": {
+    "contract": "/tmp/opencode/hpm08-test-repair/.git/herdr-plan-manager/workers/w08-stale-test-fix/contract.md",
+    "management": "/tmp/opencode/hpm08-test-repair/.git/herdr-plan-manager/workers/w08-stale-test-fix",
+    "result": "/tmp/opencode/hpm08-test-repair/.git/herdr-plan-manager/workers/w08-stale-test-fix/result.json",
+    "supervisor_log": "/tmp/opencode/hpm08-test-repair/.git/herdr-plan-manager/workers/w08-stale-test-fix/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 1,
+    "confirmed_at": "2026-09-12T19:41:50.245488Z"
+  },
+  "recovery": {
+    "parse_failures": 0,
+    "re_report_sent_at": null,
+    "settled_since": null
+  },
+  "repo": {
+    "base": "6f754e76f597d9de74d42e454d4e9c7872f1b7ca",
+    "common_dir": "/tmp/opencode/hpm08-test-repair/.git",
+    "root": "/tmp/opencode/hpm08-test-repair"
+  },
+  "result": {
+    "acceptance": [
+      {
+        "criterion": "先复现失败并给出完整输出",
+        "evidence": "修复前 `python3 -m pytest tests/test_plan_manager.py::test_stale_context_sample_never_triggers_a_handoff -q` 复现 TypeError: 'NoneType' object is not subscriptable（sessions[0].context 为 None）；隔离连续 4 次运行 2 failed / 2 passed，与 08 证据 logs/checks/test-all.json 的 112 passed / 1 failed 一致。失败现场 state.json 中 session 1 context=null 且 context_ref=fake-session-w-02-*，supervisor.log 显示 supervisor started 后直接 terminal settled; result recorded，无任何采样记录。",
+        "met": true
+      },
+      {
+        "criterion": "用受控实验/时序证据区分三种解释并确认根因",
+        "evidence": "根因确认为“交付先于采样”：deliver-code 在 supervisor 首次轮询前已 write_result + idle，supervisor 走 SETTLED_STATES 分支 record_result 后 return 0。排除“适配器没输出”：HPM_FAKE_CONTEXT_MODE=stale 下 slow 场景第 0.29s 即记录 state=stale 的样本；排除“结果收集覆盖样本”：context 只有 sample_current_session 一处写入，延迟交付实验（HPM_SCENARIO_DELAY=3.0）在 delivered 后 samples[0].context 仍为 stale。实验脚本 /tmp/hpm08-diag/diagnose.py 输出 /tmp/hpm08-diag/experiments.json。",
+        "met": true
+      },
+      {
+        "criterion": "只修正测试夹具/同步，保持“陈旧采样超过阈值也不触发交接”的有效断言",
+        "evidence": "改动仅 tests/test_plan_manager.py：deliver-code 换成既有 slow 场景；handoff_tokens=1、handoff_pct=0.001 保持极小阈值；断言 stale state/freshness、观测时 agent_status=working、结果文件不存在、handoff.history==[]、初始提示词仅 1 条；第二次采样屏障后停止会话并复核 stopped、context 仍 stale、history 仍空、prompts 仍为 1 条。变异验证（临时副本把 handoff_trigger_reason 改为忽略 sample state）该测试稳定失败：AssertionError: a stale sample must not start a handoff（session status handing-off）。",
+        "met": true
+      },
+      {
+        "criterion": "观察陈旧样本时 worker 必须仍在执行，确认未触发交接后再停止或完成",
+        "evidence": "采样观测点断言 facts['herdr']['agent_status'] == 'working' 且 result 文件不存在（排除交付守卫掩盖 staleness 判定）；收到 stale 样本时 history==[]、prompt_count==1；第二次采样证明 supervisor 未被交接阻塞；随后调用既有 stop（settle 后 finalize stopped），停止后 history==[]、context 仍 stale、prompt 文件仍仅 1 条。",
+        "met": true
+      },
+      {
+        "criterion": "尽量复用已有慢 worker/状态等待机制，不添加通用测试框架或固定 sleep",
+        "evidence": "复用 tests/fakes/scenario.py 既有 slow 行为与 test_context_observation_records_interpretable_sample 的 0.2s 轮询/观察状态等待方式，未新增 fixture 行为；未新增 sleep（仅沿用既有 time.sleep(0.2) 轮询）；未修改 bin/plan_manager.py 等生产代码（git diff --stat: 1 file changed, tests/test_plan_manager.py）。",
+        "met": true
+      },
+      {
+        "criterion": "运行相关上下文单测并对修复测试重复验证，报告实际次数与结果",
+        "evidence": "tests/test_context.py：5 passed；tests/test_plan_manager.py -k 'context or stale'：7 passed, 63 deselected；修复测试连续 5 次单跑：5 passed（4.20-4.73s）；tests/test_plan_manager.py 全量：70 passed；tests/ 全量：113 passed in 310.20s（原 112 passed / 1 failed）。",
+        "met": true
+      },
+      {
+        "criterion": "在分配 worktree 提交最小修复并报告修改 HEAD",
+        "evidence": "commit 93c02f7240a73e70edcfd88ce920fb5946d97f46（工单08-R1：稳定陈旧上下文样本测试），git status --short 为空；branch hpm/w08-stale-test-fix HEAD = 93c02f7；生产代码未改动。",
+        "met": true
+      }
+    ],
+    "artifacts": [],
+    "head": "93c02f7240a73e70edcfd88ce920fb5946d97f46",
+    "remaining": "",
+    "status": "delivered",
+    "summary": "根因：测试用 deliver-code 在 0.3s 内交付并转为 idle，而 supervisor 启动后的第一次 agent_status 轮询常看到已 settle 的终端，于是直接 record_result 返回，从未为 session 1 采样，sessions[0].context 保持 null（失败运行 supervisor.log 仅有两行：supervisor started → terminal settled; result recorded）。受控实验排除另两种解释：同一 get_context 适配器在 worker 仍在执行时稳定输出 stale 样本（slow 场景与延迟交付场景均得到 freshness=stale-model-change 的样本）；context 仅在 sample_current_session 写入，延迟交付实验中样本在 delivered 之后仍保留，说明结果收集没有覆盖样本。修复仅改测试（tests/test_plan_manager.py，41+/3-）：改用既有 slow 场景，让 worker 全程 working 且不写结果，等待观测到 stale 样本，并等待同一会话的第二次采样作为“未触发交接”的正向证据（交接会同步阻塞 supervisor，不可能继续采样），随后沿用既有 stop 机制结束并复核现场；保留了“超过阈值仍不触发交接”的断言，未放宽断言、未增加固定 sleep、未修改生产语义。提交 HEAD 93c02f7，完整测试 113 passed（此前 112 passed / 1 failed）。",
+    "ticket_id": "08-R1",
+    "verification": [
+      {
+        "command": "python3 -m pytest tests/test_plan_manager.py::test_stale_context_sample_never_triggers_a_handoff -q",
+        "exit_code": 1,
+        "summary": "修复前：失败 TypeError: 'NoneType' object is not subscriptable，sessions[0].context is None（隔离 4 次运行 2 failed / 2 passed，与 08 证据 112 passed / 1 failed 对应）"
+      },
+      {
+        "command": "python3 -m pytest tests/test_plan_manager.py::test_stale_context_sample_never_triggers_a_handoff -q  （修复后连续 5 次）",
+        "exit_code": 0,
+        "summary": "5/5 passed：4.44s / 4.64s / 4.20s / 4.37s / 4.73s"
+      },
+      {
+        "command": "python3 -m pytest tests/test_context.py -q",
+        "exit_code": 0,
+        "summary": "5 passed in 1.69s"
+      },
+      {
+        "command": "python3 -m pytest tests/test_plan_manager.py -q -k 'context or stale'",
+        "exit_code": 0,
+        "summary": "7 passed, 63 deselected in 24.14s"
+      },
+      {
+        "command": "python3 -m pytest tests/test_plan_manager.py -q",
+        "exit_code": 0,
+        "summary": "70 passed in 268.79s"
+      },
+      {
+        "command": "python3 -m pytest tests/ -q",
+        "exit_code": 0,
+        "summary": "113 passed in 310.20s（修复前基线为 112 passed / 1 failed）"
+      },
+      {
+        "command": "cd /tmp/hpm08-mutation && python3 -m pytest tests/test_plan_manager.py::test_stale_context_sample_never_triggers_a_handoff -q  （临时副本，handoff_trigger_reason 忽略 sample state）",
+        "exit_code": 1,
+        "summary": "变异被捕获：AssertionError: a stale sample must not start a handoff；assert 'handing-off' == 'active'"
+      },
+      {
+        "command": "python3 /tmp/hpm08-diag/diagnose.py",
+        "exit_code": 0,
+        "summary": "对照实验：deliver-code 快速交付时采样可被跳过；延迟交付时 stale 样本记录且 delivered 后仍保留；slow 场景 working 状态下稳定记录 state=stale"
+      }
+    ],
+    "worker_id": "w08-stale-test-fix"
+  },
+  "run_id": "issue08-test-repair",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session_index": 1,
+  "sessions": [
+    {
+      "agent": "w08-stale-test-fix",
+      "context": {
+        "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm08-test-repair-.git-herdr-plan-manager-worktrees-w08-stale-test-fix--/2026-09-12T19-41-47-107Z_01a09723-e4e2-76e6-a652-33df199c898a.jsonl",
+        "freshness": "completed-call",
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "observed_at": "2026-09-12T20:00:09.148Z",
+        "pct": 0.10464286804199219,
+        "pi_package_version": "/home/blingtron/.nvm/versions/node/v24.9.0/lib/node_modules/@earendil-works/pi-coding-agent",
+        "provider": "opencode-go",
+        "sampled_at": "2026-09-12T20:00:22.432594Z",
+        "session": 1,
+        "source": "precise",
+        "state": "current",
+        "total": 109726,
+        "window": 1048576,
+        "window_source": "pi --list-models"
+      },
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm08-test-repair-.git-herdr-plan-manager-worktrees-w08-stale-test-fix--/2026-09-12T19-41-47-107Z_01a09723-e4e2-76e6-a652-33df199c898a.jsonl",
+      "end_state": "delivered",
+      "ended_at": "2026-09-12T20:00:39.108813Z",
+      "handoff": null,
+      "index": 1,
+      "pane": "wJ:p1R",
+      "prompt": {
+        "attempts": 1,
+        "confirmed_at": "2026-09-12T19:41:50.245537Z"
+      },
+      "runtime": {
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-12T19:41:49.687678Z",
+      "status": "ended",
+      "tab": "wJ:t1R"
+    }
+  ],
+  "starter": {
+    "host": "BlingtronPC",
+    "pid": 2915253
+  },
+  "supervisor": {
+    "exit_reason": "result-recorded",
+    "heartbeat_at": "2026-09-12T20:00:39.108888Z",
+    "host": "BlingtronPC",
+    "pid": 2915771,
+    "started_at": "2026-09-12T19:41:50.556298Z",
+    "state": "exited"
+  },
+  "ticket": {
+    "id": "08-R1",
+    "title": "08-R1"
+  },
+  "updated_at": "2026-09-12T20:01:37.489031Z",
+  "version": 3,
+  "worker_id": "w08-stale-test-fix",
+  "worktree": "/tmp/opencode/hpm08-test-repair/.git/herdr-plan-manager/worktrees/w08-stale-test-fix"
+}

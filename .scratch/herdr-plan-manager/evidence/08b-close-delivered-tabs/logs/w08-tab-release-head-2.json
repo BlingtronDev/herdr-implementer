@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "rev-parse",
+    "hpm/w08-tab-release"
+  ],
+  "cwd": "/tmp/opencode/hpm08-tabs-he0r3x0j/source",
+  "exit_code": 0,
+  "stdout": "6d0a7e05364375421ac6fddedffff88e76693e54\n",
+  "stderr": ""
+}

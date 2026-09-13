@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--no-edit",
+    "1664e77b194ca7712603c9d5be36ab50627cc883"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+  "exit_code": 0,
+  "stdout": "Merge made by the 'ort' strategy.\n consumer.py | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+  "stderr": ""
+}

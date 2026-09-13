@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "rev-parse",
+    "HEAD"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+  "exit_code": 0,
+  "stdout": "4ab1ac23f004a32142e9f727f0c3e055ad6a8b2d\n",
+  "stderr": ""
+}

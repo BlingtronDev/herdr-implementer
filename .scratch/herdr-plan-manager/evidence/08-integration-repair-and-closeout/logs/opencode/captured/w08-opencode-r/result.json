@@ -1,0 +1,58 @@
+{
+  "ticket_id": "R",
+  "worker_id": "w08-opencode-r",
+  "status": "delivered",
+  "summary": "Reproduced the combined failure (render(produce(12)) returned '$1200.00', exit 1), diagnosed it as consumer.py ignoring the producer's 'unit' metadata, and repaired render() to divide cent amounts by 100 while formatting legacy 'dollars' packets unchanged. producer.py was left untouched, preserving its cents output. Added test_currency.py covering cents metadata, combined rendering, and legacy dollar rendering; committed both files on hpm/w08-opencode-r.",
+  "acceptance": [
+    {
+      "criterion": "Reproduce the failing combined command before editing",
+      "met": true,
+      "evidence": "Pre-fix run of the required combined command failed with AssertionError: $1200.00 (exit 1), surfaced by the assertion on render(produce(12))."
+    },
+    {
+      "criterion": "Diagnose and repair the unit mismatch while preserving producer cents metadata and legacy dollar rendering",
+      "met": true,
+      "evidence": "consumer.py:render now checks packet.get('unit') == 'cents' and divides by 100 before formatting; producer.py is unchanged (git diff HEAD shows only consumer.py modified). render({'amount':12,'unit':'dollars'}) still returns '$12.00'."
+    },
+    {
+      "criterion": "Required combined verification passes",
+      "met": true,
+      "evidence": "python3 -c '...combined/cl...' printed 'combined and legacy currency passed' with exit code 0 after the fix."
+    },
+    {
+      "criterion": "Preserve both original intents",
+      "met": true,
+      "evidence": "A intent: produce(12)=={'amount':1200,'unit':'cents'} and produce(0)=={'amount':0,'unit':'cents'} verified in test_produce_emits_cents_with_unit_metadata. B intent: render({'amount':12,'unit':'dollars'})=='$12.00' and 0->'$0.00' verified in test_render_formats_legacy_dollar_packet."
+    },
+    {
+      "criterion": "Add a small committed regression test file and run it",
+      "met": true,
+      "evidence": "test_currency.py (3 unittest cases) committed in 5f45535; python3 -m unittest -v test_currency ran 3 tests OK with exit 0."
+    },
+    {
+      "criterion": "Stay on the assigned branch/worktree and commit the completed repair there",
+      "met": true,
+      "evidence": "Branch hpm/w08-opencode-r, HEAD 5f45535b9899a48c84227bea1f0908791ca68413 (child of assigned base 7e057ac); git status --porcelain is empty."
+    }
+  ],
+  "verification": [
+    {
+      "command": "python3 -c 'from producer import produce; from consumer import render; assert produce(12)=={\"amount\":1200,\"unit\":\"cents\"}; assert render(produce(12))==\"$12.00\", render(produce(12)); assert render(produce(0))==\"$0.00\"; assert render({\"amount\":12,\"unit\":\"dollars\"})==\"$12.00\"; print(\"combined and legacy currency passed\")'",
+      "exit_code": 0,
+      "summary": "Before fix: AssertionError: $1200.00, exit 1 (reproduction). After fix: printed 'combined and legacy currency passed', exit 0."
+    },
+    {
+      "command": "python3 -m unittest -v test_currency",
+      "exit_code": 0,
+      "summary": "Ran 3 tests in 0.000s, OK: producer cents metadata, combined cents rendering, legacy dollar rendering."
+    },
+    {
+      "command": "git status --porcelain",
+      "exit_code": 0,
+      "summary": "Empty output; worktree clean after commit 5f45535."
+    }
+  ],
+  "head": "5f45535b9899a48c84227bea1f0908791ca68413",
+  "artifacts": ["consumer.py", "test_currency.py"],
+  "remaining": ""
+}

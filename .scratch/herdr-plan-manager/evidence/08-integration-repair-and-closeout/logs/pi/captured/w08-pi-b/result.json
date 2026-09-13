@@ -1,0 +1,20 @@
+{
+  "ticket_id": "B",
+  "worker_id": "w08-pi-b",
+  "status": "delivered",
+  "summary": "Updated format_user in formatter.py to return f\"Hello, {name}!\" so ticket B's greeting requirement holds at the seed baseline. Committed only formatter.py as 141bade.",
+  "acceptance": [
+    {"criterion": "format_user('Ada') == 'Hello, Ada!'", "met": true, "evidence": "python3 assertion run in worktree: assert format_user('Ada') == 'Hello, Ada!' passed; printed 'both assertions passed', exit=0."},
+    {"criterion": "format_user('Bob') == 'Hello, Bob!'", "met": true, "evidence": "python3 assertion run in worktree: assert format_user('Bob') == 'Hello, Bob!' passed in the same command; exit=0."},
+    {"criterion": "Commit only formatter.py", "met": true, "evidence": "git commit 141bade changed only formatter.py (git show --stat: '1 file changed, 1 insertion(+), 1 deletion(-)'); git status --porcelain empty after commit."},
+    {"criterion": "Run both assertions", "met": true, "evidence": "Both assertions executed together via python3 -c in the assigned worktree after the commit; exit code 0, output 'both assertions passed'."}
+  ],
+  "verification": [
+    {"command": "python3 -c \"from formatter import format_user; assert format_user('Ada') == 'Hello, Ada!'; assert format_user('Bob') == 'Hello, Bob!'; print('both assertions passed')\"", "exit_code": 0, "summary": "Printed 'both assertions passed' against the committed worktree state."},
+    {"command": "git show --stat --oneline HEAD", "exit_code": 0, "summary": "141bade B: add greeting to format_user; formatter.py | 2 +-, 1 insertion, 1 deletion."},
+    {"command": "git status --porcelain", "exit_code": 0, "summary": "No output; worktree clean after commit."}
+  ],
+  "head": "141bade1844afa55ce66641c4299d9333ead83f5",
+  "artifacts": ["formatter.py"],
+  "remaining": ""
+}

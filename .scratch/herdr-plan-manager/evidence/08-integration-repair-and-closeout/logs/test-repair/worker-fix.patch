@@ -1,0 +1,62 @@
+diff --git a/tests/test_plan_manager.py b/tests/test_plan_manager.py
+index 66e47fb..8532017 100644
+--- a/tests/test_plan_manager.py
++++ b/tests/test_plan_manager.py
+@@ -613,16 +613,54 @@ def test_context_observation_records_interpretable_sample(make_harness):
+ 
+ 
+ def test_stale_context_sample_never_triggers_a_handoff(make_harness):
+-    h = make_harness("deliver-code")
++    h = make_harness("slow")
+     h.env["HPM_FAKE_CONTEXT_MODE"] = "stale"
+     proc = h.start(handoff_tokens=1, handoff_pct=0.001)
+     assert proc.returncode == 0, proc.stderr
+     worker_id = json.loads(proc.stdout)["worker_id"]
+-    facts = h.wait_state(worker_id, {"delivered"})
++
++    # The sample must be observed while the worker is still executing: a fast
++    # delivery would settle the terminal before the supervisor samples it and
++    # leave the session context unset. Wait for the observed sample instead of
++    # racing the worker's delivery with a fixed delay.
++    deadline = time.time() + 10
++    facts = h.status(worker_id)
++    while time.time() < deadline and (((facts["session"] or {}).get("context") or {}).get("state") != "stale"):
++        time.sleep(0.2)
++        facts = h.status(worker_id)
++    sample = (facts.get("session") or {}).get("context")
++    assert sample is not None, "the supervisor never recorded a context sample for the running worker"
++    assert sample["state"] == "stale"
++    assert sample["freshness"] == "stale-model-change"
++    assert facts["herdr"]["agent_status"] == "working", "the sample must be observed while the worker executes"
++    assert not Path(facts["paths"]["result"]).is_file(), "a declared delivery would mask the stale-sample guard"
+     assert facts["handoff"]["history"] == []
+-    assert facts["sessions"][0]["context"]["state"] == "stale"
+     assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 1
+ 
++    # A handoff would block the supervisor inside the synchronous handoff
++    # attempt, so a second observation of this still-running session is
++    # positive evidence that the stale reading did not start one.
++    deadline = time.time() + 10
++    observed_again = False
++    while time.time() < deadline and not observed_again:
++        facts = h.status(worker_id)
++        session = facts["session"]
++        assert session["status"] == "active", "a stale sample must not start a handoff"
++        assert facts["herdr"]["agent_status"] == "working", "the worker must keep executing"
++        assert facts["handoff"]["history"] == [], "a stale sample must not trigger a handoff"
++        assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 1
++        observed_again = (session.get("context") or {}).get("sampled_at") != sample["sampled_at"]
++        time.sleep(0.2)
++    assert observed_again, "the supervisor never observed the still-running worker again"
++    assert facts["session"]["context"]["state"] == "stale"
++
++    assert h.stop(worker_id).returncode == 0
++    facts = h.status(worker_id)
++    assert facts["lifecycle"]["state"] == "stopped"
++    assert facts["session"]["context"]["state"] == "stale"
++    assert facts["handoff"]["history"] == [], "a stale sample must not trigger a handoff"
++    assert len(h.prompts(facts["herdr"]["agent"])) == 1
++
+ 
+ def test_unobservable_context_is_an_exception_not_zero_usage(make_harness):
+     h = make_harness("missing-result")

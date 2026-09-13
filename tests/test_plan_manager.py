@@ -258,6 +258,78 @@ class Harness:
             time.sleep(0.2)
         raise AssertionError(f"agent status never became {status}")
 
+    def panes(self) -> list[dict]:
+        path = self.fake / "panes.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else []
+
+    def tab_open(self, tab: str) -> bool:
+        return any(pane["tab_id"] == tab for pane in self.panes())
+
+    def add_pane(self, tab: str, pane: str, *, cwd: str = "", agent: str = "") -> None:
+        """Inject an extra pane (and optionally a foreign agent) into a tab."""
+        panes = self.panes()
+        panes.append({"pane_id": pane, "tab_id": tab, "cwd": cwd})
+        (self.fake / "panes.json").write_text(json.dumps(panes), encoding="utf-8")
+        if agent:
+            (self.fake / "agents" / f"{agent}.json").write_text(
+                json.dumps(
+                    {"status": "idle", "kind": "pi", "pane": pane, "tab": tab, "prompt_count": 0}
+                ),
+                encoding="utf-8",
+            )
+
+    def reopen_tab(self, tab: str, pane: str, cwd: str) -> None:
+        self.add_pane(tab, pane, cwd=cwd)
+
+    def fail_tab_close(self, *tabs: str) -> None:
+        (self.fake / "tab_close_fail").write_text(" ".join(tabs) or "*", encoding="utf-8")
+
+    def clear_tab_close_failure(self) -> None:
+        (self.fake / "tab_close_fail").unlink(missing_ok=True)
+
+    def wait_release(self, worker_id: str, state: str, timeout: float = 20) -> dict:
+        deadline = time.time() + timeout
+        facts = None
+        while time.time() < deadline:
+            facts = self.status(worker_id)
+            release = facts.get("release")
+            if isinstance(release, dict) and release.get("state") == state:
+                return facts
+            time.sleep(0.2)
+        raise AssertionError(
+            f"worker {worker_id} never reached release state {state!r}: {facts and facts.get('release')}"
+        )
+
+    def remove_pane(self, pane_id: str) -> None:
+        panes = [pane for pane in self.panes() if pane["pane_id"] != pane_id]
+        (self.fake / "panes.json").write_text(json.dumps(panes), encoding="utf-8")
+
+    def marker(self, name: str, *values: str) -> None:
+        (self.fake / name).write_text(" ".join(values), encoding="utf-8")
+
+    def clear_marker(self, name: str) -> None:
+        (self.fake / name).unlink(missing_ok=True)
+
+    def wait_result_file(self, worker_id: str, timeout: float = 15) -> dict:
+        """Wait until the worker declared a result file, without waiting for settlement."""
+        deadline = time.time() + timeout
+        facts = self.status(worker_id)
+        while time.time() < deadline and not Path(facts["paths"]["result"]).is_file():
+            time.sleep(0.1)
+            facts = self.status(worker_id)
+        assert Path(facts["paths"]["result"]).is_file(), "the scenario never declared a result"
+        return facts
+
+    def wait_supervisor_exit(self, worker_id: str, timeout: float = 15) -> dict:
+        """Wait until the recorded supervisor process is gone (post-delivery release)."""
+        deadline = time.time() + timeout
+        facts = self.status(worker_id)
+        while time.time() < deadline and facts["supervisor"]["alive"]:
+            time.sleep(0.1)
+            facts = self.status(worker_id)
+        assert facts["supervisor"]["alive"] is False, "the supervisor never exited"
+        return facts
+
     def kill_supervisor(self, worker_id: str) -> None:
         facts = self.status(worker_id)
         pid = facts["supervisor"]["pid"]
@@ -416,8 +488,7 @@ def test_uncertain_prompt_is_observed_not_resent(make_harness, kind):
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"delivered"})
-    agent = json.loads((h.fake / "agents" / f"{facts['herdr']['agent']}.json").read_text(encoding="utf-8"))
-    assert agent["prompt_count"] == 1, "an accepted-but-unconfirmed prompt must not be resent"
+    assert len(h.prompts(facts["herdr"]["agent"])) == 1, "an accepted-but-unconfirmed prompt must not be resent"
 
 
 def test_invalid_configuration_fails_before_delivery(make_harness):
@@ -585,8 +656,7 @@ def test_dropped_prompt_is_redelivered_until_confirmed(make_harness, kind):
     worker_id = json.loads(proc.stdout)["worker_id"]
     facts = h.wait_state(worker_id, {"delivered"})
     assert facts["prompt"]["attempts"] == 2
-    agent = json.loads((h.fake / "agents" / f"{facts['herdr']['agent']}.json").read_text(encoding="utf-8"))
-    assert agent["prompt_count"] == 2
+    assert len(h.prompts(facts["herdr"]["agent"])) == 2
 
 
 def test_context_observation_records_interpretable_sample(make_harness):
@@ -613,15 +683,53 @@ def test_context_observation_records_interpretable_sample(make_harness):
 
 
 def test_stale_context_sample_never_triggers_a_handoff(make_harness):
-    h = make_harness("deliver-code")
+    h = make_harness("slow")
     h.env["HPM_FAKE_CONTEXT_MODE"] = "stale"
     proc = h.start(handoff_tokens=1, handoff_pct=0.001)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
-    facts = h.wait_state(worker_id, {"delivered"})
+
+    # The sample must be observed while the worker is still executing: a fast
+    # delivery would settle the terminal before the supervisor samples it and
+    # leave the session context unset. Wait for the observed sample instead of
+    # racing the worker's delivery with a fixed delay.
+    deadline = time.time() + 10
+    facts = h.status(worker_id)
+    while time.time() < deadline and (((facts["session"] or {}).get("context") or {}).get("state") != "stale"):
+        time.sleep(0.2)
+        facts = h.status(worker_id)
+    sample = (facts.get("session") or {}).get("context")
+    assert sample is not None, "the supervisor never recorded a context sample for the running worker"
+    assert sample["state"] == "stale"
+    assert sample["freshness"] == "stale-model-change"
+    assert facts["herdr"]["agent_status"] == "working", "the sample must be observed while the worker executes"
+    assert not Path(facts["paths"]["result"]).is_file(), "a declared delivery would mask the stale-sample guard"
     assert facts["handoff"]["history"] == []
-    assert facts["sessions"][0]["context"]["state"] == "stale"
     assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 1
+
+    # A handoff would block the supervisor inside the synchronous handoff
+    # attempt, so a second observation of this still-running session is
+    # positive evidence that the stale reading did not start one.
+    deadline = time.time() + 10
+    observed_again = False
+    while time.time() < deadline and not observed_again:
+        facts = h.status(worker_id)
+        session = facts["session"]
+        assert session["status"] == "active", "a stale sample must not start a handoff"
+        assert facts["herdr"]["agent_status"] == "working", "the worker must keep executing"
+        assert facts["handoff"]["history"] == [], "a stale sample must not trigger a handoff"
+        assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 1
+        observed_again = (session.get("context") or {}).get("sampled_at") != sample["sampled_at"]
+        time.sleep(0.2)
+    assert observed_again, "the supervisor never observed the still-running worker again"
+    assert facts["session"]["context"]["state"] == "stale"
+
+    assert h.stop(worker_id).returncode == 0
+    facts = h.status(worker_id)
+    assert facts["lifecycle"]["state"] == "stopped"
+    assert facts["session"]["context"]["state"] == "stale"
+    assert facts["handoff"]["history"] == [], "a stale sample must not trigger a handoff"
+    assert len(h.prompts(facts["herdr"]["agent"])) == 1
 
 
 def test_unobservable_context_is_an_exception_not_zero_usage(make_harness):
@@ -1324,6 +1432,7 @@ def test_cleanup_removes_worktree_but_keeps_branch_and_evidence(make_harness, ki
     proc = h.start(kind=kind, worker_id="w-clean-02")
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_state("w-clean-02", {"delivered"})
+    facts = h.wait_supervisor_exit("w-clean-02")
     worktree = Path(facts["worktree"])
     result_path = Path(facts["paths"]["result"])
     management = Path(facts["paths"]["management"])
@@ -1337,7 +1446,9 @@ def test_cleanup_removes_worktree_but_keeps_branch_and_evidence(make_harness, ki
     assert payload["worktree"]["removed"] is True
     assert payload["branch"]["deleted"] is False
     assert payload["sessions"]["closed_tabs"] == [tab]
-    assert [call for call in herdr_calls(h, ("tab", "close"))] == [["tab", "close", tab]]
+    close_calls = herdr_calls(h, ("tab", "close"))
+    assert close_calls, "cleanup must close the registered tab"
+    assert all(call == ["tab", "close", tab] for call in close_calls)
     assert not worktree.exists()
     assert branch_exists(h.repo, facts["branch"])
     assert result_path.is_file()
@@ -1400,6 +1511,7 @@ def test_cleanup_requires_a_decision_for_uncommitted_content_and_archives_it(mak
     proc = h.start(worker_id="w-clean-04")
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_state("w-clean-04", {"delivered"})
+    facts = h.wait_supervisor_exit("w-clean-04")
     worktree = Path(facts["worktree"])
     assert (worktree / "findings.md").is_file()
 
@@ -1519,7 +1631,7 @@ def test_delivery_stops_automatic_handoff(make_harness):
     facts = h.wait_state("w-clean-07", {"delivered"}, timeout=30)
     assert len(facts["sessions"]) == 1
     assert facts["handoff"]["history"] == []
-    assert h.agent(facts["herdr"]["agent"])["prompt_count"] == 1, "no handoff prompt may be sent after delivery"
+    assert len(h.prompts(facts["herdr"]["agent"])) == 1, "no handoff prompt may be sent after delivery"
 
 
 def test_stop_after_delivery_keeps_the_result_and_the_scene(make_harness):
@@ -1543,11 +1655,545 @@ def test_stop_after_delivery_keeps_the_result_and_the_scene(make_harness):
     assert Path(facts["paths"]["result"]).is_file()
 
 
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_delivered_worker_releases_its_tab(make_harness, kind):
+    h = make_harness("deliver-code")
+    proc = h.start(kind=kind, worker_id="w-release-01")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-01", {"delivered"})
+    tab = facts["herdr"]["tab"]
+    facts = h.wait_release("w-release-01", "closed")
+    facts = h.wait_supervisor_exit("w-release-01")
+
+    assert facts["release"]["reason"] == "delivered-worktree-clean"
+    assert facts["release"]["tabs"]["closed"] == [tab]
+    assert not h.tab_open(tab), "the delivered worker tab must be closed"
+    assert herdr_calls(h, ("tab", "close")) == [["tab", "close", tab]]
+
+    # Release frees the terminal without touching the branch, worktree or result.
+    assert facts["lifecycle"]["state"] == "delivered"
+    assert Path(facts["worktree"]).is_dir()
+    assert Path(facts["paths"]["result"]).is_file()
+    assert branch_exists(h.repo, facts["branch"])
+    assert [item["kind"] for item in facts["items"]] == ["delivery"]
+
+    # Cleanup still works after the automatic release and stays idempotent.
+    cleaned = h.cleanup("w-release-01", "--disposition", "accepted and integrated by hand")
+    assert cleaned.returncode == 0, cleaned.stderr
+    assert json.loads(cleaned.stdout)["worktree"]["removed"] is True
+    assert h.status("w-release-01")["cleanup"]["cleaned"] is True
+
+
+def test_early_result_does_not_close_a_working_session(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-02", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+
+    deadline = time.time() + 10
+    facts = h.status("w-release-02")
+    while time.time() < deadline and not Path(facts["paths"]["result"]).is_file():
+        time.sleep(0.1)
+        facts = h.status("w-release-02")
+    assert Path(facts["paths"]["result"]).is_file(), "the scenario never declared a result"
+    assert facts["herdr"]["agent_status"] == "working"
+    tab = facts["herdr"]["tab"]
+
+    time.sleep(1.0)  # enough time for a premature release, which must not happen
+    facts = h.status("w-release-02")
+    assert facts["lifecycle"]["state"] == "running"
+    assert facts.get("release") is None
+    assert herdr_calls(h, ("tab", "close")) == []
+    assert h.tab_open(tab), "a result file must not close a session that is still working"
+
+    facts = h.wait_state("w-release-02", {"delivered"})
+    facts = h.wait_release("w-release-02", "closed")
+    assert not h.tab_open(tab), "the settled delivery must release the tab"
+    assert facts["result"]["status"] == "delivered"
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+@pytest.mark.parametrize("behavior", ["missing-result", "needs-decision"])
+def test_no_valid_result_retains_the_tab(make_harness, kind, behavior):
+    h = make_harness(behavior)
+    proc = h.start(kind=kind, worker_id="w-release-03")
+    assert proc.returncode == 0, proc.stderr
+    expected = "protocol-failure" if behavior == "missing-result" else "needs-decision"
+    facts = h.wait_state("w-release-03", {expected})
+    tab = facts["herdr"]["tab"]
+
+    assert h.tab_open(tab), "a failure scene keeps its terminal"
+    assert herdr_calls(h, ("tab", "close")) == []
+    assert facts["lifecycle"]["state"] == expected
+    assert Path(facts["worktree"]).is_dir()
+
+    stopped = h.stop("w-release-03")
+    assert stopped.returncode == 0, stopped.stderr
+    payload = json.loads(stopped.stdout)
+    assert payload["release"]["state"] == "retained"
+    assert payload["release"]["reason"] == "no-valid-delivery"
+    assert h.tab_open(tab), "stopping a failure scene must not close its tab"
+    assert herdr_calls(h, ("tab", "close")) == []
+    assert Path(facts["worktree"]).is_dir()
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_dirty_worktree_retains_the_delivered_tab(make_harness, kind):
+    h = make_harness("deliver-noncode")
+    proc = h.start(kind=kind, worker_id="w-release-04")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-04", {"delivered"})
+    tab = facts["herdr"]["tab"]
+    facts = h.wait_release("w-release-04", "retained")
+
+    assert facts["release"]["reason"] == "uncommitted-content"
+    assert any(entry["path"] == "findings.md" for entry in facts["release"]["uncommitted"])
+    assert h.tab_open(tab)
+    assert herdr_calls(h, ("tab", "close")) == []
+    assert facts["result"]["status"] == "delivered"
+
+    # Once the delivered artifact is committed the same stop path releases the tab.
+    subprocess.run(["git", "add", "findings.md"], cwd=facts["worktree"], check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "record findings"], cwd=facts["worktree"], capture_output=True, check=True
+    )
+    stopped = h.stop("w-release-04")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+    assert Path(facts["worktree"]).is_dir()
+    assert Path(facts["paths"]["result"]).is_file()
+
+
+def test_tab_close_failure_keeps_delivery_and_releases_on_retry(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-05", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+
+    deadline = time.time() + 10
+    facts = h.status("w-release-05")
+    while time.time() < deadline and not Path(facts["paths"]["result"]).is_file():
+        time.sleep(0.1)
+        facts = h.status("w-release-05")
+    tab = facts["herdr"]["tab"]
+    h.fail_tab_close(tab)
+
+    facts = h.wait_state("w-release-05", {"delivered"})
+    facts = h.wait_release("w-release-05", "retained")
+    assert facts["release"]["reason"] == "tab-close-failed"
+    assert facts["release"]["failed_tabs"][0]["tab"] == tab
+    assert facts["result"]["status"] == "delivered"
+    assert facts["lifecycle"]["state"] == "delivered"
+    assert not [item for item in facts["items"] if item["kind"] == "exception"], (
+        "a close failure must not become a business failure"
+    )
+    assert h.tab_open(tab)
+    assert Path(facts["worktree"]).is_dir()
+
+    # A later stop reuses the same release path once the failure is gone.
+    h.clear_tab_close_failure()
+    stopped = h.stop("w-release-05")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+def test_foreign_pane_retains_the_tab(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-06", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+
+    deadline = time.time() + 10
+    facts = h.status("w-release-06")
+    while time.time() < deadline and not Path(facts["paths"]["result"]).is_file():
+        time.sleep(0.1)
+        facts = h.status("w-release-06")
+    tab = facts["herdr"]["tab"]
+    h.add_pane(tab, "fp:foreign", cwd=str(h.tmp), agent="someone-else")
+
+    facts = h.wait_state("w-release-06", {"delivered"})
+    facts = h.wait_release("w-release-06", "retained")
+    assert facts["release"]["reason"] == "foreign-occupancy"
+    reasons = {entry["reason"] for entry in facts["release"]["foreign"]}
+    assert reasons == {"unregistered-pane", "foreign-agent"}
+    assert h.tab_open(tab), "a tab holding another occupant must not be closed"
+    assert facts["result"]["status"] == "delivered"
+    assert Path(facts["worktree"]).is_dir()
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_repeated_stop_and_already_closed_tab_are_idempotent(make_harness, kind):
+    h = make_harness("deliver-code")
+    proc = h.start(kind=kind, worker_id="w-release-07")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-07", {"delivered"})
+    facts = h.wait_release("w-release-07", "closed")
+    tab = facts["herdr"]["tab"]
+    closes_before = herdr_calls(h, ("tab", "close"))
+
+    again = h.stop("w-release-07")
+    assert again.returncode == 0, again.stderr
+    payload = json.loads(again.stdout)
+    assert payload["already_terminal"] is True
+    assert payload["release"]["state"] == "closed"
+    assert payload["business_stopped"] is True
+    assert herdr_calls(h, ("tab", "close")) == closes_before, "an already-closed tab is not re-closed"
+    assert not h.tab_open(tab)
+    assert Path(facts["worktree"]).is_dir()
+    assert Path(facts["paths"]["result"]).is_file()
+
+
+def test_stop_releases_a_delivered_record_without_a_release(make_harness):
+    h = make_harness("deliver-code")
+    proc = h.start(worker_id="w-release-08")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-08", {"delivered"})
+    facts = h.wait_release("w-release-08", "closed")
+    tab = facts["herdr"]["tab"]
+    pane = facts["herdr"]["pane"]
+
+    # Simulate a record created before automatic release existed: the supervisor
+    # already exited and no release decision was recorded.
+    state_path = Path(facts["paths"]["management"]) / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.pop("release", None)
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    h.reopen_tab(tab, pane, facts["worktree"])
+    assert h.tab_open(tab)
+    closes_before = len(herdr_calls(h, ("tab", "close")))
+
+    stopped = h.stop("w-release-08")
+    assert stopped.returncode == 0, stopped.stderr
+    payload = json.loads(stopped.stdout)
+    assert payload["already_terminal"] is True
+    assert payload["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+    assert len(herdr_calls(h, ("tab", "close"))) == closes_before + 1
+    assert Path(facts["worktree"]).is_dir()
+    assert Path(facts["paths"]["result"]).is_file()
+
+
+def test_unknown_agent_query_is_not_exit_evidence(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-11", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_result_file("w-release-11")
+    tab = facts["herdr"]["tab"]
+    agent = facts["herdr"]["agent"]
+    h.marker("agent_get_error", agent)
+
+    facts = h.wait_state("w-release-11", {"delivered"})
+    facts = h.wait_release("w-release-11", "retained")
+    assert facts["release"]["reason"] == "session-state-unknown"
+    assert facts["release"]["sessions"][0]["error"], "the unconfirmed query must be recorded"
+    assert h.tab_open(tab), "an unreadable agent query is not proof that the TUI exited"
+    assert herdr_calls(h, ("tab", "close")) == []
+    assert (h.fake / "agents" / f"{agent}.json").is_file(), "the TUI was never exited"
+
+    # Once the query is readable again the same stop path releases the tab.
+    h.clear_marker("agent_get_error")
+    stopped = h.stop("w-release-11")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+def test_registered_agent_listed_as_working_blocks_release(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-12", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_result_file("w-release-12")
+    tab = facts["herdr"]["tab"]
+    agent = facts["herdr"]["agent"]
+    # A per-agent query can fail while the workspace listing still proves the
+    # registered agent is active; that listing must block the close.
+    h.marker("agent_get_missing", agent)
+    h.marker("agent_list_working", agent)
+
+    facts = h.wait_state("w-release-12", {"delivered"})
+    facts = h.wait_release("w-release-12", "retained")
+    assert facts["release"]["reason"] == "session-not-settled"
+    assert facts["release"]["sessions"][0]["agent"] == agent
+    assert h.tab_open(tab)
+    assert herdr_calls(h, ("tab", "close")) == []
+
+    h.clear_marker("agent_get_missing")
+    h.clear_marker("agent_list_working")
+    stopped = h.stop("w-release-12")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+def test_foreign_pane_added_during_exit_retains_the_tab(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-13", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_result_file("w-release-13")
+    tab = facts["herdr"]["tab"]
+    h.marker("release_race_foreign")
+
+    facts = h.wait_state("w-release-13", {"delivered"})
+    facts = h.wait_release("w-release-13", "retained")
+    assert facts["release"]["reason"] == "foreign-occupancy"
+    assert facts["release"]["phase"] == "post-exit"
+    assert any(entry["reason"] == "unregistered-pane" for entry in facts["release"]["foreign"])
+    assert h.tab_open(tab), "a pane added while the TUI exits must block the close"
+
+    race_pane = h.panes()[-1]["pane_id"]
+    h.remove_pane(race_pane)
+    h.clear_marker("release_race_foreign")
+    stopped = h.stop("w-release-13")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+def test_uncommitted_content_added_during_exit_retains_the_tab(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-14", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_result_file("w-release-14")
+    tab = facts["herdr"]["tab"]
+    h.marker("release_race_dirty")
+
+    facts = h.wait_state("w-release-14", {"delivered"})
+    facts = h.wait_release("w-release-14", "retained")
+    assert facts["release"]["reason"] == "uncommitted-content"
+    assert facts["release"]["phase"] == "post-exit"
+    late = Path(facts["worktree"]) / "late-write.txt"
+    assert late.is_file(), "the exit-time write must be detected"
+    assert h.tab_open(tab), "uncommitted content written during the exit must block the close"
+
+    late.unlink()
+    h.clear_marker("release_race_dirty")
+    stopped = h.stop("w-release-14")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+@pytest.mark.parametrize(
+    "mode", ["missing-tab", "element-not-object", "result-not-object", "empty-pane-id", "empty-tab-id"]
+)
+def test_malformed_occupancy_data_retains_the_tab(make_harness, mode):
+    h = make_harness("deliver-code")
+    h.marker("pane_list_malformed", mode)
+    proc = h.start(worker_id="w-release-15")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-15", {"delivered"})
+    tab = facts["herdr"]["tab"]
+    facts = h.wait_release("w-release-15", "retained")
+
+    assert facts["release"]["reason"] == "tab-occupancy-unverified"
+    assert facts["release"]["error"]
+    assert h.tab_open(tab), "malformed occupancy data must be retained, not read as empty"
+    assert herdr_calls(h, ("tab", "close")) == []
+    assert facts["result"]["status"] == "delivered"
+
+    h.clear_marker("pane_list_malformed")
+    stopped = h.stop("w-release-15")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+@pytest.mark.parametrize("mode", ["missing-tab", "result-not-object", "empty-pane-id", "empty-tab-id"])
+def test_malformed_agent_list_retains_the_tab(make_harness, mode):
+    h = make_harness("deliver-code")
+    h.marker("agent_list_malformed", mode)
+    proc = h.start(worker_id="w-release-19")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-19", {"delivered"})
+    tab = facts["herdr"]["tab"]
+    facts = h.wait_release("w-release-19", "retained")
+
+    assert facts["release"]["reason"] == "tab-occupancy-unverified"
+    assert facts["release"]["error"]
+    assert h.tab_open(tab)
+    assert herdr_calls(h, ("tab", "close")) == []
+
+    h.clear_marker("agent_list_malformed")
+    stopped = h.stop("w-release-19")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+def test_registered_pane_under_conflicting_tab_retains_the_tab(make_harness):
+    h = make_harness("deliver-code")
+    h.marker("pane_list_malformed", "conflicting-tab")
+    proc = h.start(worker_id="w-release-20")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-20", {"delivered"})
+    tab = facts["herdr"]["tab"]
+    facts = h.wait_release("w-release-20", "retained")
+
+    assert facts["release"]["reason"] == "foreign-occupancy"
+    conflict = [entry for entry in facts["release"]["foreign"] if entry["reason"] == "pane-tab-conflict"]
+    assert conflict, "a registered pane reported under another tab is a conflict, not an unrelated pane"
+    assert conflict[0]["registered_tabs"] == [tab]
+    assert h.tab_open(tab)
+    assert herdr_calls(h, ("tab", "close")) == []
+
+    h.clear_marker("pane_list_malformed")
+    stopped = h.stop("w-release-20")
+    assert stopped.returncode == 0, stopped.stderr
+    assert json.loads(stopped.stdout)["release"]["state"] == "closed"
+    assert not h.tab_open(tab)
+
+
+def test_stop_does_not_take_over_from_a_live_supervisor(make_harness):
+    h = make_harness("deliver-code")
+    proc = h.start(worker_id="w-release-16")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-16", {"delivered"})
+    facts = h.wait_release("w-release-16", "closed")
+    tab = facts["herdr"]["tab"]
+    closes_before = herdr_calls(h, ("tab", "close"))
+
+    # Simulate a supervisor that is still alive after recording the delivery.
+    deadline = time.time() + 10
+    while time.time() < deadline and facts["supervisor"]["alive"]:
+        time.sleep(0.2)
+        facts = h.status("w-release-16")
+    assert facts["supervisor"]["alive"] is False, "the real supervisor never exited"
+    holder = subprocess.Popen(["sleep", "60"])
+    try:
+        state_path = Path(facts["paths"]["management"]) / "state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["supervisor"].update(pid=holder.pid, host=os.uname().nodename, state="running")
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        h.env["HPM_STOP_WAIT_SECONDS"] = "0.5"
+
+        refused = h.stop("w-release-16")
+        assert refused.returncode == 3, refused.stderr
+        payload = json.loads(refused.stderr)
+        assert payload["error"] == "stop-incomplete"
+        assert payload["business_stopped"] is False
+        assert "still running" in payload["message"]
+        assert herdr_calls(h, ("tab", "close")) == closes_before, "stop must not write while the supervisor lives"
+    finally:
+        holder.terminate()
+        holder.wait(timeout=10)
+
+    again = h.stop("w-release-16")
+    assert again.returncode == 0, again.stderr
+    assert json.loads(again.stdout)["release"]["state"] == "closed"
+
+
+def test_concurrent_stops_without_a_supervisor_serialize(make_harness):
+    h = make_harness("deliver-code")
+    proc = h.start(worker_id="w-release-17")
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-17", {"delivered"})
+    facts = h.wait_release("w-release-17", "closed")
+    tab = facts["herdr"]["tab"]
+    pane = facts["herdr"]["pane"]
+
+    # A pre-release record whose tab is still registered: both stops would
+    # release it if they were not serialized per worker.
+    state_path = Path(facts["paths"]["management"]) / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.pop("release", None)
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    h.reopen_tab(tab, pane, facts["worktree"])
+    closes_before = len(herdr_calls(h, ("tab", "close")))
+
+    command = [sys.executable, str(PLAN_MANAGER), "stop", "--repo", str(h.repo), "--worker", "w-release-17"]
+    first = subprocess.Popen(command, cwd=h.repo, env=h.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    second = subprocess.Popen(command, cwd=h.repo, env=h.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out_one, err_one = first.communicate(timeout=60)
+    out_two, err_two = second.communicate(timeout=60)
+    assert first.returncode == 0, err_one
+    assert second.returncode == 0, err_two
+    assert json.loads(out_one)["release"]["state"] == "closed"
+    assert json.loads(out_two)["release"]["state"] == "closed"
+    assert len(herdr_calls(h, ("tab", "close"))) == closes_before + 1, (
+        "concurrent stops must release the tab once"
+    )
+    assert not h.tab_open(tab)
+    assert h.status("w-release-17")["release"]["attempts"] == 1
+
+
+def test_foreign_pane_in_second_tab_blocks_its_close(make_harness):
+    h = make_harness("deliver-then-work")
+    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    proc = h.start(worker_id="w-release-18", timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    facts = h.wait_state("w-release-18", {"delivered"})
+    facts = h.wait_release("w-release-18", "closed")
+
+    # Recreate the multi-tab shape a handoff leaves behind: tab A of the first
+    # session plus a second registered tab B, with no release decision yet.
+    tab_a = facts["herdr"]["tab"]
+    pane_a = facts["herdr"]["pane"]
+    tab_b, pane_b = "ft:t2", "fp:p2"
+    h.reopen_tab(tab_a, pane_a, facts["worktree"])
+    h.reopen_tab(tab_b, pane_b, facts["worktree"])
+    stamp = facts["lifecycle"].get("updated_at") or "2026-09-12T00:00:00Z"
+    state_path = Path(facts["paths"]["management"]) / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.pop("release", None)
+    state["sessions"].append(
+        {
+            "index": 2,
+            "agent": "w-release-18-s2",
+            "tab": tab_b,
+            "pane": pane_b,
+            "runtime": state["runtime"],
+            "status": "ended",
+            "started_at": stamp,
+            "ended_at": stamp,
+            "end_state": "replaced",
+            "context_ref": None,
+            "context": None,
+            "prompt": None,
+            "handoff": None,
+        }
+    )
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    # Tab B gains a foreign pane while the slow close of tab A is processed.
+    h.marker("release_race_close_foreign", tab_b)
+
+    stopped = h.stop("w-release-18")
+    assert stopped.returncode == 0, stopped.stderr
+    release = json.loads(stopped.stdout)["release"]
+    assert release["state"] == "retained"
+    assert release["reason"] == "foreign-occupancy"
+    assert release["phase"] == "pre-close"
+    assert release["tab"] == tab_b
+    assert release["tabs"]["closed"] == [tab_a]
+    assert not h.tab_open(tab_a), "the first tab was closed"
+    assert h.tab_open(tab_b), "a tab contaminated during the previous close must not be closed"
+    assert facts["result"]["status"] == "delivered"
+    assert Path(facts["worktree"]).is_dir()
+    assert Path(facts["paths"]["result"]).is_file()
+
+    # Remove the injected pane: the next stop closes the remaining tab.
+    race_pane = h.panes()[-1]["pane_id"]
+    h.remove_pane(race_pane)
+    h.clear_marker("release_race_close_foreign")
+    again = h.stop("w-release-18")
+    assert again.returncode == 0, again.stderr
+    release = json.loads(again.stdout)["release"]
+    assert release["state"] == "closed"
+    assert release["tabs"]["closed"] == [tab_a, tab_b]
+    assert not h.tab_open(tab_b)
+
+
 def test_cleanup_after_a_failed_worker_keeps_the_evidence(make_harness):
     h = make_harness("needs-decision")
     proc = h.start(worker_id="w-clean-10")
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_state("w-clean-10", {"needs-decision"})
+    facts = h.wait_supervisor_exit("w-clean-10")
     management = Path(facts["paths"]["management"])
     assert (management / "result.json").is_file()
     assert facts["cleanup"]["blockers"] and facts["cleanup"]["blockers"][0]["code"] == "decision-missing"

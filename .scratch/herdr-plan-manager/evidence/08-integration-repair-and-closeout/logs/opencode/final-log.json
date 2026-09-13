@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "git",
+    "log",
+    "--oneline",
+    "--graph",
+    "--all"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+  "exit_code": 0,
+  "stdout": "* 5f45535 Repair cents/dollars unit mismatch in consumer render\n*   7e057ac Merge commit '1664e77b194ca7712603c9d5be36ab50627cc883'\n|\\  \n| * 1664e77 Format legacy dollar packets in consumer render\n* | 4ab1ac2 Change producer output to cents with unit metadata\n|/  \n| * 6c8de3b document isolated experiment\n|/  \n* c2644a4 initialize repair experiment\n",
+  "stderr": ""
+}

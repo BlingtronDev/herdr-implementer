@@ -3,6 +3,19 @@
 
 Behavior is driven by files under $HPM_FAKE_DIR:
 - agents/<name>.json          agent state: status, kind, pane, prompt_count
+- panes.json                  registered tabs/panes (tab create/close, pane list)
+- tab_close_fail              tab ids (or *) whose `tab close` fails
+- agent_get_error             agent names whose `agent get` fails transiently
+- agent_get_missing           agent names whose `agent get` reports not_found
+- agent_list_working          agent names forced to `working` in `agent list`
+- pane_list_malformed         pane list mode: missing-tab | element-not-object |
+                              result-not-object | empty-pane-id | empty-tab-id |
+                              conflicting-tab
+- agent_list_malformed        agent list mode: missing-tab | result-not-object |
+                              empty-pane-id | empty-tab-id
+- release_race_foreign        inject a pane during the exit key press
+- release_race_dirty          write a file during the exit key press
+- release_race_close_foreign   tab ids that gain a pane while my tab closes
 - start_failures              remaining transient agent_pane_busy failures
 - prompt_uncertain            delete-on-use marker: first prompt returns an error
                               after being accepted server-side
@@ -18,6 +31,20 @@ from pathlib import Path
 ROOT = Path(os.environ["HPM_FAKE_DIR"])
 (ROOT / "agents").mkdir(parents=True, exist_ok=True)
 LOG = ROOT / "herdr.log.jsonl"
+PANES = ROOT / "panes.json"
+
+
+def read_panes():
+    try:
+        return json.loads(PANES.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return []
+
+
+def write_panes(panes):
+    tmp = PANES.with_suffix(".tmp")
+    tmp.write_text(json.dumps(panes), encoding="utf-8")
+    os.replace(tmp, PANES)
 
 
 def record(value):
@@ -79,14 +106,94 @@ def main(argv):
         counter = ROOT / "tab_counter"
         number = int(counter.read_text()) + 1 if counter.is_file() else 1
         counter.write_text(str(number))
-        emit({"result": {"tab": {"tab_id": f"ft:t{number}"}, "root_pane": {"pane_id": f"fp:p{number}"}}})
+        tab_id = f"ft:t{number}"
+        pane_id = f"fp:p{number}"
+        cwd = ""
+        if "--cwd" in argv:
+            cwd = argv[argv.index("--cwd") + 1]
+        panes = read_panes()
+        panes.append({"pane_id": pane_id, "tab_id": tab_id, "cwd": cwd})
+        write_panes(panes)
+        emit({"result": {"tab": {"tab_id": tab_id}, "root_pane": {"pane_id": pane_id}}})
     if argv[:2] == ["tab", "close"]:
-        emit({"result": {"closed": argv[2] if len(argv) > 2 else ""}})
+        tab = argv[2] if len(argv) > 2 else ""
+        marker = ROOT / "tab_close_fail"
+        targets = marker.read_text(encoding="utf-8").split() if marker.is_file() else []
+        if "*" in targets or tab in targets:
+            fail("tab_close_failed", f"simulated close failure for {tab}")
+        # An unrelated tab can gain a foreign pane while this tab's close is
+        # being processed; the release path must recheck before each close.
+        race = ROOT / "release_race_close_foreign"
+        race_targets = race.read_text(encoding="utf-8").split() if race.is_file() else []
+        if race_targets:
+            panes = read_panes()
+            present = {pane.get("tab_id") for pane in panes}
+            appended = False
+            for target in race_targets:
+                if target and target != tab and target in present:
+                    panes.append({"pane_id": f"fp:race{len(panes)}", "tab_id": target, "cwd": ""})
+                    appended = True
+            if appended:
+                write_panes(panes)
+        panes = read_panes()
+        remaining = [pane for pane in panes if pane.get("tab_id") != tab]
+        if len(remaining) == len(panes):
+            fail("tab_not_found", f"no tab {tab}")
+        write_panes(remaining)
+        emit({"result": {"closed": tab}})
+    if argv[:2] == ["pane", "list"]:
+        malformed = ROOT / "pane_list_malformed"
+        if malformed.is_file():
+            mode = malformed.read_text(encoding="utf-8").strip() or "missing-tab"
+            if mode == "result-not-object":
+                emit({"result": ["not", "an", "object"]})
+            if mode == "element-not-object":
+                emit({"result": {"panes": [{"pane_id": "fp:bad", "tab_id": "ft:t9"}, "junk"]}})
+            if mode == "empty-pane-id":
+                emit({"result": {"panes": [{"pane_id": "", "tab_id": "ft:t1"}]}})
+            if mode == "empty-tab-id":
+                emit({"result": {"panes": [{"pane_id": "fp:p1", "tab_id": ""}]}})
+            if mode == "conflicting-tab":
+                moved = [dict(pane) for pane in read_panes()]
+                for pane in moved:
+                    pane["tab_id"] = "ft:conflict"
+                emit({"result": {"panes": moved}})
+            emit({"result": {"panes": [{"pane_id": "fp:bad"}]}})
+        panes = read_panes()
+        result = []
+        for pane in panes:
+            value = dict(pane)
+            for path in sorted((ROOT / "agents").glob("*.json")):
+                data = read_agent(path.stem) or {}
+                if data.get("pane") == pane["pane_id"]:
+                    value["agent"] = data.get("kind", "pi")
+                    value["agent_status"] = data.get("status", "idle")
+            result.append(value)
+        emit({"result": {"panes": result}})
     if len(argv) < 2 or argv[0] != "agent":
         fail("unsupported")
     sub = argv[1]
     if sub == "list":
-        agents = [as_agent(path.stem, read_agent(path.stem)) for path in sorted((ROOT / "agents").glob("*.json"))]
+        malformed = ROOT / "agent_list_malformed"
+        if malformed.is_file():
+            mode = malformed.read_text(encoding="utf-8").strip() or "missing-tab"
+            if mode == "result-not-object":
+                emit({"result": "not-an-object"})
+            if mode == "empty-pane-id":
+                emit({"result": {"agents": [{"name": "x", "pane_id": "", "tab_id": "ft:t1"}]}})
+            if mode == "empty-tab-id":
+                emit({"result": {"agents": [{"name": "x", "pane_id": "fp:p1", "tab_id": ""}]}})
+            emit({"result": {"agents": [{"name": "x", "pane_id": "fp:p1"}]}})
+        agents = []
+        forced = (ROOT / "agent_list_working")
+        forced_names = forced.read_text(encoding="utf-8").split() if forced.is_file() else []
+        for path in sorted((ROOT / "agents").glob("*.json")):
+            data = read_agent(path.stem)
+            if data is not None:
+                value = as_agent(path.stem, data)
+                if path.stem in forced_names:
+                    value["agent_status"] = "working"
+                agents.append(value)
         emit({"result": {"agents": agents}})
     if len(argv) < 3:
         fail("bad_usage")
@@ -94,6 +201,12 @@ def main(argv):
     data = read_agent(name)
     if sub == "get":
         if data is None:
+            fail("agent_not_found")
+        unreadable = ROOT / "agent_get_error"
+        if unreadable.is_file() and name in unreadable.read_text(encoding="utf-8").split():
+            fail("socket_unavailable", "simulated transient agent query failure")
+        missing = ROOT / "agent_get_missing"
+        if missing.is_file() and name in missing.read_text(encoding="utf-8").split():
             fail("agent_not_found")
         emit({"result": {"agent": as_agent(name, data)}})
     if sub == "start":
@@ -112,8 +225,19 @@ def main(argv):
             fail("agent_pane_busy")
         kind = argv[argv.index("--kind") + 1]
         pane = argv[argv.index("--pane") + 1]
+        tab = ""
+        for entry in read_panes():
+            if entry.get("pane_id") == pane:
+                tab = entry.get("tab_id", "")
         separator = argv.index("--") if "--" in argv else len(argv)
-        data = {"status": "idle", "kind": kind, "pane": pane, "agent_args": argv[separator + 1:], "prompt_count": 0}
+        data = {
+            "status": "idle",
+            "kind": kind,
+            "pane": pane,
+            "tab": tab,
+            "agent_args": argv[separator + 1:],
+            "prompt_count": 0,
+        }
         if kind == "pi":
             data["session"] = f"fake-session-{name}"
         write_agent(name, data)
@@ -164,6 +288,24 @@ def main(argv):
             fail("agent_not_found")
         keys = argv[3:]
         if "ctrl+c" in keys:
+            panes = read_panes()
+            pane_cwd = ""
+            pane_tab = ""
+            for pane in panes:
+                if pane.get("pane_id") == data.get("pane"):
+                    pane_cwd = pane.get("cwd", "")
+                    pane_tab = pane.get("tab_id", "")
+            if (ROOT / "release_race_foreign").is_file():
+                panes.append(
+                    {
+                        "pane_id": f"fp:race{len(panes)}",
+                        "tab_id": pane_tab,
+                        "cwd": pane_cwd,
+                    }
+                )
+                write_panes(panes)
+            if (ROOT / "release_race_dirty").is_file() and pane_cwd:
+                Path(pane_cwd, "late-write.txt").write_text("written during exit\n", encoding="utf-8")
             agent_file(name).unlink(missing_ok=True)
             emit({"result": {"agent": None, "exited": True}})
         if "escape" in keys:

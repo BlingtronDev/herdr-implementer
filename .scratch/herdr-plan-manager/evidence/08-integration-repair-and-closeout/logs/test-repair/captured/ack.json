@@ -1,0 +1,10 @@
+{
+  "acked": {
+    "w08-stale-test-fix/i001": {
+      "acked_at": "2026-09-12T20:01:37.335256Z",
+      "note": "test fix accepted; patch to be incorporated in issue08 working-tree delivery, no project integration claimed"
+    }
+  },
+  "version": 1,
+  "worker_id": "w08-stale-test-fix"
+}

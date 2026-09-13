@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "start",
+    "--repo",
+    "/tmp/opencode/hpm08-tabs-he0r3x0j/source",
+    "--run",
+    "issue08-tab-release",
+    "--ticket-id",
+    "08-R2",
+    "--worker-id",
+    "w08-tab-release",
+    "--base",
+    "c706fad80514619eaca1702e17320d93126a0400",
+    "--material",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/.scratch/herdr-plan-manager/issues/08b-close-delivered-tabs.md",
+    "--material",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/.scratch/herdr-plan-manager/\u9879\u76ee\u91cd\u5efa\u65b9\u6848.md",
+    "--instructions",
+    "Implement only 08-R2 in your assigned isolated worktree. The snapshot already includes the 08-R1 stale-test fix and current docs. Follow the rebuild plan, not the legacy root dispatcher SKILL. Use your own tools; no subagents or real extra workers. Add meaningful deterministic regression coverage, reuse runtime adapters, preserve result semantics and foreign pane ownership. For old delivered records reuse stop to trigger the same safe release. Avoid new policy framework. Run focused tests while developing and the full suite once at the end. Commit only bin/tests/prompts/docs changes and publish result. Coordinator owns real runtime smoke and shared issue/evidence records."
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"active_workers\": 1,\n  \"agent\": \"w08-tab-release\",\n  \"base\": \"c706fad80514619eaca1702e17320d93126a0400\",\n  \"branch\": \"hpm/w08-tab-release\",\n  \"management_dir\": \"/tmp/opencode/hpm08-tabs-he0r3x0j/source/.git/herdr-plan-manager/workers/w08-tab-release\",\n  \"max_workers\": 3,\n  \"pane\": \"wJ:p1S\",\n  \"prompt_attempts\": 1,\n  \"result_path\": \"/tmp/opencode/hpm08-tabs-he0r3x0j/source/.git/herdr-plan-manager/workers/w08-tab-release/result.json\",\n  \"run_id\": \"issue08-tab-release\",\n  \"runtime\": {\n    \"kind\": \"pi\",\n    \"model\": \"deepseek-v4.1-flash\",\n    \"provider\": \"opencode-go\",\n    \"thinking\": \"max\"\n  },\n  \"session\": 1,\n  \"supervisor_pid\": 2958400,\n  \"tab\": \"wJ:t1S\",\n  \"ticket_id\": \"08-R2\",\n  \"worker_id\": \"w08-tab-release\",\n  \"worktree\": \"/tmp/opencode/hpm08-tabs-he0r3x0j/source/.git/herdr-plan-manager/worktrees/w08-tab-release\"\n}\n",
+  "stderr": ""
+}

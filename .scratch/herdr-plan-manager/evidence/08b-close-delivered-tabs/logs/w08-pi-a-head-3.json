@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "rev-parse",
+    "hpm/w08-pi-a"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+  "exit_code": 0,
+  "stdout": "97d7f44edf32c62e4aaec86e0ad2e1547be0750d\n",
+  "stderr": ""
+}

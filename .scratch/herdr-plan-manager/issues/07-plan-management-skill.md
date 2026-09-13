@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 — 实现多 worker 并发与待处理事项等待；06 — 实现交付保留与按决定清理。
 
-**Status:** delivered（2026-09-12：全部验收通过，含真实 Pi／OpenCode 组合冒烟；交付在当前工作区，未提交／未集成）
+**Status:** integrated（2026-09-13 核实：成果已进入 main，提交 `44abad7`；后续英文提示词更新为 `70ded9f`、`6f754e7`。历史真实冒烟对应 07 当时版本）
 
 > 接口现状（工单 05 已集成：`0ee66d7`）：并发与等待由 `bin/plan_manager.py` 的 `init-run`／`start --run`／`status --run`／`wait`／`ack` 提供，本工单的操作说明以此为准。一次确认写入 run（运行配置 + `max_workers`）；`wait` 默认无限等待，`--timeout` 只限制窗口且超时无结论；`ack` 输入 `<worker-id>/<item-id>`，不代表集成；`--handoff-tokens` 应高于新会话种子上下文（E05）。见 [README E07](README.md)。
 

@@ -50,6 +50,20 @@ If the repository has a designated unexpected-findings log, put the full entry t
 - Goal coverage and combined-behavior evidence:
 - Remaining gaps, blocked dependencies, and follow-up tickets:
 
+For a conflict or behavioral failure, use [Integration repair](repair-and-closeout.md) and record:
+
+- Pre-merge target and incoming SHAs, original ticket requirements, attempted command and failure evidence:
+- Ownership/precondition evidence, abort command/result, restored HEAD/status or retained blocked scene:
+- Repair ticket/worker and chosen base; previous attempts and incoming inputs:
+- Target changes during repair, compatibility decision and supporting evidence:
+- Original delivery -> repair delivery -> actual integration SHA; affected dependency release decision:
+
+At closeout, account for every plan-level goal (reuse the existing acceptance index if it owns this mapping):
+
+| Goal / acceptance requirement | Integrated SHA or accepted artifact | Applicable verification evidence | Result, gap, and next ticket |
+| --- | --- | --- | --- |
+| <goal> | <actual integrated result> | <worker, command/artifact, checked baseline> | <met / executing / blocked and reason> |
+
 ## Resources and closeout
 
 - Retained workers, worktrees, branches, results, handoff documents, and archives; locations and reasons:

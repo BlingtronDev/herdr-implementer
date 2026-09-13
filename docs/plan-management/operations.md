@@ -81,13 +81,23 @@ python3 "$HPM" ack --repo "$REPO" --item "$ITEM" --note "$DECISION"
 
 Repeat `--item` to acknowledge several items. Acknowledged items stop appearing in wait results; new items remain discoverable. Acknowledgement neither stops a worker nor changes quality or integration conclusions. Preserve a **pending integration** entry when acknowledging before a merge. An empty pending-item list is not proof of completion.
 
+For merge conflicts, behavior failures, or a target that changed during repair, follow [Integration repair](repair-and-closeout.md). Repairs and combined verification use the same `start --run` interface with a [repair brief](repair-brief.md) and explicit base; integration decisions remain in the coordinator's record.
+
 ## Stop and clean up
 
 ```bash
 python3 "$HPM" stop --repo "$REPO" --worker "$WORKER" --reason "$REASON"
 ```
 
-Require `business_stopped: true`. If stopping all registered business sessions cannot be confirmed, the tool reports `stop-incomplete`; preserve and investigate the scene rather than assuming write ownership is free. Stop coordinates supervision and in-progress handoff without deleting worktrees, branches, results, or handoff documents.
+Require `business_stopped: true`. If stopping all registered business sessions cannot be confirmed, the tool reports `stop-incomplete`; preserve and investigate the scene rather than assuming write ownership is free. Stop coordinates supervision and in-progress handoff without deleting worktrees, branches, results, or handoff documents. A live supervisor owns the worker until it exits: `stop` never takes over while its recorded PID is alive, and concurrent stops for the same worker serialize on one per-worker lock.
+
+**Automatic release after delivery.** A valid `delivered` result releases the worker's registered tabs once the result is durably recorded, every registered session is confirmed exited, the worktree has no uncommitted or untracked content and its `git status` is readable, and each tab holds only that worker's panes and agents. Release exits the TUI safely and closes only registered tabs; it does not wait for acknowledgement, integration, or cleanup and keeps the branch, worktree, result, logs, and materials.
+
+The tab is retained, with the reason recorded in `status --worker` under `release`, when the result is absent or invalid, an agent query is unreadable (only an explicit `agent_not_found` proves exit), a session is still active or cannot be exited, the worktree is dirty or its status is unconfirmable, an occupancy listing is malformed or a registered pane is reported under a conflicting tab, a registered tab contains an unregistered pane or another agent, or the close itself fails. A close failure never changes the delivery or retries indefinitely. An early result file does not close a session that is still working.
+
+Herdr exposes no conditional close that re-checks ownership in the same operation, so the manager re-verifies session state, worktree cleanliness, and tab occupancy immediately before **each** tab close. That narrows, but cannot eliminate, the race in which a foreign pane or agent appears between the final check and the close call; a later stop re-runs the same path and retains again if the condition persists. Retained-tab reasons are authoritative — inspect the scene instead of forcing a close.
+
+`stop` reuses the same release path, so a delivered worker whose supervisor already exited — including records created before automatic release existed — is released by stopping it again. Repeated `stop` calls and already-closed tabs are idempotent. Disk cleanup still requires an explicit decision.
 
 After confirming stopping and resource ownership, supply an explicit cleanup decision:
 

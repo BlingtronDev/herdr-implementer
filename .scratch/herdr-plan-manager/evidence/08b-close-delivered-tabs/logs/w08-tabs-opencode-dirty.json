@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "git",
+    "status",
+    "--porcelain"
+  ],
+  "cwd": "/tmp/opencode/hpm08-tabs-he0r3x0j/opencode-smoke/.git/herdr-plan-manager/worktrees/w08-tabs-opencode",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

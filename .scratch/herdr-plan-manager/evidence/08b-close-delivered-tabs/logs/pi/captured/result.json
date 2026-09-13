@@ -1,0 +1,23 @@
+{
+  "ticket_id": "T",
+  "worker_id": "w08-tabs-pi",
+  "status": "delivered",
+  "summary": "Created answer.txt containing exactly 'HPM08_TAB_RELEASE_OK' plus a trailing newline (21 bytes), asserted the byte content, and committed only that file as f8469f0 on branch hpm/w08-tabs-pi.",
+  "acceptance": [
+    {"criterion": "Create answer.txt containing exactly HPM08_TAB_RELEASE_OK plus newline", "met": true, "evidence": "answer.txt is 21 bytes; od -c shows 'H P M 0 8 _ T A B _ R E L E A S E _ O K \\n' with no extra bytes"},
+    {"criterion": "Assert its content", "met": true, "evidence": "printf 'HPM08_TAB_RELEASE_OK\\n' | cmp - answer.txt exited 0 (ASSERT_OK); committed blob re-checked via git show HEAD:answer.txt | od -c, identical 21 bytes"},
+    {"criterion": "Commit only that file", "met": true, "evidence": "git diff --name-only 1ae1b3f..HEAD lists only answer.txt; git show --stat HEAD reports '1 file changed, 1 insertion(+), create mode 100644 answer.txt'"},
+    {"criterion": "Publish a valid delivered result", "met": true, "evidence": "result.json written atomically via temp sibling + rename with status delivered, head f8469f0b69192e39d75c16d3ebc58d25b9d78877"}
+  ],
+  "verification": [
+    {"command": "printf 'HPM08_TAB_RELEASE_OK\\n' > answer.txt && printf 'HPM08_TAB_RELEASE_OK\\n' | cmp - answer.txt", "exit_code": 0, "summary": "ASSERT_OK: content matches exactly including trailing newline"},
+    {"command": "od -c answer.txt && wc -c answer.txt", "exit_code": 0, "summary": "21 bytes, 'H P M 0 8 _ T A B _ R E L E A S E _ O K \\n'"},
+    {"command": "git add -- answer.txt && git commit -m 'Add release marker answer.txt'", "exit_code": 0, "summary": "[hpm/w08-tabs-pi f8469f0] 1 file changed, 1 insertion(+)"},
+    {"command": "git diff --name-only 1ae1b3f3207fdd6707d7a3efc37bf00c5f0c79af..HEAD", "exit_code": 0, "summary": "answer.txt only"},
+    {"command": "git show HEAD:answer.txt | od -c && git status --porcelain", "exit_code": 0, "summary": "committed blob exact 21 bytes; worktree status clean (no output)"},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "f8469f0b69192e39d75c16d3ebc58d25b9d78877"}
+  ],
+  "head": "f8469f0b69192e39d75c16d3ebc58d25b9d78877",
+  "artifacts": ["answer.txt"],
+  "remaining": ""
+}

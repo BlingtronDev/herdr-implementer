@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "-c",
+    "from formatter import format_user; assert format_user(' Ada ') == 'Hello, Ada!'; assert format_user('Bob') == 'Hello, Bob!'; print('combined greeting passed')"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/pi",
+  "exit_code": 0,
+  "stdout": "combined greeting passed\n",
+  "stderr": ""
+}

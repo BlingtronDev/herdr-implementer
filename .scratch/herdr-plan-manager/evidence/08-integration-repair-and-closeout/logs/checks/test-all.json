@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "-m",
+    "pytest",
+    "tests/",
+    "-q"
+  ],
+  "cwd": "/home/blingtron/.agents/skills/herdr-ticket-dispatcher",
+  "exit_code": 1,
+  "stdout": ".....................................................................F.. [ 63%]\n.........................................                                [100%]\n=================================== FAILURES ===================================\n______________ test_stale_context_sample_never_triggers_a_handoff ______________\n\nmake_harness = <function make_harness.<locals>.factory at 0x7025e45a0220>\n\n    def test_stale_context_sample_never_triggers_a_handoff(make_harness):\n        h = make_harness(\"deliver-code\")\n        h.env[\"HPM_FAKE_CONTEXT_MODE\"] = \"stale\"\n        proc = h.start(handoff_tokens=1, handoff_pct=0.001)\n        assert proc.returncode == 0, proc.stderr\n        worker_id = json.loads(proc.stdout)[\"worker_id\"]\n        facts = h.wait_state(worker_id, {\"delivered\"})\n        assert facts[\"handoff\"][\"history\"] == []\n>       assert facts[\"sessions\"][0][\"context\"][\"state\"] == \"stale\"\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       TypeError: 'NoneType' object is not subscriptable\n\ntests/test_plan_manager.py:623: TypeError\n=========================== short test summary info ============================\nFAILED tests/test_plan_manager.py::test_stale_context_sample_never_triggers_a_handoff\n1 failed, 112 passed in 301.91s (0:05:01)\n",
+  "stderr": ""
+}

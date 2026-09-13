@@ -1,0 +1,8 @@
+{
+  "root": "/tmp/opencode/hpm08-tabs-he0r3x0j",
+  "repo": "/tmp/opencode/hpm08-tabs-he0r3x0j/source",
+  "original_head": "6f754e76f597d9de74d42e454d4e9c7872f1b7ca",
+  "base": "c706fad80514619eaca1702e17320d93126a0400",
+  "worker": "w08-tab-release",
+  "run": "issue08-tab-release"
+}

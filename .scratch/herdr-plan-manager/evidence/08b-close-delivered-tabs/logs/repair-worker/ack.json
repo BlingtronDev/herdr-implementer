@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-ticket-dispatcher/bin/plan_manager.py",
+    "ack",
+    "--repo",
+    "/tmp/opencode/hpm08-tabs-he0r3x0j/source",
+    "--item",
+    "w08-tab-release/i001",
+    "--note",
+    "accepted exact patch and real dual-runtime closure evidence; project working-tree delivery pending commit"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"acked\": [\n    {\n      \"acked\": true,\n      \"acked_at\": \"2026-09-12T21:23:47.338561Z\",\n      \"already_acked\": false,\n      \"effect\": \"acknowledgement only; delivery and integration conclusions are unchanged\",\n      \"item_id\": \"w08-tab-release/i001\",\n      \"note\": \"accepted exact patch and real dual-runtime closure evidence; project working-tree delivery pending commit\",\n      \"worker_id\": \"w08-tab-release\"\n    }\n  ]\n}\n",
+  "stderr": ""
+}

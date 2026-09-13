@@ -1,0 +1,68 @@
+{
+  "worker_head": "6d0a7e05364375421ac6fddedffff88e76693e54",
+  "identical_files": [
+    "bin/plan_manager.py",
+    "docs/plan-management/SKILL.md",
+    "docs/plan-management/operations.md",
+    "tests/fakes/bin/herdr",
+    "tests/test_plan_manager.py"
+  ],
+  "python_syntax": "passed",
+  "git_diff_check": "passed",
+  "runtimes": [
+    {
+      "kind": "pi",
+      "worker": "w08-tabs-pi",
+      "release": {
+        "at": "2026-09-12T21:15:20.584954Z",
+        "attempts": 1,
+        "closed_tabs": [
+          "wJ:t1T"
+        ],
+        "first_at": "2026-09-12T21:15:20.584976Z",
+        "message": "the delivered worker tab was closed; branch, worktree and result are retained",
+        "reason": "delivered-worktree-clean",
+        "state": "closed",
+        "tabs": {
+          "closed": [
+            "wJ:t1T"
+          ],
+          "registered": [
+            "wJ:t1T"
+          ]
+        }
+      },
+      "effective_configuration": "confirmed"
+    },
+    {
+      "kind": "opencode",
+      "worker": "w08-tabs-opencode",
+      "release": {
+        "at": "2026-09-12T21:15:49.109307Z",
+        "attempts": 1,
+        "closed_tabs": [
+          "wJ:t1V"
+        ],
+        "first_at": "2026-09-12T21:15:49.109330Z",
+        "message": "the delivered worker tab was closed; branch, worktree and result are retained",
+        "reason": "delivered-worktree-clean",
+        "state": "closed",
+        "tabs": {
+          "closed": [
+            "wJ:t1V"
+          ],
+          "registered": [
+            "wJ:t1V"
+          ]
+        }
+      },
+      "effective_configuration": "confirmed"
+    }
+  ],
+  "old_workers": {
+    "count": 7,
+    "disk_unchanged": true,
+    "tabs_closed": true
+  },
+  "repair_worker_closed": true
+}

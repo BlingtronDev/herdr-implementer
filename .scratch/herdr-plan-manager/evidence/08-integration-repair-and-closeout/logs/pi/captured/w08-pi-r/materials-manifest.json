@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-09-12T19:21:02.840325Z",
+  "materials": [
+    {
+      "index": 1,
+      "kind": "file",
+      "sha256": "9878564d7d2788fee49c5e4bfe43c16d3323ba7c81034553f9b5f76f9a354811",
+      "snapshot": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-r/materials/01-spec.md",
+      "source": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.scratch/spec.md"
+    },
+    {
+      "index": 2,
+      "kind": "file",
+      "sha256": "5378cb18a15ec6070519b7de8f0ab83c17305253ab84d0a53d191ce218790081",
+      "snapshot": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.git/herdr-plan-manager/workers/w08-pi-r/materials/02-R.md",
+      "source": "/tmp/opencode/hpm08-real-4blmm7a6/pi/.scratch/R.md"
+    }
+  ],
+  "worker_id": "w08-pi-r"
+}

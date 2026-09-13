@@ -1,0 +1,10 @@
+{
+  "acked": {
+    "w08-tabs-opencode/i001": {
+      "acked_at": "2026-09-12T21:21:36.418933Z",
+      "note": "automatic tab release verified; artifacts retained, fixture branch not integrated"
+    }
+  },
+  "version": 1,
+  "worker_id": "w08-tabs-opencode"
+}

@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "init",
+    "-b",
+    "main"
+  ],
+  "cwd": "/tmp/opencode/hpm08-real-4blmm7a6/opencode",
+  "exit_code": 0,
+  "stdout": "Initialized empty Git repository in /tmp/opencode/hpm08-real-4blmm7a6/opencode/.git/\n",
+  "stderr": ""
+}
