@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "wait",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+    "--run",
+    "issue09-pi",
+    "--timeout",
+    "60",
+    "--poll",
+    "1"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"items\": [\n    {\n      \"acked\": false,\n      \"acked_at\": null,\n      \"branch\": \"hpm/w09-pi-a\",\n      \"code\": \"delivered\",\n      \"created_at\": \"2026-09-13T03:04:32.050721Z\",\n      \"details\": {\n        \"artifacts\": [\n          \"api.txt\",\n          \"resumed.txt\",\n          \"seed-note.txt\"\n        ],\n        \"head\": \"fa344c044dc1eaee85fb49590aabfbe004220b20\"\n      },\n      \"item_id\": \"w09-pi-a/i001\",\n      \"kind\": \"delivery\",\n      \"lifecycle\": \"delivered\",\n      \"message\": \"Completed ticket A continuation after automatic session handoff. Created api.txt with exactly HPM09_API_V1 + newline and resumed.txt with exactly HPM09_RESUMED_OK + newline, verified byte-exact contents with cmp, and committed only those two files as fa344c0 on branch hpm/w09-pi-a. seed-note.txt from the initial session remains untracked and uncommitted on purpose. The handoff's suggested 16-byte expectation for resumed.txt was an off-by-one slip; the ticket-mandated content HPM09_RESUMED_OK\\\\n is 17 bytes and cmp against that exact content passes.\",\n      \"result_path\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/result.json\",\n      \"run_id\": \"issue09-pi\",\n      \"session\": 2,\n      \"ticket\": {\n        \"id\": \"A\",\n        \"title\": \"post-migration smoke A with handoff and dirty worktree\"\n      },\n      \"worker_id\": \"w09-pi-a\",\n      \"worktree\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-a\"\n    }\n  ],\n  \"note\": \"each item is a durable fact awaiting ack; a delivery is not integration and an idle terminal is not a result\",\n  \"observed_at\": \"2026-09-13T03:05:00.892468Z\",\n  \"run_id\": \"issue09-pi\",\n  \"timed_out\": false\n}\n",
+  "stderr": ""
+}

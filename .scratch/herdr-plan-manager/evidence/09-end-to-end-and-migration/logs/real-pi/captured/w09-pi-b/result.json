@@ -1,0 +1,22 @@
+{
+  "ticket_id": "B",
+  "worker_id": "w09-pi-b",
+  "status": "delivered",
+  "summary": "Waited in a foreground Python poll loop for the coordinator checkpoint /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/release-b (poll every 1s, no deadline); after it appeared, created b.txt with exact bytes HPM09_B_OK\\n, verified byte-exact contents, committed only b.txt (commit 0ede291), re-verified committed blob and clean worktree, and confirmed the checkpoint file remains present.",
+  "acceptance": [
+    {"criterion": "b.txt contains exactly HPM09_B_OK plus newline and is tested and committed", "met": true, "evidence": "python3 read_bytes() asserted data == b'HPM09_B_OK\\n' (len 11, 'exact content OK'); committed as 0ede29109b1943a8e42c01302306c2f543610349; 'git show HEAD:b.txt | od -c' -> H P M 0 9 _ B _ O K \\n; git status --porcelain -uall empty after commit"},
+    {"criterion": "Coordinator checkpoint at /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/release-b observed before declaring delivered", "met": true, "evidence": "foreground python3 loop printed 'GATE_PRESENT /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/release-b'; ls -la shows the 44-byte file present (2026-09-13 11:05) and it was still present after commit; content: 'C started from integrated A; B may deliver.'"},
+    {"criterion": "Commit performed after the checkpoint appeared (spec ordering) and worktree kept clean, committing only b.txt", "met": true, "evidence": "gate observed first, then commit 0ede291 ('1 file changed, 1 insertion(+), create mode 100644 b.txt'); git status --porcelain -uall empty, so no uncommitted files remain"}
+  ],
+  "verification": [
+    {"command": "python3 -c \"import os,time; p='/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/release-b'; ... while not os.path.exists(p): time.sleep(1)\"", "exit_code": 0, "summary": "blocked until gate existed, then printed GATE_PRESENT; no total deadline"},
+    {"command": "printf 'HPM09_B_OK\\n' > b.txt && python3 assert read_bytes() == b'HPM09_B_OK\\n'", "exit_code": 0, "summary": "bytes: b'HPM09_B_OK\\n'; exact content OK (11 bytes)"},
+    {"command": "git add b.txt && git commit -m \"add b.txt with HPM09_B_OK\"", "exit_code": 0, "summary": "[hpm/w09-pi-b 0ede291] add b.txt with HPM09_B_OK; 1 file changed, 1 insertion(+)"},
+    {"command": "git status --porcelain=v1 -uall", "exit_code": 0, "summary": "empty output (clean worktree, no untracked/uncommitted files)"},
+    {"command": "git show HEAD:b.txt | od -c", "exit_code": 0, "summary": "0000000 H P M 0 9 _ B _ O K \\n (exact committed bytes, 11 chars)"},
+    {"command": "ls -la /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/release-b", "exit_code": 0, "summary": "gate file present after commit (44 bytes, 2026-09-13 11:05)"}
+  ],
+  "head": "0ede29109b1943a8e42c01302306c2f543610349",
+  "artifacts": ["b.txt"],
+  "remaining": ""
+}

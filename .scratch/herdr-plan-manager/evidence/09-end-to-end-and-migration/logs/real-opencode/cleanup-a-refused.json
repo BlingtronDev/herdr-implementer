@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "cleanup",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/opencode",
+    "--worker",
+    "w09-opencode-a",
+    "--integrated",
+    "75cca4500b2419eed3aef699e96888f90de78417"
+  ],
+  "cwd": null,
+  "exit_code": 3,
+  "stdout": "",
+  "stderr": "{\n  \"already_cleaned\": false,\n  \"blockers\": [\n    {\n      \"code\": \"uncommitted-content\",\n      \"entries\": [\n        {\n          \"code\": \"??\",\n          \"path\": \"seed-note.txt\"\n        }\n      ],\n      \"message\": \"1 uncommitted entry; pass --archive-uncommitted or --discard-uncommitted\"\n    }\n  ],\n  \"cleaned\": false,\n  \"decision\": {\n    \"at\": \"2026-09-13T03:21:23.326711Z\",\n    \"integrated\": \"75cca4500b2419eed3aef699e96888f90de78417\"\n  },\n  \"error\": \"cleanup-blocked\",\n  \"message\": \"cleanup cannot proceed; no registered resource was removed\",\n  \"resources\": {\n    \"branch\": {\n      \"exists\": true,\n      \"head\": \"75cca4500b2419eed3aef699e96888f90de78417\",\n      \"name\": \"hpm/w09-opencode-a\"\n    },\n    \"contract\": \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/contract.md\",\n    \"handoffs\": [\n      \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/handoffs/handoff-001.md\"\n    ],\n    \"management_dir\": \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a\",\n    \"result\": \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/result.json\",\n    \"sessions\": [\n      {\n        \"agent\": \"w09-opencode-a\",\n        \"agent_live\": false,\n        \"agent_status\": null,\n        \"index\": 1,\n        \"session_status\": \"replaced\",\n        \"tab\": \"wJ:t23\"\n      },\n      {\n        \"agent\": \"w09-opencode-a-s2\",\n        \"agent_live\": true,\n        \"agent_status\": \"done\",\n        \"index\": 2,\n        \"session_status\": \"ended\",\n        \"tab\": \"wJ:t24\"\n      }\n    ],\n    \"worktree\": {\n      \"dirty\": true,\n      \"exists\": true,\n      \"owned\": true,\n      \"path\": \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a\",\n      \"uncommitted_entries\": [\n        {\n          \"code\": \"??\",\n          \"path\": \"seed-note.txt\"\n        }\n      ]\n    }\n  },\n  \"retained\": {\n    \"branch\": \"hpm/w09-opencode-a\",\n    \"management_dir\": \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a\",\n    \"result\": \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/result.json\",\n    \"worktree\": \"/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a\"\n  },\n  \"worker_id\": \"w09-opencode-a\"\n}\n"
+}

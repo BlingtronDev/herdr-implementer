@@ -1,0 +1,391 @@
+{
+  "branch": "hpm/w09-pi-a",
+  "created_at": "2026-09-13T03:02:08.566530Z",
+  "handoff": {
+    "auto_suppressed": false,
+    "handled_request_id": null,
+    "history": [
+      {
+        "at": "2026-09-13T03:03:56.394269Z",
+        "doc": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs/handoff-001.md",
+        "from": 1,
+        "reason": "context threshold reached (tokens)",
+        "sample": {
+          "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm09-migration-lawoi34f-pi-.git-herdr-plan-manager-worktrees-w09-pi-a--/2026-09-13T03-02-14-127Z_01a098b7-236e-728a-82cb-f74c0b249519.jsonl",
+          "freshness": "completed-call",
+          "kind": "pi",
+          "model": "deepseek-v4.1-flash",
+          "observed_at": "2026-09-13T03:02:51.059Z",
+          "pct": 0.13519954681396484,
+          "pi_package_version": "/home/blingtron/.nvm/versions/node/v24.9.0/lib/node_modules/@earendil-works/pi-coding-agent",
+          "provider": "opencode-go",
+          "sampled_at": "2026-09-13T03:02:56.029932Z",
+          "session": 1,
+          "source": "precise",
+          "state": "current",
+          "total": 141767,
+          "window": 1048576,
+          "window_source": "pi --list-models"
+        },
+        "to": 2,
+        "trigger": "tokens"
+      }
+    ],
+    "pct": 0.8,
+    "tokens": 35000,
+    "window": null
+  },
+  "herdr": {
+    "agent": "w09-pi-a-s2",
+    "pane": "wJ:p1Z",
+    "tab": "wJ:t1Z",
+    "workspace": "wJ"
+  },
+  "items": [
+    {
+      "code": "delivered",
+      "created_at": "2026-09-13T03:04:32.050721Z",
+      "details": {
+        "artifacts": [
+          "api.txt",
+          "resumed.txt",
+          "seed-note.txt"
+        ],
+        "head": "fa344c044dc1eaee85fb49590aabfbe004220b20"
+      },
+      "id": "i001",
+      "kind": "delivery",
+      "message": "Completed ticket A continuation after automatic session handoff. Created api.txt with exactly HPM09_API_V1 + newline and resumed.txt with exactly HPM09_RESUMED_OK + newline, verified byte-exact contents with cmp, and committed only those two files as fa344c0 on branch hpm/w09-pi-a. seed-note.txt from the initial session remains untracked and uncommitted on purpose. The handoff's suggested 16-byte expectation for resumed.txt was an off-by-one slip; the ticket-mandated content HPM09_RESUMED_OK\\n is 17 bytes and cmp against that exact content passes."
+    }
+  ],
+  "lifecycle": {
+    "reason": "result-recorded",
+    "started_at": "2026-09-13T03:02:08.566530Z",
+    "state": "delivered",
+    "updated_at": "2026-09-13T03:02:08.566530Z"
+  },
+  "paths": {
+    "contract": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/contract.md",
+    "management": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a",
+    "result": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/result.json",
+    "supervisor_log": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/supervisor.log"
+  },
+  "prompt": {
+    "attempts": 1,
+    "confirmed_at": "2026-09-13T03:02:16.894512Z"
+  },
+  "recovery": {
+    "parse_failures": 0,
+    "re_report_sent_at": null,
+    "settled_since": null
+  },
+  "release": {
+    "at": "2026-09-13T03:06:41.534993Z",
+    "attempts": 2,
+    "first_at": "2026-09-13T03:04:32.289823Z",
+    "message": "the worktree has uncommitted or untracked content; the terminal is retained",
+    "reason": "uncommitted-content",
+    "state": "retained",
+    "tabs": {
+      "closed": [],
+      "registered": [
+        "wJ:t1Y",
+        "wJ:t1Z"
+      ]
+    },
+    "uncommitted": [
+      {
+        "code": "??",
+        "path": "seed-note.txt"
+      }
+    ]
+  },
+  "repo": {
+    "base": "70a7e2d20cf5f97cab559ca5b5bb04c05c8164bc",
+    "common_dir": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git",
+    "root": "/tmp/opencode/hpm09-migration-lawoi34f/pi"
+  },
+  "result": {
+    "acceptance": [
+      {
+        "criterion": "Initial session read corpus.txt from the materials snapshot in chunks of at most 400 lines (rows 0000-2399) into model context before handoff",
+        "evidence": "Completed in the initial session per handoff-001: corpus.txt is 2400 lines and all rows were read sequentially via read-tool chunks; not reread in this continuation, as required. Evidence recorded in handoff-001.md.",
+        "met": true
+      },
+      {
+        "criterion": "Initial session saved uncommitted seed-note.txt saying 'seed prepared before handoff' after at least one chunk",
+        "evidence": "seed-note.txt exists untracked with content 'seed prepared before handoff\\n' (29 bytes); `cat seed-note.txt` prints 'seed prepared before handoff'; created in initial session and preserved.",
+        "met": true
+      },
+      {
+        "criterion": "Initial session did NOT create api.txt and did NOT declare delivered",
+        "evidence": "Pre-commit `ls api.txt resumed.txt` showed both missing; handoff-001.md records no delivered declaration in the initial session.",
+        "met": true
+      },
+      {
+        "criterion": "Handoff document Next steps included exact token HPM09_RESUMED_OK and instructions for continuation",
+        "evidence": "handoff-001.md contains 'HPM09_RESUMED_OK' in its Next steps section and instructs the continuation session not to reread corpus, to create api.txt with HPM09_API_V1 plus newline, and resumed.txt with HPM09_RESUMED_OK plus newline.",
+        "met": true
+      },
+      {
+        "criterion": "Continuation session created api.txt containing exactly HPM09_API_V1 plus newline",
+        "evidence": "`printf 'HPM09_API_V1\\n' | cmp - api.txt` exit 0; `wc -c api.txt` = 13; `od -c api.txt` shows H P M 0 9 _ A P I _ V 1 \\n; committed as fa344c0.",
+        "met": true
+      },
+      {
+        "criterion": "Continuation session created resumed.txt containing exactly HPM09_RESUMED_OK plus newline as proof of reading the handoff",
+        "evidence": "`printf 'HPM09_RESUMED_OK\\n' | cmp - resumed.txt` exit 0; `wc -c resumed.txt` = 17; `od -c resumed.txt` shows H P M 0 9 _ R E S U M E D _ O K \\n; committed as fa344c0.",
+        "met": true
+      },
+      {
+        "criterion": "Asserted exact api.txt and resumed.txt contents before committing",
+        "evidence": "cmp checks against printf-mandated content both exited 0, and wc -c reported 13 and 17 bytes prior to the commit.",
+        "met": true
+      },
+      {
+        "criterion": "Committed ONLY api.txt and resumed.txt",
+        "evidence": "`git show --name-only --format='' HEAD` lists only api.txt and resumed.txt; `git diff --cached --stat` before commit showed 'api.txt | 1 +' and 'resumed.txt | 1 +' only; commit fa344c0 'Add API smoke outputs for post-migration handoff'.",
+        "met": true
+      },
+      {
+        "criterion": "Left seed-note.txt uncommitted on purpose and reported it in remaining",
+        "evidence": "After commit, `git status --porcelain -uall` shows only '?? seed-note.txt'; the file was never staged and remains untracked with its original 29-byte content.",
+        "met": true
+      },
+      {
+        "criterion": "Did not return to the initial-session corpus or checkpoint in the continuation",
+        "evidence": "No corpus.txt read and no sleep checkpoint was invoked in this continuation session; work began directly from handoff-001.md and the contract.",
+        "met": true
+      }
+    ],
+    "artifacts": [
+      "api.txt",
+      "resumed.txt",
+      "seed-note.txt"
+    ],
+    "head": "fa344c044dc1eaee85fb49590aabfbe004220b20",
+    "remaining": "seed-note.txt is intentionally uncommitted (untracked) in the worktree with exact content 'seed prepared before handoff\\n' (29 bytes), per ticket A. No other uncommitted or non-blocking work remains.",
+    "status": "delivered",
+    "summary": "Completed ticket A continuation after automatic session handoff. Created api.txt with exactly HPM09_API_V1 + newline and resumed.txt with exactly HPM09_RESUMED_OK + newline, verified byte-exact contents with cmp, and committed only those two files as fa344c0 on branch hpm/w09-pi-a. seed-note.txt from the initial session remains untracked and uncommitted on purpose. The handoff's suggested 16-byte expectation for resumed.txt was an off-by-one slip; the ticket-mandated content HPM09_RESUMED_OK\\n is 17 bytes and cmp against that exact content passes.",
+    "ticket_id": "A",
+    "verification": [
+      {
+        "command": "git status --porcelain -uall (before implementation)",
+        "exit_code": 0,
+        "summary": "Only '?? seed-note.txt'; api.txt and resumed.txt absent, matching handoff-001."
+      },
+      {
+        "command": "git branch --show-current && git rev-parse HEAD",
+        "exit_code": 0,
+        "summary": "hpm/w09-pi-a at base 70a7e2d20cf5f97cab559ca5b5bb04c05c8164bc before the new commit."
+      },
+      {
+        "command": "printf 'HPM09_API_V1\\n' > api.txt",
+        "exit_code": 0,
+        "summary": "Created api.txt."
+      },
+      {
+        "command": "printf 'HPM09_RESUMED_OK\\n' > resumed.txt",
+        "exit_code": 0,
+        "summary": "Created resumed.txt."
+      },
+      {
+        "command": "printf 'HPM09_API_V1\\n' | cmp - api.txt",
+        "exit_code": 0,
+        "summary": "Byte-exact match with HPM09_API_V1 plus newline."
+      },
+      {
+        "command": "printf 'HPM09_RESUMED_OK\\n' | cmp - resumed.txt",
+        "exit_code": 0,
+        "summary": "Byte-exact match with HPM09_RESUMED_OK plus newline."
+      },
+      {
+        "command": "wc -c api.txt resumed.txt",
+        "exit_code": 0,
+        "summary": "api.txt = 13 bytes; resumed.txt = 17 bytes (16 chars + newline)."
+      },
+      {
+        "command": "git add -- api.txt resumed.txt && git diff --cached --stat",
+        "exit_code": 0,
+        "summary": "Staged exactly api.txt (1 insertion) and resumed.txt (1 insertion); seed-note.txt left unstaged as '??'."
+      },
+      {
+        "command": "git commit -m \"Add API smoke outputs for post-migration handoff\"",
+        "exit_code": 0,
+        "summary": "Created commit fa344c0 with 2 files changed, 2 insertions."
+      },
+      {
+        "command": "git rev-parse HEAD",
+        "exit_code": 0,
+        "summary": "fa344c044dc1eaee85fb49590aabfbe004220b20."
+      },
+      {
+        "command": "git show --name-only --format='' HEAD",
+        "exit_code": 0,
+        "summary": "Commit contains only api.txt and resumed.txt."
+      },
+      {
+        "command": "git show HEAD:api.txt | od -c",
+        "exit_code": 0,
+        "summary": "Committed blob is exactly HPM09_API_V1\\n (13 bytes)."
+      },
+      {
+        "command": "git show HEAD:resumed.txt | od -c",
+        "exit_code": 0,
+        "summary": "Committed blob is exactly HPM09_RESUMED_OK\\n (17 bytes)."
+      },
+      {
+        "command": "git status --porcelain -uall (after commit)",
+        "exit_code": 0,
+        "summary": "Only '?? seed-note.txt' remains; worktree otherwise clean."
+      },
+      {
+        "command": "printf 'HPM09_API_V1\\n' | cmp - api.txt && printf 'HPM09_RESUMED_OK\\n' | cmp - resumed.txt",
+        "exit_code": 0,
+        "summary": "Post-commit worktree files still byte-exact (both 'ok')."
+      }
+    ],
+    "worker_id": "w09-pi-a"
+  },
+  "run_id": "issue09-pi",
+  "runtime": {
+    "kind": "pi",
+    "model": "deepseek-v4.1-flash",
+    "provider": "opencode-go",
+    "thinking": "max"
+  },
+  "session_index": 2,
+  "sessions": [
+    {
+      "agent": "w09-pi-a",
+      "context": {
+        "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm09-migration-lawoi34f-pi-.git-herdr-plan-manager-worktrees-w09-pi-a--/2026-09-13T03-02-14-127Z_01a098b7-236e-728a-82cb-f74c0b249519.jsonl",
+        "freshness": "completed-call",
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "observed_at": "2026-09-13T03:02:51.059Z",
+        "pct": 0.13519954681396484,
+        "pi_package_version": "/home/blingtron/.nvm/versions/node/v24.9.0/lib/node_modules/@earendil-works/pi-coding-agent",
+        "provider": "opencode-go",
+        "sampled_at": "2026-09-13T03:02:56.029932Z",
+        "session": 1,
+        "source": "precise",
+        "state": "current",
+        "total": 141767,
+        "window": 1048576,
+        "window_source": "pi --list-models"
+      },
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm09-migration-lawoi34f-pi-.git-herdr-plan-manager-worktrees-w09-pi-a--/2026-09-13T03-02-14-127Z_01a098b7-236e-728a-82cb-f74c0b249519.jsonl",
+      "end_state": "replaced",
+      "ended_at": "2026-09-13T03:03:56.394269Z",
+      "handoff": {
+        "agent": "w09-pi-a",
+        "completed_at": "2026-09-13T03:03:56.394269Z",
+        "correction_sent_at": null,
+        "doc": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs/handoff-001.md",
+        "document_source": "requested-path",
+        "document_validated_at": "2026-09-13T03:03:43.959541Z",
+        "error": null,
+        "index": 1,
+        "phase": "ending-old-session",
+        "reason": "context threshold reached (tokens)",
+        "request_attempts": 1,
+        "requested_at": "2026-09-13T03:02:56.062555Z",
+        "sample": {
+          "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm09-migration-lawoi34f-pi-.git-herdr-plan-manager-worktrees-w09-pi-a--/2026-09-13T03-02-14-127Z_01a098b7-236e-728a-82cb-f74c0b249519.jsonl",
+          "freshness": "completed-call",
+          "kind": "pi",
+          "model": "deepseek-v4.1-flash",
+          "observed_at": "2026-09-13T03:02:51.059Z",
+          "pct": 0.13519954681396484,
+          "pi_package_version": "/home/blingtron/.nvm/versions/node/v24.9.0/lib/node_modules/@earendil-works/pi-coding-agent",
+          "provider": "opencode-go",
+          "sampled_at": "2026-09-13T03:02:56.029932Z",
+          "session": 1,
+          "source": "precise",
+          "state": "current",
+          "total": 141767,
+          "window": 1048576,
+          "window_source": "pi --list-models"
+        },
+        "status": "completed",
+        "trigger": "tokens"
+      },
+      "index": 1,
+      "pane": "wJ:p1Y",
+      "prompt": {
+        "attempts": 1,
+        "confirmed_at": "2026-09-13T03:02:16.894548Z"
+      },
+      "runtime": {
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-13T03:02:16.326880Z",
+      "status": "replaced",
+      "tab": "wJ:t1Y"
+    },
+    {
+      "agent": "w09-pi-a-s2",
+      "context": {
+        "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm09-migration-lawoi34f-pi-.git-herdr-plan-manager-worktrees-w09-pi-a--/2026-09-13T03-03-51-822Z_01a098b8-a10d-71c4-8109-c97a3046a5cd.jsonl",
+        "freshness": "completed-call",
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "observed_at": "2026-09-13T03:04:11.054Z",
+        "pct": 0.018331527709960938,
+        "pi_package_version": "/home/blingtron/.nvm/versions/node/v24.9.0/lib/node_modules/@earendil-works/pi-coding-agent",
+        "provider": "opencode-go",
+        "sampled_at": "2026-09-13T03:04:15.128162Z",
+        "session": 2,
+        "source": "precise",
+        "state": "current",
+        "total": 19222,
+        "window": 1048576,
+        "window_source": "pi --list-models"
+      },
+      "context_ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm09-migration-lawoi34f-pi-.git-herdr-plan-manager-worktrees-w09-pi-a--/2026-09-13T03-03-51-822Z_01a098b8-a10d-71c4-8109-c97a3046a5cd.jsonl",
+      "end_state": "delivered",
+      "ended_at": "2026-09-13T03:04:32.050764Z",
+      "handoff": null,
+      "handoff_from": 1,
+      "index": 2,
+      "pane": "wJ:p1Z",
+      "prompt": {
+        "confirmed_at": "2026-09-13T03:03:56.394171Z",
+        "continuation_attempts": 1
+      },
+      "runtime": {
+        "kind": "pi",
+        "model": "deepseek-v4.1-flash",
+        "provider": "opencode-go",
+        "thinking": "max"
+      },
+      "started_at": "2026-09-13T03:03:56.389575Z",
+      "status": "ended",
+      "tab": "wJ:t1Z"
+    }
+  ],
+  "starter": {
+    "host": "BlingtronPC",
+    "pid": 3312873
+  },
+  "supervisor": {
+    "exit_reason": "result-recorded",
+    "heartbeat_at": "2026-09-13T03:04:32.050840Z",
+    "host": "BlingtronPC",
+    "pid": 3313311,
+    "started_at": "2026-09-13T03:02:17.054518Z",
+    "state": "exited"
+  },
+  "ticket": {
+    "id": "A",
+    "title": "post-migration smoke A with handoff and dirty worktree"
+  },
+  "updated_at": "2026-09-13T03:06:41.535051Z",
+  "version": 3,
+  "worker_id": "w09-pi-a",
+  "worktree": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-a"
+}

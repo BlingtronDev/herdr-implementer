@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "wait",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/opencode",
+    "--run",
+    "issue09-opencode",
+    "--timeout",
+    "60",
+    "--poll",
+    "1"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"items\": [],\n  \"note\": \"no pending item within the wait window; a wait timeout is not a task result and implies nothing about the workers\",\n  \"observed_at\": \"2026-09-13T03:12:32.351880Z\",\n  \"run_id\": \"issue09-opencode\",\n  \"timed_out\": true\n}\n",
+  "stderr": ""
+}

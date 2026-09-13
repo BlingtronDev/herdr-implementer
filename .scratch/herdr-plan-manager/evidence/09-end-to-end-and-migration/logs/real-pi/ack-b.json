@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "ack",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+    "--item",
+    "w09-pi-b/i001",
+    "--note",
+    "B integrated"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"acked\": [\n    {\n      \"acked\": true,\n      \"acked_at\": \"2026-09-13T03:06:39.249291Z\",\n      \"already_acked\": false,\n      \"effect\": \"acknowledgement only; delivery and integration conclusions are unchanged\",\n      \"item_id\": \"w09-pi-b/i001\",\n      \"note\": \"B integrated\",\n      \"worker_id\": \"w09-pi-b\"\n    }\n  ]\n}\n",
+  "stderr": ""
+}

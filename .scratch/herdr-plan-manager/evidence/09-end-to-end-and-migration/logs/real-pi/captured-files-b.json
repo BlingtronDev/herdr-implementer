@@ -1,0 +1,11 @@
+{
+  "worker": "w09-pi-b",
+  "copied": [
+    "logs/real-pi/captured/w09-pi-b/state.json",
+    "logs/real-pi/captured/w09-pi-b/contract.md",
+    "logs/real-pi/captured/w09-pi-b/result.json",
+    "logs/real-pi/captured/w09-pi-b/ack.json",
+    "logs/real-pi/captured/w09-pi-b/supervisor.log",
+    "logs/real-pi/captured/w09-pi-b/materials/manifest.json"
+  ]
+}

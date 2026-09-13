@@ -1,0 +1,163 @@
+[
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "ref": "ses_f673d060effeNyK7gpJelq8SMp",
+    "events": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269310210,
+          "completed": 1789269317534
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269317548,
+          "completed": 1789269320000
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269320009,
+          "completed": 1789269323421
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269323434,
+          "completed": 1789269326453
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269326463,
+          "completed": 1789269331654
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269331661,
+          "completed": 1789269334536
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269334545,
+          "completed": 1789269337447
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269337454,
+          "completed": 1789269340318
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269340323,
+          "completed": 1789269346246
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269346254,
+          "completed": 1789269350757
+        }
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "agent": "build",
+        "path": {
+          "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c",
+          "root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+        },
+        "time": {
+          "created": 1789269350765,
+          "completed": 1789269353166
+        }
+      }
+    ]
+  }
+]

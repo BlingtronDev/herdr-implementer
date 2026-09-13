@@ -1,0 +1,7 @@
+2026-09-13T03:02:17.062476Z supervisor started
+2026-09-13T03:02:56.062429Z context threshold (tokens) reached for session 1
+2026-09-13T03:02:56.069415Z handoff (tokens) requested for session 1 (w09-pi-a): context threshold reached (tokens)
+2026-09-13T03:03:43.968847Z handoff document validated for session 1: /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs/handoff-001.md
+2026-09-13T03:03:56.676423Z handoff complete: session 1 -> 2 agent w09-pi-a-s2
+2026-09-13T03:04:32.050779Z terminal settled; result recorded
+2026-09-13T03:04:32.299028Z tab release uncommitted-content: retained

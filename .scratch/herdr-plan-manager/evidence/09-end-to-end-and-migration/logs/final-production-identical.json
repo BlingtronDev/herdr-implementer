@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "git",
+    "diff",
+    "fdffc709eb3e01b19610369861f0b2f2afa98c49",
+    "--",
+    "bin",
+    "tests",
+    "prompts",
+    "SKILL.md"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

@@ -1,0 +1,342 @@
+[
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:20.543Z",
+    "completed": "2026-09-13T03:02:20.543Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/contract.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:22.608Z",
+    "completed": "2026-09-13T03:02:22.608Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/02-A.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:22.608Z",
+    "completed": "2026-09-13T03:02:22.608Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/01-spec.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:24.924Z",
+    "completed": "2026-09-13T03:02:24.924Z",
+    "tool": "bash",
+    "input": {
+      "command": "pwd; echo ---; git status --porcelain=v1 -uall; echo ---; git log --oneline -5; echo ---; git branch --show-current; echo ---; wc -l /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt; echo ---; ls -la /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:27.303Z",
+    "completed": "2026-09-13T03:02:27.303Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/state.json"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:27.303Z",
+    "completed": "2026-09-13T03:02:27.303Z",
+    "tool": "bash",
+    "input": {
+      "command": "cat /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/supervisor.log; echo ---; head -5 /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:29.506Z",
+    "completed": "2026-09-13T03:02:29.506Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:34.308Z",
+    "completed": "2026-09-13T03:02:34.308Z",
+    "tool": "bash",
+    "input": {
+      "command": "printf 'seed prepared before handoff\\n' > seed-note.txt; cat seed-note.txt; git status --porcelain -uall"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:34.308Z",
+    "completed": "2026-09-13T03:02:34.308Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:39.025Z",
+    "completed": "2026-09-13T03:02:39.025Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:39.025Z",
+    "completed": "2026-09-13T03:02:39.025Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:42.539Z",
+    "completed": "2026-09-13T03:02:42.539Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:42.539Z",
+    "completed": "2026-09-13T03:02:42.539Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:47.682Z",
+    "completed": "2026-09-13T03:02:47.682Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:47.682Z",
+    "completed": "2026-09-13T03:02:47.682Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:51.059Z",
+    "completed": "2026-09-13T03:02:51.059Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:51.059Z",
+    "completed": "2026-09-13T03:02:51.059Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:56.557Z",
+    "completed": "2026-09-13T03:02:56.557Z",
+    "tool": "bash",
+    "input": {
+      "command": "python3 -u -c '\nimport time, sys\nprint(\"CHECKPOINT_READY: corpus 2400 rows read; seed-note.txt uncommitted; awaiting lifecycle-handoff interrupt\", flush=True)\nn = 0\nwhile True:\n    time.sleep(10)\n    n += 1\n    print(f\"sleep heartbeat {n} at {time.strftime(\\\"%H:%M:%S\\\")}\", flush=True)\n'"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:02:59.542Z",
+    "completed": "2026-09-13T03:02:59.542Z",
+    "tool": "bash",
+    "input": {
+      "command": "python3 -u -c '\nimport time\nprint(\"CHECKPOINT_READY: corpus 2400 rows read; seed-note.txt uncommitted; awaiting lifecycle-handoff interrupt\", flush=True)\nn = 0\nwhile True:\n    time.sleep(10)\n    n += 1\n    print(\"sleep heartbeat\", n, flush=True)\n'"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:03:17.937Z",
+    "completed": "2026-09-13T03:03:17.937Z",
+    "tool": "read",
+    "input": {
+      "path": "/home/blingtron/.pi/agent/skills/handoff/SKILL.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:03:17.937Z",
+    "completed": "2026-09-13T03:03:17.937Z",
+    "tool": "bash",
+    "input": {
+      "command": "ls /home/blingtron/.pi/agent/skills/handoff/ 2>/dev/null; ls -la /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:03:24.430Z",
+    "completed": "2026-09-13T03:03:24.430Z",
+    "tool": "bash",
+    "input": {
+      "command": "cd /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-a && git rev-parse HEAD && git status --porcelain -uall && echo '---seed-note---' && cat seed-note.txt && echo '---log---' && git log --oneline -3 && echo '---branch---' && git branch --show-current"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:03:31.997Z",
+    "completed": "2026-09-13T03:03:31.997Z",
+    "tool": "bash",
+    "input": {
+      "command": "mkdir -p /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs && ls -la /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:03:40.223Z",
+    "completed": "2026-09-13T03:03:40.223Z",
+    "tool": "write",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs/.handoff-001.md.tmp"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 1,
+    "started": "2026-09-13T03:03:43.345Z",
+    "completed": "2026-09-13T03:03:43.345Z",
+    "tool": "bash",
+    "input": {
+      "command": "cd /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs && mv .handoff-001.md.tmp handoff-001.md && ls -la && echo '--- headings ---' && grep -n '^## ' handoff-001.md && echo '--- token check ---' && grep -c 'HPM09_RESUMED_OK' handoff-001.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:03:59.207Z",
+    "completed": "2026-09-13T03:03:59.207Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs/handoff-001.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:03:59.207Z",
+    "completed": "2026-09-13T03:03:59.207Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/contract.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:04:01.851Z",
+    "completed": "2026-09-13T03:04:01.851Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/02-A.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:04:01.851Z",
+    "completed": "2026-09-13T03:04:01.851Z",
+    "tool": "read",
+    "input": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/materials/01-spec.md"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:04:04.119Z",
+    "completed": "2026-09-13T03:04:04.119Z",
+    "tool": "bash",
+    "input": {
+      "command": "pwd && git branch --show-current && git rev-parse HEAD && git status --porcelain -uall && git log --oneline -3 && echo \"--- seed-note.txt ---\" && ls -la seed-note.txt && cat seed-note.txt && echo \"--- api/resumed presence ---\" && ls -la api.txt resumed.txt 2>&1 || true"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:04:06.780Z",
+    "completed": "2026-09-13T03:04:06.780Z",
+    "tool": "bash",
+    "input": {
+      "command": "printf 'HPM09_API_V1\\n' > api.txt\nprintf 'HPM09_RESUMED_OK\\n' > resumed.txt\necho \"--- cmp api.txt ---\"; printf 'HPM09_API_V1\\n' | cmp - api.txt; echo \"api cmp exit: $?\"\necho \"--- cmp resumed.txt ---\"; printf 'HPM09_RESUMED_OK\\n' | cmp - resumed.txt; echo \"resumed cmp exit: $?\"\necho \"--- byte counts ---\"; wc -c api.txt resumed.txt\necho \"--- hexdump ---\"; od -c api.txt; od -c resumed.txt"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:04:11.054Z",
+    "completed": "2026-09-13T03:04:11.054Z",
+    "tool": "bash",
+    "input": {
+      "command": "git add -- api.txt resumed.txt\ngit status --porcelain -uall\ngit diff --cached --stat\ngit diff --cached\ngit commit -m \"Add API smoke outputs for post-migration handoff\"\necho \"commit exit: $?\""
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:04:13.742Z",
+    "completed": "2026-09-13T03:04:13.742Z",
+    "tool": "bash",
+    "input": {
+      "command": "echo \"--- full HEAD ---\"; git rev-parse HEAD\necho \"--- files in HEAD commit ---\"; git show --stat --oneline HEAD; git show --name-only --format='' HEAD\necho \"--- status after commit ---\"; git status --porcelain -uall\necho \"--- content of tracked files at HEAD ---\"; git show HEAD:api.txt | od -c; git show HEAD:resumed.txt | od -c\necho \"--- seed-note.txt still untracked, exact content ---\"; cat seed-note.txt; wc -c seed-note.txt\necho \"--- api/resumed worktree cmp re-check ---\"; printf 'HPM09_API_V1\\n' | cmp - api.txt && echo \"api ok\"; printf 'HPM09_RESUMED_OK\\n' | cmp - resumed.txt && echo \"resumed ok\"\necho \"--- log ---\"; git log --oneline -3"
+    }
+  },
+  {
+    "worker": "w09-pi-a",
+    "session": 2,
+    "started": "2026-09-13T03:04:25.453Z",
+    "completed": "2026-09-13T03:04:25.453Z",
+    "tool": "bash",
+    "input": {
+      "command": "ls -la /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/\nRESULT=/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/result.json\ncat > \"$RESULT.tmp\" <<'EOF'\n{\n  \"ticket_id\": \"A\",\n  \"worker_id\": \"w09-pi-a\",\n  \"status\": \"delivered\",\n  \"summary\": \"Completed ticket A continuation after automatic session handoff. Created api.txt with exactly HPM09_API_V1 + newline and resumed.txt with exactly HPM09_RESUMED_OK + newline, verified byte-exact contents with cmp, and committed only those two files as fa344c0 on branch hpm/w09-pi-a. seed-note.txt from the initial session remains untracked and uncommitted on purpose. The handoff's suggested 16-byte expectation for resumed.txt was an off-by-one slip; the ticket-mandated content HPM09_RESUMED_OK\\\\n is 17 bytes and cmp against that exact content passes.\",\n  \"acceptance\": [\n    {\"criterion\": \"Initial session read corpus.txt from the materials snapshot in chunks of at most 400 lines (rows 0000-2399) into model context before handoff\", \"met\": true, \"evidence\": \"Completed in the initial session per handoff-001: corpus.txt is 2400 lines and all rows were read sequentially via read-tool chunks; not reread in this continuation, as required. Evidence recorded in handoff-001.md.\"},\n    {\"criterion\": \"Initial session saved uncommitted seed-note.txt saying 'seed prepared before handoff' after at least one chunk\", \"met\": true, \"evidence\": \"seed-note.txt exists untracked with content 'seed prepared before handoff\\\\n' (29 bytes); `cat seed-note.txt` prints 'seed prepared before handoff'; created in initial session and preserved.\"},\n    {\"criterion\": \"Initial session did NOT create api.txt and did NOT declare delivered\", \"met\": true, \"evidence\": \"Pre-commit `ls api.txt resumed.txt` showed both missing; handoff-001.md records no delivered declaration in the initial session.\"},\n    {\"criterion\": \"Handoff document Next steps included exact token HPM09_RESUMED_OK and instructions for continuation\", \"met\": true, \"evidence\": \"handoff-001.md contains 'HPM09_RESUMED_OK' in its Next steps section and instructs the continuation session not to reread corpus, to create api.txt with HPM09_API_V1 plus newline, and resumed.txt with HPM09_RESUMED_OK plus newline.\"},\n    {\"criterion\": \"Continuation session created api.txt containing exactly HPM09_API_V1 plus newline\", \"met\": true, \"evidence\": \"`printf 'HPM09_API_V1\\\\n' | cmp - api.txt` exit 0; `wc -c api.txt` = 13; `od -c api.txt` shows H P M 0 9 _ A P I _ V 1 \\\\n; committed as fa344c0.\"},\n    {\"criterion\": \"Continuation session created resumed.txt containing exactly HPM09_RESUMED_OK plus newline as proof of reading the handoff\", \"met\": true, \"evidence\": \"`printf 'HPM09_RESUMED_OK\\\\n' | cmp - resumed.txt` exit 0; `wc -c resumed.txt` = 17; `od -c resumed.txt` shows H P M 0 9 _ R E S U M E D _ O K \\\\n; committed as fa344c0.\"},\n    {\"criterion\": \"Asserted exact api.txt and resumed.txt contents before committing\", \"met\": true, \"evidence\": \"cmp checks against printf-mandated content both exited 0, and wc -c reported 13 and 17 bytes prior to the commit.\"},\n    {\"criterion\": \"Committed ONLY api.txt and resumed.txt\", \"met\": true, \"evidence\": \"`git show --name-only --format='' HEAD` lists only api.txt and resumed.txt; `git diff --cached --stat` before commit showed 'api.txt | 1 +' and 'resumed.txt | 1 +' only; commit fa344c0 'Add API smoke outputs for post-migration handoff'.\"},\n    {\"criterion\": \"Left seed-note.txt uncommitted on purpose and reported it in remaining\", \"met\": true, \"evidence\": \"After commit, `git status --porcelain -uall` shows only '?? seed-note.txt'; the file was never staged and remains untracked with its original 29-byte content.\"},\n    {\"criterion\": \"Did not return to the initial-session corpus or checkpoint in the continuation\", \"met\": true, \"evidence\": \"No corpus.txt read and no sleep checkpoint was invoked in this continuation session; work began directly from handoff-001.md and the contract.\"}\n  ],\n  \"verification\": [\n    {\"command\": \"git status --porcelain -uall (before implementation)\", \"exit_code\": 0, \"summary\": \"Only '?? seed-note.txt'; api.txt and resumed.txt absent, matching handoff-001.\"},\n    {\"command\": \"git branch --show-current && git rev-parse HEAD\", \"exit_code\": 0, \"summary\": \"hpm/w09-pi-a at base 70a7e2d20cf5f97cab559ca5b5bb04c05c8164bc before the new commit.\"},\n    {\"command\": \"printf 'HPM09_API_V1\\\\n' > api.txt\", \"exit_code\": 0, \"summary\": \"Created api.txt.\"},\n    {\"command\": \"printf 'HPM09_RESUMED_OK\\\\n' > resumed.txt\", \"exit_code\": 0, \"summary\": \"Created resumed.txt.\"},\n    {\"command\": \"printf 'HPM09_API_V1\\\\n' | cmp - api.txt\", \"exit_code\": 0, \"summary\": \"Byte-exact match with HPM09_API_V1 plus newline.\"},\n    {\"command\": \"printf 'HPM09_RESUMED_OK\\\\n' | cmp - resumed.txt\", \"exit_code\": 0, \"summary\": \"Byte-exact match with HPM09_RESUMED_OK plus newline.\"},\n    {\"command\": \"wc -c api.txt resumed.txt\", \"exit_code\": 0, \"summary\": \"api.txt = 13 bytes; resumed.txt = 17 bytes (16 chars + newline).\"},\n    {\"command\": \"git add -- api.txt resumed.txt && git diff --cached --stat\", \"exit_code\": 0, \"summary\": \"Staged exactly api.txt (1 insertion) and resumed.txt (1 insertion); seed-note.txt left unstaged as '??'.\"},\n    {\"command\": \"git commit -m \\\"Add API smoke outputs for post-migration handoff\\\"\", \"exit_code\": 0, \"summary\": \"Created commit fa344c0 with 2 files changed, 2 insertions.\"},\n    {\"command\": \"git rev-parse HEAD\", \"exit_code\": 0, \"summary\": \"fa344c044dc1eaee85fb49590aabfbe004220b20.\"},\n    {\"command\": \"git show --name-only --format='' HEAD\", \"exit_code\": 0, \"summary\": \"Commit contains only api.txt and resumed.txt.\"},\n    {\"command\": \"git show HEAD:api.txt | od -c\", \"exit_code\": 0, \"summary\": \"Committed blob is exactly HPM09_API_V1\\\\n (13 bytes).\"},\n    {\"command\": \"git show HEAD:resumed.txt | od -c\", \"exit_code\": 0, \"summary\": \"Committed blob is exactly HPM09_RESUMED_OK\\\\n (17 bytes).\"},\n    {\"command\": \"git status --porcelain -uall (after commit)\", \"exit_code\": 0, \"summary\": \"Only '?? seed-note.txt' remains; worktree otherwise clean.\"},\n    {\"command\": \"printf 'HPM09_API_V1\\\\n' | cmp - api.txt && printf 'HPM09_RESUMED_OK\\\\n' | cmp - resumed.txt\", \"exit_code\": 0, \"summary\": \"Post-commit worktree files still byte-exact (both 'ok').\"}\n  ],\n  \"head\": \"fa344c044dc1eaee85fb49590aabfbe004220b20\",\n  \"artifacts\": [\"api.txt\", \"resumed.txt\", \"seed-note.txt\"],\n  \"remaining\": \"seed-note.txt is intentionally uncommitted (untracked) in the worktree with exact content 'seed prepared before handoff\\\\n' (29 bytes), per ticket A. No other uncommitted or non-blocking work remains.\"\n}\nEOF\npython3 -m json.tool \"$RESULT.tmp\" > /dev/null && echo \"JSON valid\" && mv \"$RESULT.tmp\" \"$RESULT\" && ls -la \"$RESULT\" && echo \"--- published result ---\" && cat \"$RESULT\""
+    }
+  }
+]

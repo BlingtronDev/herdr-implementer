@@ -1,0 +1,6 @@
+{
+  "provider": "opencode-go",
+  "model": "deepseek-v4.1-flash",
+  "thinking": "max",
+  "handoff_tokens": "35000"
+}

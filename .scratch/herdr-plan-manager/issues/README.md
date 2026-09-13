@@ -195,7 +195,7 @@
 
 - 发现时间：2026-09-13
 - 关联工单：08；涉及 04 的 `test_stale_context_sample_never_triggers_a_handoff`
-- 状态：已解决（测试修复已纳入 08 当前交付工作区，本项目提交／集成仍待完成）
+- 状态：已解决（2026-09-13 核实：测试修复随 08 集成到 main `759d721`）
 - 预期与实际：发现时 08 仅新增方法文档及证据脚本，生产代码与原测试未改动。完整检查得到 112 passed、1 failed：worker 已 delivered，但 `sessions[0].context` 为 None，测试对其 `state` 取值时报 TypeError；未发生错误交接。当时尚不能据此判断是产品错误还是测试未保证采样先于交付。
 - 证据：[08 全量输出](../evidence/08-integration-repair-and-closeout/logs/checks/test-all.json)。前一次调用被 240 秒工具窗口中止，未形成测试结论，见同目录 `interrupted.json`；本次已用足够窗口取得完整结果（301.91 秒）。
 - 影响：两组真实修复实验与六会话证据检查均通过；初期阻塞全量检查结论。现修复后的同一实现已获 113 passed，主脑核对补丁一致性并本地复核通过，解除 08 验证阻塞。
@@ -207,7 +207,7 @@
 
 - 发现时间：2026-09-13
 - 关联工单：06、08；新增 08-R2，影响 09 验收
-- 状态：已解决（08-R2 已纳入当前交付工作区；本项目未提交／未集成）
+- 状态：已解决（2026-09-13 核实：08-R2 随 08 集成到 main `759d721`）
 - 预期与实际：用户期望正常完成后 Herdr tab 消失。实际监督进程记录交付后退出，stop 只暂停业务，只有 cleanup 才关闭 tab 并删除 worktree；本轮 7 个已完成 worker 因保留磁盘现场而一起保留了 tab。
 - 证据：`bin/plan_manager.py` 的 `stop_registered_sessions`、`cmd_stop`、`supervise` settled 结果处理及 `cmd_cleanup`；08 证据的 stop／retained-run 记录。
 - 用户决定：选择“正常交付后自动关闭”，已保存有效结果、停止业务且无未保存内容时关闭登记 tab，保留分支/worktree/结果；失败与异常继续保留。
@@ -215,3 +215,29 @@
 - 处置与负责人：新增 [08-R2](08b-close-delivered-tabs.md)，由独立 worker 实现与测试，主脑验证真实双运行时关闭，并用统一受控路径处理本轮 7 个已完成登记 tab。
 - 后续工单／计划变更：08 在追加修复完成前恢复 in-progress；09 增加正常交付自动关闭与磁盘资源保留的回归关注。
 - 解决与验证：副本提交 `6d0a7e0`，完整测试 144 passed、专项 38 passed；主脑核实 5 文件逐字节一致并纳入工作区。真实 Pi／OpenCode 正常交付后 tab 自动关闭，模型配置/cwd 与磁盘成果保留验证通过。本轮 7 个旧 worker tab 经相同 stop 路径关闭，结果哈希、HEAD、worktree 状态不变，重复 stop 幂等；实现 worker tab 也已关闭。状态新增 `release` 供查询关闭／保留原因。完整记录见 [08-R2 证据](../evidence/08b-close-delivered-tabs/README.md)。
+
+### E13：09 启动时 08 及补充工单的集成状态滞后
+
+- 发现时间：2026-09-13
+- 关联工单：08、08-R1、08-R2、09
+- 状态：已解决
+- 预期与实际：工单与 E11/E12 仍称本项目未提交／未集成，实际 main HEAD `759d7213a28c5383b107e71f95e16d044a120f93` 已包含 08 方法、两项修复与验证证据，启动时工作区干净。
+- 证据：`git branch --show-current`、`git rev-parse HEAD`、`git show --stat 759d721`；09 执行记录。
+- 影响：前置已满足；无需重复实施 08。历史验证输出继续保留其原始事实。
+- 处置与负责人：主脑立即回写三张工单 Status 及 E11/E12 当前状态。
+- 后续工单／计划变更：无。
+- 解决与验证：本项目集成 SHA 已记录，09 开始执行；用户确认双运行时均为 `opencode-go / deepseek-v4.1-flash / max`，总并发 3，OpenCode `--auto`，隔离副本允许提交，本项目最终提交由用户决定。
+
+### E14：09 验收草稿存在证据定位和冒烟夹具缺口
+
+- 发现时间：2026-09-13
+- 关联工单：09
+- 状态：已解决
+- 预期与实际：最终验收应引用实际文件／测试并实测协议。主脑复核实施 worker 的未交付草稿时发现部分证据路径／测试名不准确、并发步骤将 cap=3 与第三个启动拒绝混淆；新增冒烟驱动对 OpenCode 消息结构、cleanup 错误输出通道及捕获时机有错误假设，还缺少实际 handoff 读取与额度拒绝断言。
+- 证据：实施副本 `w09-migration` 的 `docs/plan-management/final-acceptance.md`、`evidence/09-end-to-end-and-migration/smoke.py` 草稿；主脑向该 worker 投递三轮具体审阅反馈，相关工具消息保存在其原生 Pi 会话。
+- 影响：尚未启动新真实冒烟，不能把此草稿视为完成证据。未发现生产生命周期缺陷；需先修正夹具／证据映射，再用于正式补验。
+- 处置与负责人：同一实施 worker 按实际 CLI／已捕获运行时 schema 修正并验证，主脑复核交付后执行各真实步骤。
+- 后续工单／计划变更：属于 09 内部验收修正，无业务目标扩大。
+- 后续实测：迁移交付 `40e02a5` 已修正前述草稿问题，离线夹具 21/21、入口引用 4 passed。Pi 真实 A/B/C 已交接、集成并释放成功终端，cleanup 已成功归档删除 worktree；驱动最后一步却读取 `status.cleanup.archive`，实际字段为 `last_archive`，因此报告 `cleanup recorded no archive`。这是夹具断言错误，原始 `cleanup-a-archived.json`、`cleanup-a-state.json` 与归档笔记证明产品动作成功。
+- 补充处置：新增 09 内部验证修正分工 `09-evidence-fix`，worker `w09-evidence-fix` 从 `40e02a5` 修正字段与无副作用的证据复核入口，并核验所有实际会话配置；原 Pi 场景不重跑清理，原始日志保留。OpenCode 独立实测继续，合计活跃上限 3。
+- 解决与验证：补充 worker 交付 `fdffc70`，离线夹具 38/38、Pi 实证只读回放与 cleanup 恢复校验通过，入口检查 4 passed。主脑按字节一致纳入修正后，OpenCode 完成全部阶段与 cleanup，`smoke.py verify` 对双运行时通过；核验 8 个原生会话配置/cwd、两次 handoff 读取与活动顺序、额度拒绝、集成、归档和成果保留。鲜活查询确认两轮 active=0、pending=0、登记 tab 全部关闭。原始 Pi 失败日志保留，生产代码未因夹具修正而改变。

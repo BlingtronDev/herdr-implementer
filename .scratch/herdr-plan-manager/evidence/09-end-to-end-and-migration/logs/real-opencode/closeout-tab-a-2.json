@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "herdr",
+    "tab",
+    "get",
+    "wJ:t24"
+  ],
+  "cwd": null,
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "{\"error\":{\"code\":\"tab_not_found\",\"message\":\"tab wJ:t24 not found\"},\"id\":\"cli:tab:get\"}\n"
+}

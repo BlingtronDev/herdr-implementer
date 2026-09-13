@@ -1,0 +1,385 @@
+[
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269072510,
+    "completed": 1789269072542,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/contract.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269077756,
+    "completed": 1789269078101,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/01-spec.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269077839,
+    "completed": 1789269078167,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/02-A.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269077918,
+    "completed": 1789269078119,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269078043,
+    "completed": 1789269078235,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git status --porcelain=v1 -b && git log --oneline -5 && git rev-parse HEAD"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269089762,
+    "completed": 1789269089811,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "wc -l /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt; ls -la /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/; ls -la"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269092827,
+    "completed": 1789269092969,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/state.json"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269092890,
+    "completed": 1789269092978,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a/README.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269092955,
+    "completed": 1789269093016,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a/.gitignore"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269099646,
+    "completed": 1789269099707,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269109253,
+    "completed": 1789269109301,
+    "tool": "write",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a/seed-note.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269111352,
+    "completed": 1789269111373,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269115675,
+    "completed": 1789269115787,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269116074,
+    "completed": 1789269116093,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269120357,
+    "completed": 1789269120537,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269120482,
+    "completed": 1789269120617,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/03-corpus.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269128618,
+    "completed": 1789269128666,
+    "tool": "skill",
+    "status": "completed",
+    "input": {}
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269135851,
+    "completed": 1789269135956,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git status --porcelain=v1 -b && git log --oneline -3 && git rev-parse HEAD"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269135934,
+    "completed": 1789269136119,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a/seed-note.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269141927,
+    "completed": 1789269141960,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "mkdir -p /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/handoffs && ls -la /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/handoffs"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 1,
+    "started": 1789269153846,
+    "completed": 1789269153867,
+    "tool": "write",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/handoffs/handoff-001.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269184303,
+    "completed": 1789269184415,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/handoffs/handoff-001.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269184433,
+    "completed": 1789269184517,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/contract.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269187132,
+    "completed": 1789269187247,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/01-spec.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269187559,
+    "completed": 1789269187603,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/materials/02-A.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269190989,
+    "completed": 1789269191281,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git status --porcelain=v1 -b && git log --oneline -3 && git rev-parse HEAD"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269191103,
+    "completed": 1789269191209,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "ls -la && od -c seed-note.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269193846,
+    "completed": 1789269193955,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a/.gitignore"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269194287,
+    "completed": 1789269194327,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "printf 'HPM09_API_V1\\n' > api.txt && printf 'HPM09_RESUMED_OK\\n' > resumed.txt && od -c api.txt && od -c resumed.txt && test \"$(cat api.txt)\" = \"HPM09_API_V1\" && test \"$(cat resumed.txt)\" = \"HPM09_RESUMED_OK\" && echo EXACT_CONTENT_OK"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269197491,
+    "completed": 1789269197553,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git add api.txt resumed.txt && git status --porcelain=v1 && git commit -m \"Add migration smoke outputs api.txt and resumed.txt\" && git status --porcelain=v1 -b && git log --oneline -3 && git rev-parse HEAD"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269200374,
+    "completed": 1789269200418,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git show --stat --oneline HEAD && git show HEAD:api.txt | od -c && git show HEAD:resumed.txt | od -c && git ls-tree --name-only HEAD && git diff --name-only HEAD~1 HEAD"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269206310,
+    "completed": 1789269206332,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "ls -la /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269215263,
+    "completed": 1789269215280,
+    "tool": "write",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/result.json.tmp"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269218027,
+    "completed": 1789269218151,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "python3 -c \"import json; d=json.load(open('result.json.tmp')); print('JSON_OK', d['status'], d['head'], len(d['acceptance']), len(d['verification']))\" && mv result.json.tmp result.json && ls -la result.json"
+    }
+  },
+  {
+    "worker": "w09-opencode-a",
+    "session": 2,
+    "started": 1789269220706,
+    "completed": 1789269220775,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git rev-parse HEAD && ls api.txt resumed.txt seed-note.txt && git status --porcelain=v1 -b"
+    }
+  }
+]

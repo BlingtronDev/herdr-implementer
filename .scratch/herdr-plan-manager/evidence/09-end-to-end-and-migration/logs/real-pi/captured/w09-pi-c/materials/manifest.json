@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-09-13T03:05:28.907545Z",
+  "materials": [
+    {
+      "index": 1,
+      "kind": "file",
+      "sha256": "5941e2a406edd29956ab7f75029ab2e7322693195fcb38bdfdca839a28e37f35",
+      "snapshot": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-c/materials/01-spec.md",
+      "source": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.scratch/spec.md"
+    },
+    {
+      "index": 2,
+      "kind": "file",
+      "sha256": "9a25a77e284fde2384ed5282f1e8abf82e7da8c7a876561dd1c4bccac63fe381",
+      "snapshot": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-c/materials/02-C.md",
+      "source": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.scratch/C.md"
+    }
+  ],
+  "worker_id": "w09-pi-c"
+}

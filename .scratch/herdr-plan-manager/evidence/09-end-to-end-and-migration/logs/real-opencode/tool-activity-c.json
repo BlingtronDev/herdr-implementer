@@ -1,0 +1,134 @@
+[
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269317068,
+    "completed": 1789269317139,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-c/contract.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269319577,
+    "completed": 1789269319730,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-c/materials/01-spec.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269319703,
+    "completed": 1789269319739,
+    "tool": "read",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-c/materials/02-C.md"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269322655,
+    "completed": 1789269323107,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git status --porcelain=v1 && git log --oneline -10 && git rev-parse HEAD && git branch --show-current"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269322821,
+    "completed": 1789269323129,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "ls -la"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269326087,
+    "completed": 1789269326153,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "cat -A api.txt resumed.txt .gitignore README.md; git show --stat HEAD"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269331265,
+    "completed": 1789269331343,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "printf 'HPM09_API_V1\\n' | cmp - api.txt; echo \"api_assert_exit=$?\"; printf 'consumer:' > consumer.txt && cat api.txt >> consumer.txt; echo \"write_exit=$?\"; printf 'consumer:HPM09_API_V1\\n' | cmp - consumer.txt; echo \"consumer_assert_exit=$?\"; cat -A consumer.txt"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269334304,
+    "completed": 1789269334343,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git status --porcelain=v1 && git add consumer.txt && git diff --cached --stat && git status --porcelain=v1"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269337261,
+    "completed": 1789269337300,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git commit -m \"Add migration smoke consumer.txt from integrated api.txt\" && git status --porcelain=v1; echo \"status_exit=$?\"; git log --oneline -3; git rev-parse HEAD"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269340099,
+    "completed": 1789269340164,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "git show --stat --oneline HEAD; git show HEAD:consumer.txt | cmp - <(printf 'consumer:HPM09_API_V1\\n'); echo \"committed_consumer_cmp_exit=$?\"; git show HEAD:api.txt | cmp - <(printf 'HPM09_API_V1\\n'); echo \"committed_api_cmp_exit=$?\"; git diff 75cca45..HEAD --name-only"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269346013,
+    "completed": 1789269346052,
+    "tool": "write",
+    "status": "completed",
+    "input": {
+      "filePath": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-c/result.json.tmp"
+    }
+  },
+  {
+    "worker": "w09-opencode-c",
+    "session": 1,
+    "started": 1789269350430,
+    "completed": 1789269350559,
+    "tool": "bash",
+    "status": "completed",
+    "input": {
+      "command": "mv result.json.tmp result.json && python3 -c \"import json;d=json.load(open('result.json'));print(d['status'],d['head'])\" && ls -la"
+    }
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "start",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+    "--run",
+    "issue09-pi",
+    "--ticket-id",
+    "C",
+    "--worker-id",
+    "w09-pi-c",
+    "--title",
+    "post-migration smoke C consumes integrated A",
+    "--base",
+    "fa344c044dc1eaee85fb49590aabfbe004220b20",
+    "--material",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi/.scratch/spec.md",
+    "--material",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi/.scratch/C.md",
+    "--instructions",
+    "Read the ticket and spec. Follow the staged acceptance exactly. Do not spawn subagents."
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"active_workers\": 2,\n  \"agent\": \"w09-pi-c\",\n  \"base\": \"fa344c044dc1eaee85fb49590aabfbe004220b20\",\n  \"branch\": \"hpm/w09-pi-c\",\n  \"management_dir\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-c\",\n  \"max_workers\": 2,\n  \"pane\": \"wJ:p10\",\n  \"prompt_attempts\": 1,\n  \"result_path\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-c/result.json\",\n  \"run_id\": \"issue09-pi\",\n  \"runtime\": {\n    \"kind\": \"pi\",\n    \"model\": \"deepseek-v4.1-flash\",\n    \"provider\": \"opencode-go\",\n    \"thinking\": \"max\"\n  },\n  \"session\": 1,\n  \"supervisor_pid\": 3317303,\n  \"tab\": \"wJ:t10\",\n  \"ticket_id\": \"C\",\n  \"worker_id\": \"w09-pi-c\",\n  \"worktree\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-c\"\n}\n",
+  "stderr": ""
+}

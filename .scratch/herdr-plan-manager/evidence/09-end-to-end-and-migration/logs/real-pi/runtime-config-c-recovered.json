@@ -1,0 +1,23 @@
+[
+  {
+    "worker": "w09-pi-c",
+    "session": 1,
+    "ref": "/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm09-migration-lawoi34f-pi-.git-herdr-plan-manager-worktrees-w09-pi-c--/2026-09-13T03-05-32-623Z_01a098ba-2ace-7604-a152-45bbf348587e.jsonl",
+    "events": [
+      {
+        "type": "session",
+        "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-c"
+      },
+      {
+        "type": "model_change",
+        "provider": "opencode-go",
+        "modelId": "deepseek-v4.1-flash"
+      },
+      {
+        "type": "thinking_level_change",
+        "thinkingLevel": "max"
+      }
+    ],
+    "recovered": true
+  }
+]

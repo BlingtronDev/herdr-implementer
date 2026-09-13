@@ -1,0 +1,25 @@
+{
+  "ticket_id": "C",
+  "worker_id": "w09-pi-c",
+  "status": "delivered",
+  "summary": "Verified the inherited integrated api.txt in the assigned worktree equals exactly 'HPM09_API_V1\\n' (base fa344c0 already contains A's integrated output), derived consumer.txt as 'consumer:' + api.txt content, verified it equals exactly 'consumer:HPM09_API_V1\\n', and committed only consumer.txt (7254cba). api.txt was left untouched and the worktree is clean.",
+  "acceptance": [
+    {"criterion": "Read api.txt inherited from base; assert it equals `HPM09_API_V1` plus newline", "met": true, "evidence": "python3 assertion on raw bytes passed: api.txt == b'HPM09_API_V1\\n' (printed 'api.txt assertion: OK'); xxd shows 4850 4d30 395f 4150 495f 5631 0a"},
+    {"criterion": "Write consumer.txt as `consumer:` plus the content of api.txt; assert exact `consumer:HPM09_API_V1` plus newline", "met": true, "evidence": "Built as b'consumer:' + api.txt bytes; python assertion passed, and `cmp <(printf 'consumer:HPM09_API_V1\\n') consumer.txt` exited 0; xxd shows 636f6e73756d65723a48504d30395f4150495f56310a"},
+    {"criterion": "Commit consumer.txt only", "met": true, "evidence": "git commit 7254cba 'Add consumer output derived from integrated api.txt': '1 file changed, 1 insertion(+)', 'create mode 100644 consumer.txt'; git diff --name-status fa344c0 HEAD shows only 'A\tconsumer.txt'"},
+    {"criterion": "Do not modify api.txt or fabricate it if missing", "met": true, "evidence": "api.txt existed at base and was read-only for this ticket; git diff fa344c044dc1eaee85fb49590aabfbe004220b20 HEAD -- api.txt is empty (exit 0), api.txt content still HPM09_API_V1\\n"},
+    {"criterion": "Keep worktree clean: only consumer.txt is committed", "met": true, "evidence": "git status --porcelain produced no output (exit 0) after the commit; commit contains one file, consumer.txt"}
+  ],
+  "verification": [
+    {"command": "python3 -c \"assert open('api.txt','rb').read()==b'HPM09_API_V1\\n'\"; python3 -c \"assert open('consumer.txt','rb').read()==b'consumer:HPM09_API_V1\\n'\"", "exit_code": 0, "summary": "Both byte-exact assertions passed (api.txt = HPM09_API_V1\\n, consumer.txt = consumer:HPM09_API_V1\\n)"},
+    {"command": "cmp <(printf 'consumer:HPM09_API_V1\\n') consumer.txt", "exit_code": 0, "summary": "consumer.txt is byte-identical to expected content"},
+    {"command": "git commit -m \"Add consumer output derived from integrated api.txt\"", "exit_code": 0, "summary": "[hpm/w09-pi-c 7254cba] 1 file changed, 1 insertion(+), create mode 100644 consumer.txt"},
+    {"command": "git diff --name-status fa344c044dc1eaee85fb49590aabfbe004220b20 HEAD", "exit_code": 0, "summary": "Only consumer.txt added vs base: 'A\tconsumer.txt'"},
+    {"command": "git diff fa344c044dc1eaee85fb49590aabfbe004220b20 HEAD -- api.txt", "exit_code": 0, "summary": "Empty diff: api.txt unmodified"},
+    {"command": "git status --porcelain", "exit_code": 0, "summary": "No output: worktree clean, all changes committed"},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "7254cba989096ad01ca870b019d809c3436bd70b"}
+  ],
+  "head": "7254cba989096ad01ca870b019d809c3436bd70b",
+  "artifacts": [],
+  "remaining": ""
+}

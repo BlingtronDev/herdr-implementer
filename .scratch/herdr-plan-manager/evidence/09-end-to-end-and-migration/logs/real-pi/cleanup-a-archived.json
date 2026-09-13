@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "cleanup",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+    "--worker",
+    "w09-pi-a",
+    "--integrated",
+    "fa344c044dc1eaee85fb49590aabfbe004220b20",
+    "--archive-uncommitted"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"already_cleaned\": false,\n  \"archive\": {\n    \"path\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/cleanup/uncommitted-20260913T030642Z\",\n    \"tracked_patch_bytes\": 0,\n    \"untracked_files\": [\n      {\n        \"bytes\": 29,\n        \"path\": \"seed-note.txt\"\n      }\n    ]\n  },\n  \"blockers\": [],\n  \"branch\": {\n    \"deleted\": false,\n    \"existed\": true,\n    \"name\": \"hpm/w09-pi-a\",\n    \"retained_reason\": \"branch deletion needs an explicit --delete-branch\"\n  },\n  \"cleaned\": true,\n  \"decision\": {\n    \"at\": \"2026-09-13T03:06:42.191494Z\",\n    \"integrated\": \"fa344c044dc1eaee85fb49590aabfbe004220b20\"\n  },\n  \"evidence\": {\n    \"handoffs\": [\n      \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs/handoff-001.md\"\n    ],\n    \"management_dir\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a\",\n    \"result\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/result.json\"\n  },\n  \"sessions\": {\n    \"closed_tabs\": [\n      \"wJ:t1Y\",\n      \"wJ:t1Z\"\n    ],\n    \"remaining_agents\": []\n  },\n  \"worker_id\": \"w09-pi-a\",\n  \"worktree\": {\n    \"existed\": true,\n    \"path\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-a\",\n    \"removed\": true,\n    \"uncommitted\": \"archived\"\n  }\n}\n",
+  "stderr": ""
+}

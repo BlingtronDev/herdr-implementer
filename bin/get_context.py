@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 from contextlib import closing
 import datetime as dt
-import glob
 import json
 import os
 from pathlib import Path
@@ -16,7 +15,7 @@ import subprocess
 import sys
 from typing import Any
 
-KINDS = {"opencode", "codex", "pi"}
+KINDS = {"opencode", "pi"}
 PI_SIZE_RE = re.compile(r"^([0-9]+(?:\.[0-9]+)?)([KkMm])$")
 
 
@@ -35,7 +34,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--json", action="store_true", required=True)
     parser.add_argument("--window", type=int)
     parser.add_argument("--opencode-db", type=Path, default=Path.home() / ".local/share/opencode/opencode.db")
-    parser.add_argument("--codex-db", type=Path, default=Path.home() / ".codex/state_5.sqlite")
     parser.add_argument("--pi-helper", type=Path, default=Path(__file__).with_name("pi_context.mjs"))
     args = parser.parse_args()
     if args.window is not None and args.window <= 0:
@@ -148,62 +146,6 @@ def get_opencode(ref: str, db_path: Path, window_override: int | None) -> dict[s
     }
 
 
-def locate_codex_rollout(ref: str, db_path: Path) -> Path:
-    if not re.fullmatch(r"[0-9A-Fa-f]{8}-(?:[0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}", ref):
-        raise ContextError("invalid Codex session UUID")
-    if db_path.is_file():
-        with closing(open_sqlite_ro(db_path)) as conn:
-            row = conn.execute("SELECT rollout_path FROM threads WHERE id = ?", (ref,)).fetchone()
-        if row:
-            path = Path(row[0]).expanduser().resolve()
-            if path.is_file():
-                return path
-    pattern = str(Path.home() / ".codex/sessions" / "*/*/*" / f"rollout-*-{glob.escape(ref)}.jsonl")
-    matches = [Path(item).resolve() for item in glob.glob(pattern)]
-    if len(matches) != 1:
-        raise ContextError(f"expected one Codex rollout for {ref}, found {len(matches)}")
-    return matches[0]
-
-
-def get_codex(ref: str, db_path: Path, window_override: int | None) -> dict[str, Any]:
-    path = locate_codex_rollout(ref, db_path)
-    selected: dict[str, Any] | None = None
-    try:
-        with path.open(encoding="utf-8") as stream:
-            for line in stream:
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                payload = event.get("payload") or {}
-                info = payload.get("info") or {}
-                usage = info.get("last_token_usage") or {}
-                if (
-                    event.get("type") == "event_msg"
-                    and payload.get("type") == "token_count"
-                    and isinstance(usage.get("total_tokens"), (int, float))
-                ):
-                    selected = event
-    except OSError as exc:
-        raise ContextError(f"cannot read Codex rollout {path}: {exc}") from exc
-    if selected is None:
-        raise ContextError("Codex rollout has no completed token_count event")
-    info = selected["payload"]["info"]
-    total = int(info["last_token_usage"]["total_tokens"])
-    recorded_window = info.get("model_context_window")
-    window = window_override or recorded_window
-    if not isinstance(window, (int, float)) or window <= 0:
-        raise ContextError("Codex token_count event has no model_context_window")
-    return {
-        "total": total,
-        "window": int(window),
-        "source": "estimated" if window_override else "precise",
-        "freshness": "completed-call",
-        "observed_at": selected.get("timestamp") or iso_now(),
-        "rollout_path": str(path),
-    }
-
-
 def parse_model_size(value: str) -> int | None:
     match = PI_SIZE_RE.fullmatch(value.strip())
     if not match:
@@ -305,8 +247,6 @@ def main() -> int:
     try:
         if args.kind == "opencode":
             data = get_opencode(args.context_ref, args.opencode_db, args.window)
-        elif args.kind == "codex":
-            data = get_codex(args.context_ref, args.codex_db, args.window)
         else:
             data = get_pi(args.context_ref, args.pi_helper, args.window)
         total = data.get("total")

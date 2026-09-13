@@ -1,0 +1,10 @@
+{
+  "acked": {
+    "w09-opencode-a/i001": {
+      "acked_at": "2026-09-13T03:14:47.873864Z",
+      "note": "A accepted; integration pending"
+    }
+  },
+  "version": 1,
+  "worker_id": "w09-opencode-a"
+}

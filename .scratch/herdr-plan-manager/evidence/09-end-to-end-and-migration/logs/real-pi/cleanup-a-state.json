@@ -1,0 +1,84 @@
+{
+  "cleanup": {
+    "blockers": [],
+    "branch_deleted_at": null,
+    "cleaned": true,
+    "decision": {
+      "at": "2026-09-13T03:06:42.191494Z",
+      "integrated": "fa344c044dc1eaee85fb49590aabfbe004220b20"
+    },
+    "last_attempt": {
+      "at": "2026-09-13T03:06:42.736781Z",
+      "blockers": [],
+      "outcome": "removed",
+      "removed": {
+        "branch": false,
+        "tabs": [
+          "wJ:t1Y",
+          "wJ:t1Z"
+        ],
+        "worktree": true
+      }
+    },
+    "resources": {
+      "branch": {
+        "exists": true,
+        "head": "fa344c044dc1eaee85fb49590aabfbe004220b20",
+        "name": "hpm/w09-pi-a"
+      },
+      "contract": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/contract.md",
+      "handoffs": [
+        "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/handoffs/handoff-001.md"
+      ],
+      "management_dir": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a",
+      "result": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/result.json",
+      "sessions": [
+        {
+          "agent": "w09-pi-a",
+          "agent_live": false,
+          "agent_status": null,
+          "index": 1,
+          "session_status": "replaced",
+          "tab": "wJ:t1Y"
+        },
+        {
+          "agent": "w09-pi-a-s2",
+          "agent_live": false,
+          "agent_status": null,
+          "index": 2,
+          "session_status": "ended",
+          "tab": "wJ:t1Z"
+        }
+      ],
+      "worktree": {
+        "dirty": false,
+        "exists": false,
+        "owned": false,
+        "path": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-a",
+        "uncommitted_entries": []
+      }
+    },
+    "worktree_removed_at": "2026-09-13T03:06:42.736781Z"
+  },
+  "release": {
+    "at": "2026-09-13T03:06:41.534993Z",
+    "attempts": 2,
+    "first_at": "2026-09-13T03:04:32.289823Z",
+    "message": "the worktree has uncommitted or untracked content; the terminal is retained",
+    "reason": "uncommitted-content",
+    "state": "retained",
+    "tabs": {
+      "closed": [],
+      "registered": [
+        "wJ:t1Y",
+        "wJ:t1Z"
+      ]
+    },
+    "uncommitted": [
+      {
+        "code": "??",
+        "path": "seed-note.txt"
+      }
+    ]
+  }
+}

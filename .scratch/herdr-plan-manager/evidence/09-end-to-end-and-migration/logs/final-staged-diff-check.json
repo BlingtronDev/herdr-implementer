@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

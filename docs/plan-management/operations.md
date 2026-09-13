@@ -1,6 +1,6 @@
 # Operations Reference
 
-Use this reference when executing the [preview workflow](SKILL.md). The product entry is `bin/plan_manager.py`; consult `<operation> --help` for current parameters. This tool handles lifecycle mechanics, not scheduling.
+Use this reference when executing the [herdr-plan-manager workflow](../../SKILL.md). The product entry is `bin/plan_manager.py`; consult `<operation> --help` for current parameters. This tool handles lifecycle mechanics, not scheduling.
 
 Shell variables below are placeholders for confirmed values, never defaults inferred from historical smoke tests. Resolve `HPM` to the absolute path of `../../bin/plan_manager.py` relative to this document. Set `REPO` to the absolute target checkout path.
 
@@ -115,7 +115,7 @@ python3 "$HPM" cleanup --repo "$REPO" --worker "$WORKER" --disposition "$DISPOSI
 | --- | --- | --- |
 | Uncommitted content | Refuse deletion and retain it | `--archive-uncommitted` saves it before removal. Verify the archive location. Use the mutually exclusive `--discard-uncommitted` only when discarding that content is authorized. |
 | Worker branch | Retain it | `--delete-branch` uses Git's safe deletion checks. `--force-branch` additionally requires that flag and an explicit deletion decision, such as after a verified squash mapping. It is not an automatic fallback. |
-| Terminal resources | Operate only on registered, owned resources with no active business writers | Close only registered tabs; never take over legacy dispatcher resources or unrelated terminals. |
+| Terminal resources | Operate only on registered, owned resources with no active business writers | Close only registered tabs; never take over unrelated terminals or resources outside this run's registration. |
 
 Keep failed scenes until a specific disposition exists. Preserve committed results through integration or a retained branch; a vague disposition must not destroy the only copy of completed work.
 

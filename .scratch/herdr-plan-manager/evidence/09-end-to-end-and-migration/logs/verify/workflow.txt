@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.12, pytest-8.4.2, pluggy-1.5.0 -- /home/blingtron/miniconda3/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/opencode/hpm09-implementation/.git/herdr-plan-manager/worktrees/w09-migration
+plugins: asyncio-1.4.0, anyio-4.10.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 2 items
+
+tests/test_plan_management_workflow.py::test_master_integrates_a_then_starts_c_while_b_runs_after_handoff[pi] PASSED [ 50%]
+tests/test_plan_management_workflow.py::test_master_integrates_a_then_starts_c_while_b_runs_after_handoff[opencode] PASSED [100%]
+
+============================== 2 passed in 36.58s ==============================

@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--ff-only",
+    "7254cba989096ad01ca870b019d809c3436bd70b"
+  ],
+  "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+  "exit_code": 0,
+  "stdout": "Updating fa344c0..7254cba\nFast-forward\n consumer.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 consumer.txt\n",
+  "stderr": ""
+}

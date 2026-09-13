@@ -1,0 +1,24 @@
+{
+  "ticket_id": "B",
+  "worker_id": "w09-opencode-b",
+  "status": "delivered",
+  "summary": "Created b.txt containing exactly 'HPM09_B_OK\\n', verified exact byte contents, committed it as the only change on branch hpm/w09-opencode-b (commit 10ed5d4), kept the worktree clean, and waited in a foreground Python read-and-sleep loop until the coordinator checkpoint /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/release-b appeared; contents were re-verified after the gate appeared.",
+  "acceptance": [
+    {"criterion": "Create b.txt containing exactly HPM09_B_OK plus newline", "met": true, "evidence": "b.txt is 11 bytes; od -An -c shows 'H P M 0 9 _ B _ O K \\n'"},
+    {"criterion": "Test the exact contents", "met": true, "evidence": "printf 'HPM09_B_OK\\n' | cmp - b.txt exited 0 (CONTENTS_EXACT_MATCH)"},
+    {"criterion": "Commit b.txt", "met": true, "evidence": "commit 10ed5d4 'add b.txt': 1 file changed, 1 insertion(+), create mode 100644 b.txt"},
+    {"criterion": "Observe coordinator checkpoint at /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/release-b before declaring delivered", "met": true, "evidence": "Foreground python loop blocked on os.path.exists(gate) with 1s sleeps and printed GATE_PRESENT; ls -l shows the file exists (44 bytes, Sep 13 11:15); b.txt re-verified after gate appeared"},
+    {"criterion": "Keep worktree clean: commit only b.txt and leave no uncommitted files", "met": true, "evidence": "git status --porcelain produced 0 lines after commit and after gate release"}
+  ],
+  "verification": [
+    {"command": "printf 'HPM09_B_OK\\n' | cmp - b.txt && echo CONTENTS_EXACT_MATCH", "exit_code": 0, "summary": "CONTENTS_EXACT_MATCH"},
+    {"command": "wc -c b.txt && od -An -c b.txt", "exit_code": 0, "summary": "11 bytes: H P M 0 9 _ B _ O K \\n"},
+    {"command": "git add b.txt && git commit -m \"add b.txt\"", "exit_code": 0, "summary": "[hpm/w09-opencode-b 10ed5d4] add b.txt, 1 file changed, 1 insertion(+)"},
+    {"command": "python3 -c \"import os,time; gate='/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/release-b';\\nwhile not os.path.exists(gate): time.sleep(1)\\nprint('GATE_PRESENT')\"", "exit_code": 0, "summary": "GATE_PRESENT after blocking on gate existence with 1s sleeps and no task deadline"},
+    {"command": "git status --porcelain | wc -l", "exit_code": 0, "summary": "0 (worktree clean)"},
+    {"command": "git rev-parse HEAD", "exit_code": 0, "summary": "10ed5d41d065897ddf5b50e3cdab794933256113"}
+  ],
+  "head": "10ed5d41d065897ddf5b50e3cdab794933256113",
+  "artifacts": ["b.txt"],
+  "remaining": ""
+}

@@ -1,0 +1,15 @@
+{
+  "cwd": "/home/blingtron/.agents/skills/herdr-plan-manager",
+  "command": "opencode debug skill (PTY capture)",
+  "exit_code": 0,
+  "skills": [
+    {
+      "name": "herdr",
+      "location": "/home/blingtron/.agents/skills/herdr/SKILL.md"
+    },
+    {
+      "name": "herdr-plan-manager",
+      "location": "/home/blingtron/.agents/skills/herdr-plan-manager/SKILL.md"
+    }
+  ]
+}

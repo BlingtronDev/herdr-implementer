@@ -50,37 +50,6 @@ class OpenCodeTests(unittest.TestCase):
             self.assertEqual(result["freshness"], "stale-model-change")
 
 
-class CodexTests(unittest.TestCase):
-    def test_uses_last_usage_not_cumulative_usage(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            rollout = root / "rollout.jsonl"
-            event = {
-                "timestamp": "2026-01-01T00:00:00Z",
-                "type": "event_msg",
-                "payload": {
-                    "type": "token_count",
-                    "info": {
-                        "last_token_usage": {"total_tokens": 120},
-                        "total_token_usage": {"total_tokens": 900000},
-                        "model_context_window": 1000,
-                    },
-                },
-            }
-            rollout.write_text(json.dumps(event) + "\n", encoding="utf-8")
-            db = root / "state.sqlite"
-            conn = sqlite3.connect(db)
-            conn.execute("CREATE TABLE threads(id TEXT PRIMARY KEY, rollout_path TEXT)")
-            session_id = "12345678-1234-1234-1234-123456789abc"
-            conn.execute("INSERT INTO threads VALUES(?,?)", (session_id, str(rollout)))
-            conn.commit()
-            conn.close()
-            result = context.get_codex(session_id, db, None)
-            self.assertEqual(result["total"], 120)
-            self.assertEqual(result["window"], 1000)
-            self.assertEqual(result["source"], "precise")
-
-
 class PiHelperTests(unittest.TestCase):
     def test_active_branch_ignores_abandoned_high_usage(self):
         fixture = ROOT / "tests/fixtures/pi-branched.jsonl"

@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--no-edit",
+    "0ede29109b1943a8e42c01302306c2f543610349"
+  ],
+  "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+  "exit_code": 0,
+  "stdout": "Merge made by the 'ort' strategy.\n b.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 b.txt\n",
+  "stderr": ""
+}

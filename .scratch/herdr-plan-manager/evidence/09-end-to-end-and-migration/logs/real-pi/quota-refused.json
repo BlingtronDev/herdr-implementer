@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "start",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+    "--run",
+    "issue09-pi",
+    "--ticket-id",
+    "Q",
+    "--worker-id",
+    "w09-pi-quota",
+    "--title",
+    "quota refusal probe",
+    "--base",
+    "70a7e2d20cf5f97cab559ca5b5bb04c05c8164bc",
+    "--material",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi/.scratch/spec.md"
+  ],
+  "cwd": null,
+  "exit_code": 2,
+  "stdout": "",
+  "stderr": "{\n  \"error\": \"manager-error\",\n  \"message\": \"run 'issue09-pi' is at its concurrency limit: 2 active worker(s) of max_workers=2 (w09-pi-a, w09-pi-b)\"\n}\n"
+}

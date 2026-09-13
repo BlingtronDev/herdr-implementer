@@ -1,8 +1,8 @@
-# Preview Validation
+# Validation
 
 ## Load the intended workflow
 
-Explicitly load [SKILL.md](SKILL.md) from this directory, independently of the legacy root workflow. In Pi, use `--skill <absolute-path>/docs/plan-management/SKILL.md`; the preview skill name is `herdr-plan-manager-preview`. Loading it does not migrate the official entry or remove legacy implementation.
+Load the [herdr-plan-manager entry](../../SKILL.md). In Pi, use `--skill <SKILL_DIR>/SKILL.md`. The manager is `bin/plan_manager.py`; this workflow supersedes the removed fixed-batch dispatcher. The [final acceptance map](final-acceptance.md) records which of the twelve plan scenarios this validation covers, from which evidence, and with which limits.
 
 Keep two evidence levels separate:
 
@@ -80,3 +80,23 @@ Use [Integration repair](repair-and-closeout.md) and its brief for both cases be
 Capture runtime-produced tool calls (including repair edits/merge commands and verification) and effective configuration/cwd to attribute the fix to the new worker. Preserve per-action coordinator command logs, contract/material snapshots, result files, and before/after SHAs. Neither simulated workers nor prebuilt repair commits establish actual worker repair.
 
 Also exercise or explicitly label unexecuted branches: unsafe/unowned abort, abort failure, and behavior-affecting target movement requiring a new compatibility worker. A document walkthrough is evidence for the prescribed decision, not evidence of a real runtime failure. Retain failed attempts and distinguish fixture failures from product defects.
+
+## Post-migration acceptance smoke
+
+The migration renamed the skill entry to `herdr-plan-manager`, fixed the live references, and removed the fixed-batch dispatcher, Codex adapter, strict ticket parser, and superseded schemas and tests. It did not change `bin/plan_manager.py`, `prompts/plan-worker.md`, the runtime adapters, or the on-disk state format. Reuse the [final acceptance map](final-acceptance.md) to see which prior real-runtime evidence still applies, then rerun this smoke against the migrated entry before treating the migrated product as usable.
+
+Prerequisites: `HERDR_ENV=1`, a populated `HERDR_WORKSPACE_ID`, the confirmed `kind`/`provider`/`model`/`thinking` per runtime, an explicit total concurrency cap, and authorization covering OpenCode `--auto`. Use a disposable repository with a complete local plan and initial ticket set, one run per runtime, and keep the aggregate active-worker count within the authorized cap.
+
+One run per runtime covers automatic handoff, quota, wait/ack, stop/cleanup, and automatic tab release:
+
+1. `init-run` with the confirmed configuration and `--max-workers 2` (the per-run cap; keep the total across concurrent runs within the authorized aggregate cap); save the returned run ID.
+2. `start` A and B from the same explicit base SHA. Confirm `status --run` reports both active and that a third `start` is refused at the cap.
+3. Give A a controlled `--handoff-tokens` threshold above its fresh-session seed context and enough context-producing work to cross it. Confirm the automatic handoff: the session index increments, worktree/branch/configuration stay the same, the durable handoff document is readable, the replacement session reads it, and the old session's last write precedes the new session's first write.
+4. While B is still `working`, receive A's valid delivery through `wait`; acknowledge it and confirm the target HEAD has not moved. Delivery and acknowledgement are not integration.
+5. Merge A following repository policy, record the delivery-to-integration SHA mapping, and `start` C from that integrated SHA. Confirm B is still active and the active-worker count stayed within the cap.
+6. Receive C's delivery, integrate it, and run the combined check the plan requires.
+7. Confirm automatic release after each valid delivery with a clean worktree: `status --worker` shows the release state and the registered tab is closed while the branch, worktree, result, logs, and materials remain. Confirm a delivery with uncommitted content retains its tab.
+8. `stop` every unfinished worker and require `business_stopped: true`. Exercise `cleanup` with an explicit decision: without `--archive-uncommitted` it must refuse while uncommitted content exists; with the archive flag it must save the content, remove only that worker's registered worktree resources, close only its registered tabs, and retain the branch and evidence. Repeat `stop` and `cleanup` to check idempotence. When a cleanup already succeeded, validate it read-only with `verify-cleanup-a` instead of rerunning the refusal or archive steps, and keep the first failure's captures.
+9. Record commands, responses, run/worker IDs, runtime-produced configuration and session evidence, integration SHAs, release/cleanup facts, and scene locations. Keep real smoke evidence separate from deterministic results, and state which prior checks were not rerun.
+
+A ready-to-run manual driver for this sequence is [`.scratch/herdr-plan-manager/evidence/09-end-to-end-and-migration/smoke.py`](../../.scratch/herdr-plan-manager/evidence/09-end-to-end-and-migration/smoke.py), with usage and the evidence map in its [DRIVER.md](../../.scratch/herdr-plan-manager/evidence/09-end-to-end-and-migration/DRIVER.md). It adds an explicit quota-refusal phase while A and B are active, observes B and C inside a bounded `wait-final` window, offers the read-only `verify-cleanup-a` recovery phase for a cleanup that already ran, and lets `verify` re-check every captured fact offline, including B/C runtime configuration and the raw `last_archive` cleanup record.

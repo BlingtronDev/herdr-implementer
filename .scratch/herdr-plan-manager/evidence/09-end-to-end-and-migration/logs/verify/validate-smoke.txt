@@ -1,0 +1,40 @@
+PASS   latest prefers the highest numeric suffix
+PASS   parse_json_streams reads stdout
+PASS   parse_json_streams reads stderr
+PASS   parse_json_streams rejects noise
+PASS   sanitize_input keeps path/filePath/command
+PASS   normalize_time handles ms and ISO
+PASS   check_handoff accepts the Pi schema
+PASS   check_handoff accepts the OpenCode schema
+PASS   rejects a replacement that never read the handoff
+PASS   rejects an unconfirmed thinking level
+PASS   rejects an unconfirmed provider
+PASS   rejects old activity after new activity
+PASS   rejects a missing replacement session
+PASS   read_handoff_paths finds the document
+PASS   runtime config accepts B/C-like Pi evidence
+PASS   runtime config rejects a wrong cwd
+PASS   runtime config rejects an unconfirmed model
+PASS   runtime config accepts OpenCode evidence
+PASS   check_runtime rejects an unconfirmed configuration
+PASS   recover_runtime_configs rebuilds sessions from refs
+PASS   real status cleanup schema omits the archive field
+PASS   cleanup evidence accepts the captured schema
+PASS   cleanup evidence rejects a record without last_archive
+PASS   cleanup evidence rejects a blocked attempt
+PASS   cleanup evidence rejects a mismatched command archive
+PASS   cleanup evidence rejects a missing archive directory
+PASS   settled_failures accepts a delivered terminal worker
+PASS   settled_failures rejects a live session
+PASS   wait-final returns a pending item once without spinning
+PASS   wait-final stops once both workers delivered
+PASS   wait-final window expiry is explicit and not a task failure
+PASS   opencode capture keeps assistant configuration
+PASS   opencode capture keeps sanitized tool input
+PASS   opencode capture keeps completion timestamps
+PASS   setup completes
+PASS   setup uses /tmp/opencode as parent
+PASS   setup writes no local Git identity (pi)
+PASS   setup writes no local Git identity (opencode)
+
+38/38 passed

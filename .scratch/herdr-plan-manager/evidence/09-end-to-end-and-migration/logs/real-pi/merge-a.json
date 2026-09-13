@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "git",
+    "merge",
+    "--ff-only",
+    "fa344c044dc1eaee85fb49590aabfbe004220b20"
+  ],
+  "cwd": "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+  "exit_code": 0,
+  "stdout": "Updating 70a7e2d..fa344c0\nFast-forward\n api.txt     | 1 +\n resumed.txt | 1 +\n 2 files changed, 2 insertions(+)\n create mode 100644 api.txt\n create mode 100644 resumed.txt\n",
+  "stderr": ""
+}

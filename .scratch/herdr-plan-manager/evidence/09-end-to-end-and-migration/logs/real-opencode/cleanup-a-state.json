@@ -1,0 +1,122 @@
+{
+  "cleanup": {
+    "blockers": [],
+    "branch_deleted_at": null,
+    "cleaned": true,
+    "decision": {
+      "at": "2026-09-13T03:21:23.537845Z",
+      "integrated": "75cca4500b2419eed3aef699e96888f90de78417"
+    },
+    "last_attempt": {
+      "at": "2026-09-13T03:21:24.158622Z",
+      "blockers": [],
+      "outcome": "removed",
+      "removed": {
+        "branch": false,
+        "tabs": [
+          "wJ:t23",
+          "wJ:t24"
+        ],
+        "worktree": true
+      }
+    },
+    "resources": {
+      "branch": {
+        "exists": true,
+        "head": "75cca4500b2419eed3aef699e96888f90de78417",
+        "name": "hpm/w09-opencode-a"
+      },
+      "contract": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/contract.md",
+      "handoffs": [
+        "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/handoffs/handoff-001.md"
+      ],
+      "management_dir": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a",
+      "result": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/result.json",
+      "sessions": [
+        {
+          "agent": "w09-opencode-a",
+          "agent_live": false,
+          "agent_status": null,
+          "index": 1,
+          "session_status": "replaced",
+          "tab": "wJ:t23"
+        },
+        {
+          "agent": "w09-opencode-a-s2",
+          "agent_live": false,
+          "agent_status": null,
+          "index": 2,
+          "session_status": "ended",
+          "tab": "wJ:t24"
+        }
+      ],
+      "worktree": {
+        "dirty": false,
+        "exists": false,
+        "owned": false,
+        "path": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a",
+        "uncommitted_entries": []
+      }
+    },
+    "worktree_removed_at": "2026-09-13T03:21:24.158622Z"
+  },
+  "release": {
+    "at": "2026-09-13T03:21:23.070265Z",
+    "attempts": 2,
+    "first_at": "2026-09-13T03:13:44.549852Z",
+    "message": "the worktree has uncommitted or untracked content; the terminal is retained",
+    "reason": "uncommitted-content",
+    "state": "retained",
+    "tabs": {
+      "closed": [],
+      "registered": [
+        "wJ:t23",
+        "wJ:t24"
+      ]
+    },
+    "uncommitted": [
+      {
+        "code": "??",
+        "path": "seed-note.txt"
+      }
+    ]
+  },
+  "record": {
+    "closed_tabs": [
+      "wJ:t23",
+      "wJ:t24"
+    ],
+    "completed_at": "2026-09-13T03:21:24.158622Z",
+    "decision": {
+      "at": "2026-09-13T03:21:23.537845Z",
+      "integrated": "75cca4500b2419eed3aef699e96888f90de78417"
+    },
+    "last_archive": {
+      "path": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/cleanup/uncommitted-20260913T032123Z",
+      "tracked_patch_bytes": 0,
+      "untracked_files": [
+        {
+          "bytes": 29,
+          "path": "seed-note.txt"
+        }
+      ]
+    },
+    "last_attempt": {
+      "at": "2026-09-13T03:21:24.158622Z",
+      "blockers": [],
+      "outcome": "removed",
+      "removed": {
+        "branch": false,
+        "tabs": [
+          "wJ:t23",
+          "wJ:t24"
+        ],
+        "worktree": true
+      }
+    },
+    "updated_at": "2026-09-13T03:21:24.158661Z",
+    "version": 1,
+    "worker_id": "w09-opencode-a",
+    "worktree_removed_at": "2026-09-13T03:21:24.158622Z"
+  }
+}

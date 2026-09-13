@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/home/blingtron/miniconda3/bin/python3",
+    "/home/blingtron/.agents/skills/herdr-plan-manager/bin/plan_manager.py",
+    "wait",
+    "--repo",
+    "/tmp/opencode/hpm09-migration-lawoi34f/pi",
+    "--run",
+    "issue09-pi",
+    "--timeout",
+    "60",
+    "--poll",
+    "1"
+  ],
+  "cwd": null,
+  "exit_code": 0,
+  "stdout": "{\n  \"items\": [\n    {\n      \"acked\": false,\n      \"acked_at\": null,\n      \"branch\": \"hpm/w09-pi-b\",\n      \"code\": \"delivered\",\n      \"created_at\": \"2026-09-13T03:05:59.731312Z\",\n      \"details\": {\n        \"artifacts\": [\n          \"b.txt\"\n        ],\n        \"head\": \"0ede29109b1943a8e42c01302306c2f543610349\"\n      },\n      \"item_id\": \"w09-pi-b/i001\",\n      \"kind\": \"delivery\",\n      \"lifecycle\": \"delivered\",\n      \"message\": \"Waited in a foreground Python poll loop for the coordinator checkpoint /tmp/opencode/hpm09-migration-lawoi34f/pi/.git/release-b (poll every 1s, no deadline); after it appeared, created b.txt with exact bytes HPM09_B_OK\\\\n, verified byte-exact contents, committed only b.txt (commit 0ede291), re-verified committed blob and clean worktree, and confirmed the checkpoint file remains present.\",\n      \"result_path\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-b/result.json\",\n      \"run_id\": \"issue09-pi\",\n      \"session\": 1,\n      \"ticket\": {\n        \"id\": \"B\",\n        \"title\": \"post-migration smoke B independent deliverable\"\n      },\n      \"worker_id\": \"w09-pi-b\",\n      \"worktree\": \"/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/worktrees/w09-pi-b\"\n    }\n  ],\n  \"note\": \"each item is a durable fact awaiting ack; a delivery is not integration and an idle terminal is not a result\",\n  \"observed_at\": \"2026-09-13T03:06:12.763987Z\",\n  \"run_id\": \"issue09-pi\",\n  \"timed_out\": false\n}\n",
+  "stderr": ""
+}

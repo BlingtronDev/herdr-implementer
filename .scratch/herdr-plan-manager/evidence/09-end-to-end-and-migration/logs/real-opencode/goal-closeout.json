@@ -1,0 +1,82 @@
+{
+  "goal": "all four outputs integrated with exact contents",
+  "integrations": {
+    "a": {
+      "role": "a",
+      "before": "70a7e2d20cf5f97cab559ca5b5bb04c05c8164bc",
+      "delivery": "75cca4500b2419eed3aef699e96888f90de78417",
+      "integrated": "75cca4500b2419eed3aef699e96888f90de78417"
+    },
+    "b": {
+      "role": "b",
+      "before": "31fe6a59a4da690941040105ef88c83f50bd612d",
+      "delivery": "10ed5d41d065897ddf5b50e3cdab794933256113",
+      "integrated": "49262979eb0b2a03454e61b5d393652d703c6b05"
+    },
+    "c": {
+      "role": "c",
+      "before": "75cca4500b2419eed3aef699e96888f90de78417",
+      "delivery": "31fe6a59a4da690941040105ef88c83f50bd612d",
+      "integrated": "31fe6a59a4da690941040105ef88c83f50bd612d"
+    }
+  },
+  "final_run": {
+    "active_count": 0,
+    "active_worker_ids": [],
+    "created_at": "2026-09-13T03:10:20.366147Z",
+    "max_workers": 2,
+    "pending_item_count": 0,
+    "pending_items": [],
+    "repo_root": "/tmp/opencode/hpm09-migration-lawoi34f/opencode",
+    "run_id": "issue09-opencode",
+    "runtime": {
+      "kind": "opencode",
+      "model": "deepseek-v4.1-flash",
+      "provider": "opencode-go",
+      "thinking": "max"
+    },
+    "worker_count": 3,
+    "workers": [
+      {
+        "active": false,
+        "branch": "hpm/w09-opencode-a",
+        "lifecycle": "delivered",
+        "pending_items": 0,
+        "session": 2,
+        "ticket": {
+          "id": "A",
+          "title": "post-migration smoke A with handoff and dirty worktree"
+        },
+        "worker_id": "w09-opencode-a",
+        "worktree": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-a"
+      },
+      {
+        "active": false,
+        "branch": "hpm/w09-opencode-b",
+        "lifecycle": "delivered",
+        "pending_items": 0,
+        "session": 1,
+        "ticket": {
+          "id": "B",
+          "title": "post-migration smoke B independent deliverable"
+        },
+        "worker_id": "w09-opencode-b",
+        "worktree": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-b"
+      },
+      {
+        "active": false,
+        "branch": "hpm/w09-opencode-c",
+        "lifecycle": "delivered",
+        "pending_items": 0,
+        "session": 1,
+        "ticket": {
+          "id": "C",
+          "title": "post-migration smoke C consumes integrated A"
+        },
+        "worker_id": "w09-opencode-c",
+        "worktree": "/tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/worktrees/w09-opencode-c"
+      }
+    ]
+  },
+  "conclusion": "complete on the smoke fixture"
+}
