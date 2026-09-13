@@ -92,6 +92,6 @@ python3 validate_smoke.py --replay
 ## Limits
 
 - The driver only runs real runtimes; the deterministic layer is `python3 -m pytest tests/ -q`.
-- It does not induce handoff failure, repair conflict behavior, or a behavior-affecting target move; those remain covered by the ticket 04/08 evidence listed in [final acceptance](../../../../docs/plan-management/final-acceptance.md).
+- It does not induce handoff failure, repair conflict behavior, or a behavior-affecting target move; those remain covered by the ticket 04/08 evidence listed in [final acceptance](final-acceptance.md).
 - It does not verify model compliance beyond the recorded tool activity and committed outputs. A model may not follow the fixture instructions exactly; record deviations instead of editing the historical logs. On a genuine fixture or product failure, keep the scene and report it.
 - `verify` needs the disposable smoke root and the runtime session logs referenced by the captured states; replay degrades to a failure if those paths no longer exist.

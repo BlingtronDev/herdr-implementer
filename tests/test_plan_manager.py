@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ast
 import importlib.util
+import inspect
 import json
 import os
 import signal
@@ -25,6 +27,45 @@ def load_plan_manager():
     assert spec.loader
     spec.loader.exec_module(module)
     return module
+
+
+def test_worker_template_matches_dispatch_fields():
+    pm = load_plan_manager()
+    tree = ast.parse(inspect.getsource(pm.cmd_start))
+    calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+             and isinstance(node.func, ast.Name) and node.func.id == "render_contract"]
+    assert len(calls) == 1
+    fields = calls[0].args[1]
+    assert isinstance(fields, ast.Dict)
+    values = {ast.literal_eval(key): f"value-for-{ast.literal_eval(key)}" for key in fields.keys}
+    rendered = pm.render_contract(pm.SKILL_DIR / "docs" / "plan-management" / "plan-worker.md", values)
+    assert all(value in rendered for value in values.values())
+    assert "{{" not in rendered
+
+
+@pytest.mark.parametrize("template", [
+    "Task with the required field deleted",
+    "{{TASK}} {{UNKNOWN}}",
+    "{{task}}",
+    "{{ TASK }}",
+    "{{TASK}} {{broken",
+    "{{TASK}} broken}}",
+])
+def test_contract_rejects_invalid_template_interface(tmp_path, template):
+    pm = load_plan_manager()
+    path = tmp_path / "contract.md"
+    path.write_text(template, encoding="utf-8")
+    with pytest.raises(pm.ManagerError, match="placeholder mismatch"):
+        pm.render_contract(path, {"TASK": "Implement the ticket"})
+
+
+def test_contract_substitution_preserves_literal_task_content(tmp_path):
+    pm = load_plan_manager()
+    path = tmp_path / "contract.md"
+    path.write_text("{{TASK}} / {{OTHER}} / {{TASK}}", encoding="utf-8")
+    assert pm.render_contract(path, {"TASK": "Document {{OTHER}} and {{user}}", "OTHER": "ok"}) == (
+        "Document {{OTHER}} and {{user}} / ok / Document {{OTHER}} and {{user}}"
+    )
 
 
 def herdr_calls(harness: "Harness", prefix: tuple[str, ...]) -> list[list[str]]:

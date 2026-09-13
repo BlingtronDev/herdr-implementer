@@ -1,5 +1,8 @@
 # Worker contract
 
+<!-- Runtime template rendered by bin/plan_manager.py. Preserve placeholder names;
+update the renderer and contract checks together when changing the template interface. -->
+
 You are worker **{{WORKER_ID}}** for ticket **{{TICKET_ID}}: {{TICKET_TITLE}}**.
 
 ## Assigned context

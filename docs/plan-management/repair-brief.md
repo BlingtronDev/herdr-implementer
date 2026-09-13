@@ -1,6 +1,6 @@
 # Repair or Verification Brief
 
-The coordinator fills this as an ordinary ticket and supplies it via `--material`. Omit fields that do not apply; keep immutable SHAs and concrete acceptance requirements. The manager's rendered worker contract remains authoritative for workspace, runtime, and result publication.
+The coordinator creates an ordinary ticket in the target repository (for example `<target-repo>/.scratch/<slug>/issues/<ticket-id>.md`) from this read-only template and supplies its absolute path via `--material`. Omit fields that do not apply; keep immutable SHAs and concrete acceptance requirements. The manager's rendered worker contract remains authoritative for workspace, runtime, and result publication.
 
 ## Goal and inputs
 

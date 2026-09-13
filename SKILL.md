@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 The coordinator makes decisions. Workers implement individual tickets. Tools make execution mechanically reliable.
 
-This skill is the entry for the plan-management workflow; `bin/plan_manager.py` is the product entry and the operation references live under `docs/plan-management/`. Resolve relative paths from this file's directory. The manager requires `HERDR_ENV=1` and a populated `HERDR_WORKSPACE_ID`; verify both before the first launch.
+This skill is the entry for the plan-management workflow; `bin/plan_manager.py` is the product entry and the operation references live under `docs/plan-management/`. Resolve skill resource links from this file's directory. Resolve plan, ticket, and record paths from the confirmed target repository; write execution records, repair briefs, and acceptance reports there, keeping installed templates read-only. Pass absolute paths to the CLI. The manager requires `HERDR_ENV=1` and a populated `HERDR_WORKSPACE_ID`; verify both before the first launch.
 
 ## Establish the execution contract
 
@@ -50,6 +50,6 @@ At closeout, follow [Decide overall completion](docs/plan-management/repair-and-
 
 Report completion only when the overall goal is met, not merely when every worker has delivered. Include the main integration results, verification summary, unresolved items, and retained resource locations.
 
-When validating this workflow rather than executing a user plan, follow [Validation](docs/plan-management/validation.md) and record the results in [Final acceptance](docs/plan-management/final-acceptance.md).
+When validating this workflow rather than executing a user plan, follow [Validation](docs/plan-management/validation.md) and write the acceptance report in the validation project's record directory, citing the tested revision and actual evidence.
 
 This version relies on an active coordinator. Durable records support reliable item collection and scene inspection; they do not promise coordinator handoff, crash recovery, or automatic takeover.

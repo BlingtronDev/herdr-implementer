@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import ast
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "SKILL.md"
-ACCEPTANCE_MAP = ROOT / "docs" / "plan-management" / "final-acceptance.md"
+ACCEPTANCE_MAP = ROOT / ".scratch" / "herdr-plan-manager" / "evidence" / "09-end-to-end-and-migration" / "final-acceptance.md"
 ENTRY_DOCS = [SKILL, ROOT / "README.md", *sorted((ROOT / "docs" / "plan-management").glob("*.md"))]
 CLI_OPERATIONS = ["init-run", "start", "status", "wait", "ack", "read", "handoff", "stop", "cleanup"]
 
@@ -29,7 +30,7 @@ HISTORICAL_TOKENS = {"docs/plan-management/SKILL.md"}
 
 def _documented_evidence_tokens() -> list[str]:
     tokens: list[str] = []
-    for document in ENTRY_DOCS:
+    for document in [*ENTRY_DOCS, ACCEPTANCE_MAP]:
         for span in CODE_SPAN.findall(document.read_text(encoding="utf-8")):
             token = span.split()[0].rstrip(".,;:")
             if token.startswith(PATH_PREFIXES) and not any(char in token for char in "<>*[]"):
@@ -69,7 +70,7 @@ def test_skill_entry_is_the_single_herdr_plan_manager_skill():
 
 def test_documented_relative_references_resolve():
     missing: list[str] = []
-    for document in ENTRY_DOCS:
+    for document in [*ENTRY_DOCS, ACCEPTANCE_MAP]:
         for target in MD_LINK.findall(document.read_text(encoding="utf-8")):
             if target.startswith(("http://", "https://", "#", "mailto:")):
                 continue
@@ -77,6 +78,41 @@ def test_documented_relative_references_resolve():
             if path and not (document.parent / path).resolve().exists():
                 missing.append(f"{document.relative_to(ROOT)} -> {target}")
     assert missing == [], f"unresolvable references: {missing}"
+
+
+def test_runtime_distribution_is_self_contained(tmp_path):
+    """The installable resources work without the source checkout's evidence."""
+    for name in ("SKILL.md", "README.md", "bin", "docs"):
+        source = ROOT / name
+        destination = tmp_path / name
+        if source.is_dir():
+            shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__"))
+        else:
+            shutil.copy2(source, destination)
+    for source in ENTRY_DOCS:
+        document = tmp_path / source.relative_to(ROOT)
+        for target in MD_LINK.findall(document.read_text(encoding="utf-8")):
+            if target.startswith(("http://", "https://", "#", "mailto:")):
+                continue
+            resolved = (document.parent / target.split("#", 1)[0]).resolve()
+            assert resolved.is_relative_to(tmp_path), (document, target)
+            assert resolved.exists(), (document, target)
+    subprocess.run(
+        [sys.executable, str(tmp_path / "bin" / "plan_manager.py"), "--help"],
+        check=True, capture_output=True, text=True,
+    )
+    template = tmp_path / "docs" / "plan-management" / "plan-worker.md"
+    assert template.is_file()
+
+
+def test_development_assets_are_excluded_from_export():
+    paths = [".scratch", "tests", "CONTEXT.md"]
+    result = subprocess.run(
+        ["git", "check-attr", "export-ignore", "--", *paths],
+        cwd=ROOT, check=True, capture_output=True, text=True,
+    )
+    assert all(line.endswith(": set") for line in result.stdout.splitlines())
+    assert len(result.stdout.splitlines()) == len(paths)
 
 
 def test_documented_cli_operations_exist():

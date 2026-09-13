@@ -11,8 +11,7 @@ Plan management skill for Herdr: the calling agent (the coordinator) reads a con
 | [plan-worker.md](docs/plan-management/plan-worker.md) | Worker contract template rendered by the lifecycle tool |
 | [repair-and-closeout.md](docs/plan-management/repair-and-closeout.md) | Conflict/behavior repair and overall completion |
 | [repair-brief.md](docs/plan-management/repair-brief.md) | Repair or verification ticket template |
-| [validation.md](docs/plan-management/validation.md) | Deterministic checks, real smoke runs, post-migration smoke |
-| [final-acceptance.md](docs/plan-management/final-acceptance.md) | Scenario-to-evidence map and remaining checks |
+| [validation.md](docs/plan-management/validation.md) | Source-checkout tests and repeatable real-runtime validation |
 
 ## Requirements
 
@@ -42,7 +41,19 @@ python3 "$HPM" cleanup --repo "$REPO" --worker <worker-id> --integrated <integra
 
 The coordinator merges delivered branches itself, following repository policy. Delivery, acknowledgement, and terminal idleness are not integration.
 
-State lives in the target repository's Git common directory by default: `<common-dir>/herdr-plan-manager/` with `runs/<run-id>/run.json`, `workers/<worker-id>/` (state, result, contract, material snapshots, handoffs, archives), and `worktrees/<worker-id>/` for the worker checkouts on branch `hpm/<worker-id>`. Override only with `--management-root`, consistently on every operation of that run.
+## Records and workspaces
+
+Read templates and tools from the installed skill. Write plans, tickets, execution records, and acceptance reports in the target repository, for example `<target-repo>/.scratch/<slug>/`. Resolve these paths against the target repository and pass absolute paths to the CLI. Installed templates remain read-only.
+
+Tool state lives in the target repository's Git common directory by default: `<common-dir>/herdr-plan-manager/` with `runs/<run-id>/run.json` and `workers/<worker-id>/` (state, result, contract, material snapshots, handoffs, archives). Override with `--management-root`, consistently on every operation of that run.
+
+Worker branches default to `hpm/<worker-id>`. Worktree location is selected in this order:
+
+1. An explicit `start --worktree <absolute-path>`.
+2. `<management-root>/worktrees/<worker-id>` when `--management-root` is supplied.
+3. `<common-dir>/herdr-plan-manager/worktrees/<worker-id>` otherwise, normally `<target-repo>/.git/herdr-plan-manager/worktrees/<worker-id>`.
+
+Linked worktrees share their repository's Git common directory. To use `<target-repo>/.worktrees/<worker-id>`, supply `--worktree` and ignore `.worktrees/` in that project; this changes the worker checkout location independently of tool state.
 
 ## First-version boundaries
 
@@ -52,14 +63,8 @@ State lives in the target repository's Git common directory by default: `<common
 - No conversion layer for the removed fixed-batch dispatcher: old run records, branches, and worktrees are neither interpreted as new state nor automatically adopted or deleted.
 - Cleanup requires an explicit coordinator decision; branches are retained by default and uncommitted content is archived or discarded only on request.
 
-## Installed-directory migration
+## Distribution and development
 
-The product was renamed from `herdr-ticket-dispatcher` to `herdr-plan-manager`. The verified installed location on this machine is `~/.agents/skills/herdr-plan-manager`, and a fresh OpenCode process discovers only the new `herdr-plan-manager` entry. The project's main checkout still holds the pre-migration baseline and stays uncommitted by the user's decision, so the installed tree is usable as it stands; no integration commit is required for usage.
+Keep the source checkout separate from the installed skill when a runtime-only installation is desired. From a committed release revision, export with `git archive --format=tar --prefix=herdr-plan-manager/ <revision> -o <absolute-output.tar>`. The export attributes omit development history, tests, and source-only configuration; the archive retains the root skill entry, README, tools, and runtime references/templates. `git archive` exports committed content, so commit the intended release changes before packaging.
 
-To move an installed checkout:
-
-1. Relocate the skill directory so its root is `~/.agents/skills/herdr-plan-manager` (or the equivalent skill location for the runtime).
-2. Keep exactly one `SKILL.md`, at the directory root. Runtimes discover nested `SKILL.md` files as additional skills, so remove any leftover `docs/**/SKILL.md` from the old tree.
-3. Start a fresh agent session (skills are discovered at session start) and confirm the `herdr-plan-manager` skill is listed and reachable while the old `herdr-ticket-dispatcher` entry is gone. If the machine also installs the skill through per-skill links, recreate that link against the new directory.
-4. Leave existing run evidence and management directories untouched. This migration does not rename, interpret, adopt, or delete `herdr-plan-manager/` or old `herdr-ticket-dispatcher/` records, branches, or worktrees.
-5. Update a clone's remote with `git remote set-url` when that clone tracks the moved directory. Do not change global Git configuration, and do not require a merge of a migration commit that does not exist.
+Install the exported directory in the runtime's skill location and start a fresh agent session to discover it. The source checkout retains tests and the skill's own development evidence under `.scratch/`, including the historical migration acceptance. Those records describe development of this skill; each managed project owns its own execution records.

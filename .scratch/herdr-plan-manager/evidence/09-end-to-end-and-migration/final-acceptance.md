@@ -1,8 +1,10 @@
 # Final Acceptance: Twelve Scenarios
 
-Acceptance map for ticket 09 against [项目重建方案 §12](../../.scratch/herdr-plan-manager/项目重建方案.md). Every path and test node ID in the table resolves; `tests/test_entry_docs.py::test_acceptance_map_evidence_and_tests_exist` checks this mechanically on each test run.
+Historical development snapshot for ticket 09, not the current runtime contract. Paths in code spans are relative to the source repository root.
 
-**Final coordinator conclusion (2026-09-13): implementation, installed-entry migration, and acceptance are complete in the working tree.** The twelve scenarios are covered by the evidence below plus the completed post-migration Pi/OpenCode runs. The project commit remains the user's decision; main HEAD is still `759d721`. Worker implementation commits are `40e02a5` and supplemental evidence fix `fdffc70`, both incorporated without creating a project commit. See the [final execution record](../../.scratch/herdr-plan-manager/evidence/09-end-to-end-and-migration/README.md) for integration mappings, resources, and the resolved fixture failure.
+Acceptance map for ticket 09 against [项目重建方案 §12](../../项目重建方案.md). `tests/test_entry_docs.py::test_acceptance_map_evidence_and_tests_exist` checks the evidence citations in the source checkout.
+
+**Final coordinator conclusion (2026-09-13): implementation, installed-entry migration, and acceptance are complete in the working tree.** The twelve scenarios are covered by the evidence below plus the completed post-migration Pi/OpenCode runs. The project commit remains the user's decision; main HEAD is still `759d721`. Worker implementation commits are `40e02a5` and supplemental evidence fix `fdffc70`, both incorporated without creating a project commit. See the [final execution record](README.md) for integration mappings, resources, and the resolved fixture failure.
 
 ## Evidence levels
 
@@ -11,7 +13,7 @@ Acceptance map for ticket 09 against [项目重建方案 §12](../../.scratch/he
 - **Deterministic** — the real `bin/plan_manager.py` and real Git against simulated Herdr, runtimes, and context observations. Never counted as runtime proof.
 - **Fault injection** — a real injected Git fault rather than a naturally occurring runtime failure.
 
-Historical paths: evidence from tickets 07 and 08 links to the removed preview entry `docs/plan-management/SKILL.md` and the preview skill name. Those links are historical and were not rewritten; the live entry is the root [SKILL.md](../../SKILL.md) named `herdr-plan-manager`.
+Historical paths: evidence from tickets 07 and 08 links to the removed preview entry `docs/plan-management/SKILL.md` and the preview skill name. Those links are historical and were not rewritten; the live entry is the root [SKILL.md](../../../../SKILL.md) named `herdr-plan-manager`.
 
 ## Scenario map
 
@@ -40,7 +42,7 @@ The table preserves the prior evidence and the migration-time recheck requiremen
 
 ## Migration effects
 
-The migration renamed the skill entry, fixed live references, added the README and this map, and removed the fixed-batch dispatcher, Codex adapter, strict ticket parser, and superseded schemas/tests. It did not change `bin/plan_manager.py` (including both runtime adapters), `bin/pi_context.mjs`, the [worker contract](plan-worker.md), the on-disk state format, or the workflow method. The later documentation consolidation relocated the worker contract and updated its loader path without changing the template content. The retained Pi and OpenCode context paths in `bin/get_context.py` are unchanged; that file does lose its Codex adapter. Therefore:
+The migration renamed the skill entry, fixed live references, added the README and this map, and removed the fixed-batch dispatcher, Codex adapter, strict ticket parser, and superseded schemas/tests. It did not change `bin/plan_manager.py` (including both runtime adapters), `bin/pi_context.mjs`, the [worker contract](../../../../docs/plan-management/plan-worker.md), the on-disk state format, or the workflow method. The later documentation consolidation relocated the worker contract and updated its loader path without changing the template content. The retained Pi and OpenCode context paths in `bin/get_context.py` are unchanged; that file does lose its Codex adapter. Therefore:
 
 - Deterministic evidence for lifecycle, handoff, quota, wait/ack, stop/cleanup, and release remains evidence for the migrated revision; the retained tests are the same tests plus removals and the new entry checks.
 - Real evidence for scenarios 2, 7, 8, 9, 10, 12 used the same manager code and remains applicable; the migration does not invalidate runtime-produced configuration, session, or Git evidence.

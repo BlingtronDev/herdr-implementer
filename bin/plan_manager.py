@@ -863,12 +863,19 @@ def snapshot_materials(worker_dir: Path, sources: list[Path], worker_id: str) ->
 
 def render_contract(template_path: Path, values: dict[str, str]) -> str:
     text = template_path.read_text(encoding="utf-8")
-    for key, value in values.items():
-        text = text.replace("{{" + key + "}}", value)
-    leftover = re.findall(r"\{\{[A-Z0-9_]+\}\}", text)
-    if leftover:
-        raise ManagerError(f"contract template has unresolved placeholders: {', '.join(sorted(set(leftover)))}")
-    return text
+    pattern = re.compile(r"\{\{([^{}]*)\}\}")
+    placeholders = set(pattern.findall(text))
+    missing = set(values) - placeholders
+    unknown = placeholders - set(values)
+    malformed = pattern.sub("", text)
+    if missing or unknown or "{{" in malformed or "}}" in malformed:
+        raise ManagerError(
+            f"contract template placeholder mismatch: {template_path}; "
+            f"missing={sorted(missing)}, unknown={sorted(unknown)}, "
+            f"malformed_delimiters={'{{' in malformed or '}}' in malformed}"
+        )
+    # Substitute once: task text may itself contain template-like literals.
+    return pattern.sub(lambda match: values[match.group(1)], text)
 
 
 def initial_state(

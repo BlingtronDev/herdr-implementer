@@ -84,4 +84,4 @@
 - 两个实施分支及 worktree 均保留于 `/tmp/opencode/hpm09-implementation/.git/herdr-plan-manager`；初始 clone 的 origin 仍是创建时旧路径，仅作为历史副本保留，后续若需 fetch 应显式使用新路径。
 - 旧运行记录与历史 worker 现场未接管、未迁移、未删除。此轮只清理了明确归属的两个 A 测试 worktree。
 - 本项目 `main` HEAD=`759d721`，用户要求的最终提交尚未执行；当前安装工作树包含全部已验收成果。此项行政待办不被伪写为 integrated。
-- 未解决验收项：无。确定性故障场景与未额外重跑的修复分支边界见[最终验收报告](../../../../docs/plan-management/final-acceptance.md)。
+- 未解决验收项：无。确定性故障场景与未额外重跑的修复分支边界见[最终验收报告](final-acceptance.md)。

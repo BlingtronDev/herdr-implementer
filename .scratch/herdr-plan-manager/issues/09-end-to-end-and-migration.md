@@ -36,6 +36,6 @@
 
 ## 最终交付
 
-- [最终验收报告](../../../docs/plan-management/final-acceptance.md)、[执行与资源记录](../evidence/09-end-to-end-and-migration/README.md)、[可重复步骤](../evidence/09-end-to-end-and-migration/DRIVER.md)。
+- [最终验收报告](../evidence/09-end-to-end-and-migration/final-acceptance.md)、[执行与资源记录](../evidence/09-end-to-end-and-migration/README.md)、[可重复步骤](../evidence/09-end-to-end-and-migration/DRIVER.md)。
 - 双运行时最终证据：`logs/verify.json`；每轮 A/B/C 全部已集成到其隔离冒烟目标，A 未提交笔记归档后清理，B/C 磁盘现场与所有分支保留，实际登记 tab 全部关闭。
 - 两个实施／修正 worker 的 tab 已自动关闭并 ack，副本分支和 worktree 保留。未创建本项目提交，不用实验 SHA 冒充本项目集成。

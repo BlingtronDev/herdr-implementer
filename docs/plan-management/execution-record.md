@@ -1,6 +1,6 @@
 # Execution Record Template
 
-Create one coordinator-owned Markdown record associated with the target repository, for example `.scratch/<slug>/execution.md`. Use this template to record decisions and integration evidence, not to mirror tool state or define a machine-parsed business state model.
+Create one coordinator-owned Markdown record in the target repository, for example `<target-repo>/.scratch/<slug>/execution.md`. Keep this installed template read-only. Resolve reference links against this template's original directory before copying them into a record. Use the record for decisions and integration evidence, not to mirror tool state or define a machine-parsed business state model.
 
 Keep one authoritative location for each fact. If an existing ticket index owns ticket status or unexpected findings, link to it instead of maintaining another copy. The coordinator is the sole writer of the shared record.
 
