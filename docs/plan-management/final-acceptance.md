@@ -40,7 +40,7 @@ The table preserves the prior evidence and the migration-time recheck requiremen
 
 ## Migration effects
 
-The migration renamed the skill entry, fixed live references, added the README and this map, and removed the fixed-batch dispatcher, Codex adapter, strict ticket parser, and superseded schemas/tests. It did not change `bin/plan_manager.py` (including both runtime adapters), `bin/pi_context.mjs`, `prompts/plan-worker.md`, the on-disk state format, or the workflow method. The retained Pi and OpenCode context paths in `bin/get_context.py` are unchanged; that file does lose its Codex adapter. Therefore:
+The migration renamed the skill entry, fixed live references, added the README and this map, and removed the fixed-batch dispatcher, Codex adapter, strict ticket parser, and superseded schemas/tests. It did not change `bin/plan_manager.py` (including both runtime adapters), `bin/pi_context.mjs`, the [worker contract](plan-worker.md), the on-disk state format, or the workflow method. The later documentation consolidation relocated the worker contract and updated its loader path without changing the template content. The retained Pi and OpenCode context paths in `bin/get_context.py` are unchanged; that file does lose its Codex adapter. Therefore:
 
 - Deterministic evidence for lifecycle, handoff, quota, wait/ack, stop/cleanup, and release remains evidence for the migrated revision; the retained tests are the same tests plus removals and the new entry checks.
 - Real evidence for scenarios 2, 7, 8, 9, 10, 12 used the same manager code and remains applicable; the migration does not invalidate runtime-produced configuration, session, or Git evidence.

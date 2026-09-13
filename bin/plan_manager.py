@@ -3272,7 +3272,7 @@ def cmd_start(args: argparse.Namespace) -> int:
         material_lines = "\n".join(
             f"- `{entry['snapshot']}` (source: `{entry['source']}`)" for entry in manifest["materials"]
         )
-        template = SKILL_DIR / "prompts" / "plan-worker.md"
+        template = SKILL_DIR / "docs" / "plan-management" / "plan-worker.md"
         if not template.is_file():
             raise ManagerError(f"worker contract template is missing: {template}")
         contract = render_contract(

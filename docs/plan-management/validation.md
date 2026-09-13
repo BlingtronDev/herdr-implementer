@@ -83,7 +83,7 @@ Also exercise or explicitly label unexecuted branches: unsafe/unowned abort, abo
 
 ## Post-migration acceptance smoke
 
-The migration renamed the skill entry to `herdr-plan-manager`, fixed the live references, and removed the fixed-batch dispatcher, Codex adapter, strict ticket parser, and superseded schemas and tests. It did not change `bin/plan_manager.py`, `prompts/plan-worker.md`, the runtime adapters, or the on-disk state format. Reuse the [final acceptance map](final-acceptance.md) to see which prior real-runtime evidence still applies, then rerun this smoke against the migrated entry before treating the migrated product as usable.
+The migration renamed the skill entry to `herdr-plan-manager`, fixed the live references, and removed the fixed-batch dispatcher, Codex adapter, strict ticket parser, and superseded schemas and tests. It did not change `bin/plan_manager.py`, the [worker contract](plan-worker.md), the runtime adapters, or the on-disk state format. The later documentation consolidation relocated the worker contract and updated its loader path without changing the template content. Reuse the [final acceptance map](final-acceptance.md) to see which prior real-runtime evidence still applies, then rerun this smoke against the migrated entry before treating the migrated product as usable.
 
 Prerequisites: `HERDR_ENV=1`, a populated `HERDR_WORKSPACE_ID`, the confirmed `kind`/`provider`/`model`/`thinking` per runtime, an explicit total concurrency cap, and authorization covering OpenCode `--auto`. Use a disposable repository with a complete local plan and initial ticket set, one run per runtime, and keep the aggregate active-worker count within the authorized cap.
 

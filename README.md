@@ -8,6 +8,7 @@ Plan management skill for Herdr: the calling agent (the coordinator) reads a con
 | --- | --- |
 | [operations.md](docs/plan-management/operations.md) | Register, dispatch, observe, wait/ack, handoff, stop, cleanup |
 | [execution-record.md](docs/plan-management/execution-record.md) | Coordinator-owned record template |
+| [plan-worker.md](docs/plan-management/plan-worker.md) | Worker contract template rendered by the lifecycle tool |
 | [repair-and-closeout.md](docs/plan-management/repair-and-closeout.md) | Conflict/behavior repair and overall completion |
 | [repair-brief.md](docs/plan-management/repair-brief.md) | Repair or verification ticket template |
 | [validation.md](docs/plan-management/validation.md) | Deterministic checks, real smoke runs, post-migration smoke |
