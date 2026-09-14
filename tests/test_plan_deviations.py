@@ -1,11 +1,12 @@
 """Required deviation declarations across every worker outcome."""
 
 import json
+import re
 import subprocess
 
 import pytest
 
-from test_implementer import load_implementer
+from test_implementer import REPO_ROOT, load_implementer
 
 
 @pytest.fixture
@@ -84,12 +85,89 @@ def test_unresolved_deviation_prevents_delivery(result_context, status):
         assert pm.validate_result(payload, state)["plan_deviations"][0]["needs_decision"] is True
 
 
-def test_contract_outcome_examples_include_deviations():
-    import re
-    from test_implementer import REPO_ROOT
+CONTRACT = REPO_ROOT / "docs/implementation/plan-worker.md"
 
-    text = (REPO_ROOT / "docs/implementation/plan-worker.md").read_text()
-    outcomes = [json.loads(block) for block in re.findall(r"```json\n(.*?)\n```", text, re.S)]
-    outcomes = [entry for entry in outcomes if "status" in entry]
+
+def contract_examples(text):
+    return [json.loads(block) for block in re.findall(r"```json\n(.*?)\n```", text, re.S)]
+
+
+def test_contract_outcome_examples_include_deviations():
+    outcomes = [entry for entry in contract_examples(CONTRACT.read_text()) if "status" in entry]
     assert {entry["status"] for entry in outcomes} == {"delivered", "needs-decision"}
     assert all(entry["plan_deviations"] == [] for entry in outcomes)
+
+
+@pytest.mark.parametrize("outcome", ["code", "artifact", "needs-decision", "failed"])
+def test_rendered_contract_examples_validate(result_context, outcome):
+    """Substitute observed Git/artifact values, then validate the documented payloads."""
+    pm, state, _ = result_context
+    names = set(re.findall(r"{{([A-Z_]+)}}", CONTRACT.read_text()))
+    values = {name: f"value-for-{name}" for name in names}
+    values.update(TICKET_ID=state["ticket"]["id"], WORKER_ID=state["worker_id"])
+    examples = contract_examples(pm.render_contract(CONTRACT, values))
+    status = "delivered" if outcome in {"code", "artifact"} else "needs-decision"
+    payload = next(entry for entry in examples if entry.get("status") == status)
+    if outcome == "code":
+        subprocess.run(
+            ["git", "-C", state["worktree"], "add", "findings.md"], check=True,
+            capture_output=True, text=True,
+        )
+        subprocess.run(
+            ["git", "-C", state["worktree"], "-c", "user.name=Test", "-c",
+             "user.email=test@example.com", "commit", "-m", "Record findings"],
+            check=True, capture_output=True, text=True,
+        )
+        payload["head"] = subprocess.run(
+            ["git", "-C", state["worktree"], "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        payload["artifacts"] = []
+    elif outcome == "artifact":
+        payload.update(head=None, artifacts=["findings.md"])
+    elif outcome == "failed":
+        payload["status"] = "failed"  # Documented reuse of the decision example.
+    assert pm.validate_result(payload, state) == payload
+
+
+@pytest.mark.parametrize("status", ["delivered", "needs-decision", "failed"])
+def test_documented_deviation_entry_validates(result_context, status):
+    pm, state, payload = result_context
+    entry = next(entry for entry in contract_examples(CONTRACT.read_text()) if "planned" in entry)
+    assert set(entry) == {"planned", "actual", "reason", "impact", "needs_decision"}
+    entry["needs_decision"] = status != "delivered"
+    payload.update(status=status, plan_deviations=[entry])
+    assert pm.validate_result(payload, state) == payload
+
+
+def test_worker_contract_keeps_publication_and_acceptance_boundaries():
+    """Text guards only; runtime tests separately exercise lifecycle mechanics."""
+    text = CONTRACT.read_text()
+    assert "Prefer delegating" not in text
+    assert "Unconstrained implementation details are ordinary engineering choices" in text
+    assert "goal, acceptance, external behavior, dependencies, or an explicitly specified approach" in text
+    assert "An unmet criterion cannot be relabeled as a follow-up" in text
+    assert "temporary sibling" in text and "rename it over the result path" in text
+    assert "After publication, stop business writes" in text
+    assert "replacement session can continue as the single writer" in text
+    assert "shared plans, tickets and execution records are read-only" in text
+    assert "An artifact reference grants no write permission" in text
+
+
+def test_local_translation_preserves_contract_interface():
+    translation = REPO_ROOT / "zh-CN/docs/implementation/plan-worker.md"
+    if not translation.is_file():
+        pytest.skip("local translation is not distributed in Git")
+    english, chinese = CONTRACT.read_text(), translation.read_text()
+    assert sorted(re.findall(r"{{([A-Z_]+)}}", english)) == sorted(re.findall(r"{{([A-Z_]+)}}", chinese))
+
+    def shape(value):
+        if isinstance(value, dict):
+            return {key: shape(child) for key, child in value.items()}
+        if isinstance(value, list):
+            return [shape(child) for child in value]
+        return type(value).__name__
+
+    assert [shape(item) for item in contract_examples(english)] == [
+        shape(item) for item in contract_examples(chinese)
+    ]

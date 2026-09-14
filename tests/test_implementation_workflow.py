@@ -53,17 +53,37 @@ def test_master_integrates_a_then_starts_c_while_b_runs_after_handoff(make_harne
 
     # Delivery and ack do not integrate A. C is still deliberately NOT dispatched.
     record = {"A": {"delivered": a_facts["result"]["head"], "integrated": None}}
+    # The test coordinator saves a lightweight decision outside the merge worktree.
+    # This is not tool-enforced: ack deliberately does not parse Markdown.
+    decision_path = h.repo.parent / "execution.md"
+    result_path = Path(a_facts["paths"]["result"])
+    decision_path.write_text(
+        "| Ticket / attempt | Worker / result | Decision | Integration | Next action |\n"
+        f"| A / 1 | w-plan-a; {result_path} | Accepted; pending integration | — | Coordinator: merge A |\n"
+    )
+    assert result_path.is_file()
     assert h.ack(delivery["items"][0]["item_id"], note="accepted; integration pending").returncode == 0
     assert h.git("rev-parse", "HEAD") == h.base
     assert not (h.repo / "continuation.txt").exists()
     assert h.run_status(run_id)["worker_count"] == 2
     assert h.wait(run_id, wait_seconds=0.2)["items"] == []
+    saved = decision_path.read_text()
+    assert "pending integration" in saved and "Coordinator: merge A" in saved
+    assert str(result_path) in saved
+    assert "plan_deviations" not in saved  # Empty declaration stays in JSON.
 
     # This temporary repo chooses ff-only; the production method follows repo policy.
     assert h.git("status", "--porcelain") == ""
     h.git("merge", "--ff-only", record["A"]["delivered"])
     record["A"]["integrated"] = h.git("rev-parse", "HEAD")
     assert record["A"]["integrated"] != h.base
+    decision_path.write_text(
+        saved.replace("Accepted; pending integration", "Accepted")
+        .replace("| — | Coordinator: merge A |", f"| {record['A']['integrated']} | None |")
+        + f"\nA / 1: {result_path} head -> {h.base} -> {record['A']['integrated']} (ff-only).\n"
+    )
+    assert "pending integration" not in decision_path.read_text()
+    assert record["A"]["integrated"] in decision_path.read_text()
     assert (h.repo / "continuation.txt").is_file()
 
     h.env["HI_FAKE_SCENARIO_BEHAVIOR"] = "deliver-code"

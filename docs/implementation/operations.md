@@ -16,7 +16,7 @@ python3 "$HI" init-run --repo "$REPO" --run-id "$RUN" \
   --thinking "$THINKING" --max-workers "$MAX_WORKERS"
 ```
 
-Save the returned run ID and configuration. Registration does not launch a worker and does not overwrite an existing run. `RUN` accepts up to 64 lowercase letters, digits, or hyphens, beginning with a letter or digit.
+Save a reference to the returned run and its registered configuration. Registration does not launch a worker and does not overwrite an existing run. `RUN` accepts up to 64 lowercase letters, digits, or hyphens, beginning with a letter or digit.
 
 **Configuration and quota scope.** One run binds one confirmed configuration. `start` inherits it; explicitly repeated fields must match. Replacement sessions keep the same configuration. A confirmed configuration change requires a new run and a recorded reason. The tool enforces concurrency per run: the coordinator must enforce the user's total cap across related runs. Creating another run cannot bypass that cap. Separate sequential runs are suitable for testing both runtimes.
 
@@ -39,7 +39,7 @@ python3 "$HI" start --repo "$REPO" --run "$RUN" \
 
 Supply enough task context to identify one ticket's goal, scope, acceptance, and dependencies. Repeat `--material` for additional files or directories. The tool creates controlled read-only snapshots and records original paths in a manifest, so ignored or uncommitted main-checkout inputs remain accessible from isolated worktrees. Include required linked references explicitly: copying Markdown does not recursively collect everything it links to. Exclude secrets and unrelated material.
 
-Save returned `worker_id`, branch, worktree, management and result paths, and launch facts as references in the execution record. The tool creates an isolated worktree and starts supervision; the coordinator does not assemble background shell processes.
+Save the returned `worker_id` and management-record reference in the execution record; resolve branch, resource paths and launch facts there rather than copying them. The tool creates an isolated worktree and starts supervision; the coordinator does not assemble background shell processes.
 
 On launch failure, inspect registration and preserved resources before deciding on another attempt. Uncertain delivery must be investigated, not blindly resent. Finite mechanical retries belong to the tool; a new business attempt requires a coordinator decision.
 
@@ -73,13 +73,13 @@ python3 "$HI" handoff --repo "$REPO" --worker "$WORKER" --reason "$REASON"
 
 The response confirms a request, not successful replacement; inspect subsequent status. A successful handoff keeps the ticket, worktree, branch, and configuration. Results end eligibility for further handoff. A failed replacement preserves the scene and durable handoff document for disposition. Do not send ad hoc continuation prompts or create a second writer in that worktree.
 
-For each outcome, first complete [outcome and plan-deviation backfill](execution-record.md#outcome-and-plan-deviation-backfill) in the shared Markdown record. For other items, record how they were handled. Then acknowledge the returned `item_id` (`<worker-id>/<item-id>`):
+For each outcome, follow [Outcome handling](execution-record.md#outcome-handling): read the result and evidence, save their references, the decision and unfinished actions, then ack. Do not transcribe worker facts. If saving fails, do not ack items whose follow-up depends on that record. For other items, save the handling decision and any next action. Then acknowledge the returned `item_id` (`<worker-id>/<item-id>`):
 
 ```bash
 python3 "$HI" ack --repo "$REPO" --item "$ITEM" --note "$DECISION"
 ```
 
-Repeat `--item` to acknowledge several items. Acknowledged items stop appearing in wait results; new items remain discoverable. Acknowledgement neither stops a worker nor changes quality or integration conclusions. Preserve a **pending integration** entry when acknowledging before a merge. An empty pending-item list is not proof of completion.
+Repeat `--item` to acknowledge several items. Acknowledged items stop appearing in wait results; new items remain discoverable. Acknowledgement neither stops a worker nor changes quality or integration conclusions. When acknowledging before a merge, preserve **pending integration** with its next action in the authoritative record. After merging, update the actual integration mapping before unlocking code dependencies. An empty pending-item list is not proof of completion.
 
 For merge conflicts, behavior failures, or a target that changed during repair, follow [Integration repair](repair-and-closeout.md). Repairs and combined verification use the same `start --run` interface with a [repair brief](repair-brief.md) and explicit base; integration decisions remain in the coordinator's record.
 

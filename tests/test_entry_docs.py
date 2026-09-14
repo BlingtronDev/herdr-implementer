@@ -98,6 +98,38 @@ def test_documented_relative_references_resolve():
     assert missing == [], f"unresolvable references: {missing}"
 
 
+def test_live_document_heading_anchors_resolve():
+    """Include local translations when present; they are not distributed in Git."""
+    documents = [*ENTRY_DOCS, *sorted((ROOT / "zh-CN").rglob("*.md"))]
+    for document in documents:
+        for target in MD_LINK.findall(document.read_text(encoding="utf-8")):
+            if target.startswith(("http://", "https://", "mailto:")) or "#" not in target:
+                continue
+            path, anchor = target.split("#", 1)
+            destination = (document.parent / path).resolve() if path else document
+            assert destination.is_file(), (document, target)
+            headings = re.findall(r"^#{1,6}\s+(.+)$", destination.read_text(encoding="utf-8"), re.MULTILINE)
+            anchors = {re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-") for heading in headings}
+            assert anchor in anchors, (document.relative_to(ROOT), target)
+
+
+def test_execution_record_has_three_authoritative_sections():
+    text = (ROOT / "docs/implementation/execution-record.md").read_text(encoding="utf-8")
+    assert re.findall(r"^## (.+)$", text, re.MULTILINE) == [
+        "Execution entry", "Task decisions and integration", "Important decisions and closeout",
+    ]
+    assert "### Outcome handling" in text
+    assert "plan_deviations[0]" in text and "plan_deviations[1]" in text
+    assert "needs no repeated Markdown declaration" in text
+    assert "Preserve every attempt's result reference and failed history" in text
+    assert "pre-merge target SHA -> actual integration SHA" in text
+    assert "before worktree cleanup" in text
+    for path in (SKILL, ROOT / "docs/implementation/operations.md"):
+        entry = path.read_text(encoding="utf-8")
+        assert "execution-record.md#outcome-handling" in entry
+        assert "if saving fails" in entry.lower()
+
+
 def test_runtime_distribution_is_self_contained(tmp_path):
     """The installable resources work without the source checkout's evidence."""
     for name in ("SKILL.md", "README.md", "bin", "docs"):

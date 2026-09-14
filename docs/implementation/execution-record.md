@@ -1,85 +1,48 @@
 # Execution Record Template
 
-Create one coordinator-owned Markdown record in the target repository, for example `<target-repo>/.scratch/<slug>/execution.md`. Keep this installed template read-only. Resolve reference links against this template's original directory before copying them into a record. Use the record for decisions and integration evidence, not to mirror tool state or define a machine-parsed business state model.
+Create one coordinator-owned Markdown record in the target repository, for example `<target-repo>/.scratch/<slug>/execution.md`. Keep this installed template read-only. Resolve links against this template's original directory before copying them. The coordinator is the sole writer of the shared record; artifact references grant no additional worker write permissions.
 
-Keep one authoritative location for each fact. If an existing ticket index owns ticket status or unexpected findings, link to it instead of maintaining another copy. The coordinator is the sole writer of the shared record.
+Worker result JSON and its evidence are the authoritative source for completed work, acceptance, verification, deviations, and remaining work. Record references and coordinator decisions, not transcriptions or a second worker Markdown report. Tool records own configuration, resource paths, and lifecycle facts. Existing records need no migration.
 
-## Goal and authorization
+## Execution entry
 
-- Goal, scope, and exclusions:
-- Plan path and revision; complete initial ticket index:
+- Goal, scope, input paths and revisions; complete authoritative ticket index (including dependencies):
 - Target repository, target branch, and initial target SHA:
-- Confirmed kind, provider, model, thinking, and max_workers:
-- Source of the user's authorization:
-- Authorization for OpenCode `--auto`, if applicable:
-- Run ID and management directory:
-- Additional runs, their reasons, and the aggregate concurrency constraint:
+- Run and management-record references; additional runs and reasons:
+- Authorization and constraints not already expressed by those sources, including the user's aggregate resource cap and applicable OpenCode `--auto` authorization:
 
-## Tickets and integration
+Reference registered configuration and worker paths rather than copying their fields. This template does not change configuration or launch authorization requirements.
 
-Replace the example rows with the complete initial ticket set. Preserve links to every attempt rather than overwriting failed-attempt history.
+## Task decisions and integration
 
-| Ticket ID and source | Dependency and evidence required to unlock | Worker and result reference | Delivery declaration and SHA or artifact | Integration SHA or non-code acceptance evidence | Decision and next action |
-| --- | --- | --- | --- | --- | --- |
-| A | None | Not dispatched | No delivery | Not integrated | Dispatch when eligible |
-| B | None | Not dispatched | No delivery | Not integrated | Dispatch when eligible |
-| C | A integrated into the target branch | Not dispatched | No delivery | Not integrated | Wait for A's integration |
+If authoritative ticket records already hold these decisions, link to them instead of maintaining a second status table. Otherwise use the following table as outcomes arrive; the complete ticket set remains in the entry's index. Preserve every attempt's result reference and failed history.
 
-`delivered` is the worker's declaration. Record actual integration evidence before unlocking code dependents; acknowledgement is not that evidence. For investigation or verification tickets, record accepted durable artifacts instead of manufacturing empty commits.
+| Ticket / attempt | Worker / result | Decision and necessary rationale | Integration SHA / accepted artifact | Next action |
+| --- | --- | --- | --- | --- |
+| A / 1 | worker reference; durable result JSON | Accepted | Actual integration SHA; mapping evidence | None |
+| B / 1 | worker reference; durable result JSON | Accepted; **pending integration** | — | Coordinator: merge into target branch |
+| C / 1 | worker reference; durable result JSON | Repair required; failure evidence reference | — | Dispatch R; retain this attempt |
 
-## Outcome and plan-deviation backfill
+### Outcome handling
 
-Before acknowledging each delivered, failed, or needs-decision outcome, append an entry here (or link to the authoritative ticket record containing it):
+For each `delivered`, `failed`, or `needs-decision` outcome:
 
-- Ticket, worker/attempt, and durable result JSON reference:
-- Completed work or preserved partial progress; acceptance/verification evidence and its limits:
-- Plan deviations: explicitly record **none declared** for `plan_deviations: []`; otherwise preserve each entry's planned vs actual behavior, reason, impact, and decision requirement:
-- Coordinator disposition for each deviation: accepted within authorization (cite it), repair/follow-up ticket, or pending decision with owner and next action:
-- Remaining work and integration state; use **pending integration** until integration is evidenced:
+1. Read the result and evidence against the assigned requirements; decide acceptance and disposition. Tool validation checks structure, not whether every departure was disclosed.
+2. Save the ticket/attempt, worker and durable result reference, decision, and unfinished actions with an owner or follow-up ticket. For multiple deviations with different dispositions, cite each result entry (for example `plan_deviations[0]`: accepted under authorization D1; `plan_deviations[1]`: pending user decision, coordinator to ask). Cover every deviation without copying its contents. `plan_deviations: []` needs no repeated Markdown declaration. Missing or invalid deviation information is not “no deviations”; obtain clarification before acceptance, including for older results.
+3. Ack the corresponding item only after saving. If saving fails, do not ack an item whose unfinished actions depend on that record. The lifecycle tool neither generates nor verifies this record.
+4. After integration, update the actual integration mapping before unlocking code dependencies. Merging before ack is also allowed; otherwise keep **pending integration** and its next action discoverable in the authoritative record even after the item disappears from `wait`.
 
-Compare the declaration with the assigned plan and evidence; tool validation checks the structure, not whether all departures were disclosed. Missing deviation information is **not reported**, never “no deviations”; obtain clarification before accepting the outcome, including for results from older contracts. Link detailed decisions below rather than duplicating them. The coordinator writes this Markdown backfill; the lifecycle tool neither generates it nor verifies its presence.
+`delivered` is a worker declaration; acceptance is the coordinator's judgment; ack removes an item from the pending queue; integration puts the result into the target branch. These are distinct. Acceptance and ack alone do not unlock code dependencies.
 
-## Decisions and unexpected findings
+For code, retain ticket/attempt and result `head` -> pre-merge target SHA -> actual integration SHA, with mapping and verification evidence for squash or other non-ancestry integration. Reference the delivery SHA in the result instead of transcribing its other fields. For non-code work, record explicit acceptance and a durable artifact location; preserve and verify an accessible copy before worktree cleanup. An empty commit is unnecessary.
 
-Append an entry when a decision or finding affects execution:
+## Important decisions and closeout
 
-- Time, affected tickets, and pending-item IDs:
-- Observed facts and evidence references:
-- Decision, rationale, and relation to the authorized goal:
-- Added, split, or adjusted tickets; dependency changes and affected work:
-- Existing authorization or the unresolved question requiring the user:
-- Owner and next action:
-- Acknowledgement status; explicitly note **pending integration** if applicable:
+- Scope or dependency changes, unexpected findings, and authorization decisions: necessary rationale, evidence references, affected tickets, owner and next action. Link an existing decision/findings log instead of duplicating it.
+- Unresolved issues, blocked dependencies, and follow-up actions: link the authoritative ticket decisions above.
+- Overall goal conclusion (complete, executing, or blocked) and evidence: account for every goal through integrated results or accepted artifacts and applicable verification. Reuse an existing goal acceptance index; otherwise record each goal's result, evidence, gap and next action here. All workers delivered does not imply overall completion.
+- Retained resources needing attention, durable artifact/archive locations, cleanup decisions and tool-record references, blockers and next actions. Protect uncommitted and unintegrated work before cleanup.
 
-If the repository has a designated unexpected-findings log, put the full entry there and retain only its reference here.
+For conflicts, behavioral failures, or target changes during repair, follow [Integration repair](repair-and-closeout.md). Keep durable references to its input, scene, repair and compatibility evidence; preserve original delivery -> repair delivery -> actual integration mapping without copying evidence into multiple reports.
 
-## Integration and verification
-
-- Ticket and worker delivery SHA -> pre-merge target SHA -> actual integration SHA:
-- Repository merge policy used; mapping evidence for squash or other non-ancestry integration:
-- Worker acceptance evidence reused:
-- Additional checks or verification workers and their conclusions:
-- Goal coverage and combined-behavior evidence:
-- Remaining gaps, blocked dependencies, and follow-up tickets:
-
-For a conflict or behavioral failure, use [Integration repair](repair-and-closeout.md) and record:
-
-- Pre-merge target and incoming SHAs, original ticket requirements, attempted command and failure evidence:
-- Ownership/precondition evidence, abort command/result, restored HEAD/status or retained blocked scene:
-- Repair ticket/worker and chosen base; previous attempts and incoming inputs:
-- Target changes during repair, compatibility decision and supporting evidence:
-- Original delivery -> repair delivery -> actual integration SHA; affected dependency release decision:
-
-At closeout, account for every plan-level goal (reuse the existing acceptance index if it owns this mapping):
-
-| Goal / acceptance requirement | Integrated SHA or accepted artifact | Applicable verification evidence | Result, gap, and next ticket |
-| --- | --- | --- | --- |
-| <goal> | <actual integrated result> | <worker, command/artifact, checked baseline> | <met / executing / blocked and reason> |
-
-## Resources and closeout
-
-- Retained workers, worktrees, branches, results, handoff documents, and archives; locations and reasons:
-- Explicit cleanup decisions and cleanup-record references:
-- Cleanup refusals, residual resources, and next actions:
-- Overall conclusion: complete, executing, or blocked; supporting evidence:
-- Final report: principal integration results, verification summary, unresolved items, and retained resource locations.
+Final reporting cites the main integration results, verification, unresolved items, and retained resource locations from these authoritative sources.

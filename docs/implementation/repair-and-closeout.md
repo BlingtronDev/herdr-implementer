@@ -40,7 +40,7 @@ Integrate the accepted repair using the same baseline comparison and evidence ma
 
 ## Decide overall completion
 
-Compare each plan-level goal with its actual integrated result and applicable evidence. Record this in [Integration and verification](execution-record.md#integration-and-verification): goal, integration SHA, verifying worker/artifact/command, result, and remaining gap. Evidence from an earlier baseline is reusable only when the later changes do not invalidate it; state the reason when relevant.
+Compare each plan-level goal with its actual integrated result and applicable evidence. Follow [Important decisions and closeout](execution-record.md#important-decisions-and-closeout), referencing the authoritative goal acceptance index when one exists. Evidence from an earlier baseline is reusable only when the later changes do not invalidate it; state the reason when relevant.
 
 - An unmet goal or known combined failure means **executing** if actionable follow-up exists, or **blocked** if a decision or external condition prevents progress. Add the required repair, investigation, or verification ticket and keep the goal open.
 - **Complete** requires every in-scope goal supported, required results integrated or non-code artifacts explicitly accepted, and no unresolved failure of acceptance. Remaining optional follow-ups must be clearly distinguished from unmet requirements.
