@@ -26,16 +26,19 @@ The product delivers the implementation, not merely an updated plan or a collect
 - Run inside Herdr with `HERDR_ENV=1` and a populated `HERDR_WORKSPACE_ID`.
 - Pi and/or OpenCode installed, with the current Herdr integration for each runtime used.
 - Python 3 for `bin/implementer.py`; `node` for the retained Pi context helper (`bin/pi_context.mjs`).
-- One explicit configuration per run: `kind` (`pi` or `opencode`), `provider`, `model`, `thinking`, and `max_workers`. The tool validates the pair and rejects silent fallback.
+- One resolved configuration per run: `kind` (`pi` or `opencode`), `provider`, `model`, and `thinking`. Reuse confirmed values or unambiguous, verifiable persistent configuration; unresolved or conflicting selections need clarification, never a silent model/provider fallback. Registration validates catalog membership and thinking support within the limits described in [Prepare and register](docs/implementation/operations.md#prepare-and-register).
+- Optional `--max-workers` defaults to 4; a positive integer overrides it. The run saves the resolved limit. Existing runs retain their valid saved limit and fail closed at startup if it is missing or invalid. The cap is per run, not global across runs or nested agents; user-specified aggregate constraints still apply.
 
 ## Usage
+
+For OpenCode's fixed automatic permission mode, explicit-deny preservation, and user-restriction conflicts, read [Permissions](SKILL.md#permissions) at the use entry.
 
 ```bash
 HI="<skill-dir>/bin/implementer.py"   # absolute path to this repository's bin/implementer.py
 REPO="<target repository>"
 
 python3 "$HI" init-run --repo "$REPO" --run-id plan-01 \
-  --kind pi --provider <provider> --model <model> --thinking <thinking> --max-workers 3
+  --kind pi --provider <provider> --model <model> --thinking <thinking>
 
 python3 "$HI" start --repo "$REPO" --run plan-01 --ticket-id 05 \
   --base <full-base-sha> --material <ticket.md> --material <spec.md> --instructions "<task context>"
@@ -66,7 +69,7 @@ Linked worktrees share their repository's Git common directory. To use `<target-
 ## First-version boundaries
 
 - Pi and OpenCode only; no Codex support.
-- No fixed batches, batch barriers, four-round questionnaires, or task time/cost budgets. The coordinator schedules dynamically within the confirmed concurrency cap.
+- No fixed batches, batch barriers, or mandatory budget questionnaires. The coordinator schedules dynamically within the saved concurrency cap and honors explicit time, cost, and aggregate resource constraints.
 - No coordinator handoff, crash recovery, or automatic takeover of lost executions; durable records support inspection only.
 - No conversion layer for the removed fixed-batch dispatcher: old run records, branches, and worktrees are neither interpreted as new state nor automatically adopted or deleted.
 - Cleanup requires an explicit coordinator decision; branches are retained by default and uncommitted content is archived or discarded only on request.

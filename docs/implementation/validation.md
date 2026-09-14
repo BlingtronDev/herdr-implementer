@@ -16,19 +16,32 @@ Simulation cannot substitute for real-runtime evidence. Neither layer guarantees
 From this skill's source checkout (tests are development assets, omitted from the runtime distribution):
 
 ```bash
-python3 -m pytest tests/test_implementation_workflow.py -v
+python3 -m pytest tests/test_entry_docs.py tests/test_rename_compatibility.py -q
+python3 -m pytest tests/test_implementer.py tests/test_implementation_workflow.py -q
 python3 -m pytest tests/ -q
 ```
 
-The workflow test runs separately for Pi and OpenCode. It registers a run, keeps B active, triggers A's automatic handoff and delivery, handles wait and acknowledgement, merges A, and starts C from the integrated baseline. It then exercises stopping and uncommitted-work archival.
+The workflow test runs separately for Pi and OpenCode with omitted and explicit concurrency limits. It registers a run, keeps B active, triggers A's automatic handoff and delivery, handles wait and acknowledgement, merges A, and starts C from the integrated baseline. It then exercises stopping and uncommitted-work archival.
 
 The test uses temporary Git repositories and simulated Herdr, worker behavior, and context observations. It does not contact a real provider. Test watchdogs protect the test process; they are not product task budgets.
 
+### Configuration coverage audit
+
+| Check | Tool coverage and remaining validation |
+| --- | --- |
+| Default/override/invalid quota | CLI tests check saved default 4, positive overrides, rejected zero/negative/non-integers, concurrent starts under both limits, old valid/invalid records, and both CLI entries. The default and help use one code constant. |
+| Runtime selection | Registration and launch query the runtime catalog. Pi checks known thinking names plus a capability flag, not exact per-level semantics; OpenCode checks advertised variants. Consult runtime documentation for uncovered Pi level support. Catalog success does not establish credentials, network/service access, or effective runtime configuration. |
+| Environment | Launch checks Herdr environment variables and repository/base/material inputs. No installation/integration-version or context-helper dependency preflight is performed. Retain the conditional installation checks in [Prepare and register](operations.md#prepare-and-register). |
+| OpenCode permissions | Fake tests assert `--auto`, model/variant environment injection, and unchanged repository deny configuration. They do not execute permission evaluation or prove deny enforcement in an installed runtime. Follow the entry's [Permissions](../../SKILL.md#permissions). |
+| Coordinator behavior | Document guards check prescribed default/configuration/conflict rules only. Real model observation is needed to establish no redundant questions, reuse of current configuration, stopping on permission conflicts, and respect for explicit budgets/aggregate caps. |
+
+For a real configuration/permission check, record a normal omitted-quota launch, effective model/provider/thinking and permission configuration, and a harmless permission scenario showing explicit deny remains effective. Separately supply a user restriction incompatible with the default permission mode and verify the coordinator explains the incompatibility **without launching**. Capture configuration/authorization questions and responses; do not treat a walkthrough or fake test as model behavior evidence. Record unexecuted checks explicitly.
+
 ## Run a real A/B/C experiment
 
-### Establish the fixture and authorization
+### Establish the fixture and configuration
 
-Record the coordinator environment, tool and runtime versions, and the explicitly confirmed provider, model, and thinking for each runtime. Confirm a total concurrency limit of at least two and authorization for OpenCode `--auto`. Ask about missing values rather than treating a historical test configuration as current authorization.
+Record the coordinator environment, tool and runtime versions, and resolved provider, model, and thinking with their current configuration sources. Reuse confirmed or unambiguous, verifiable persistent values; ask only for unresolved, unavailable, or conflicting configuration, never infer it from historical smoke results. Follow [Prepare and register](operations.md#prepare-and-register) and the entry permission policy. Omit the quota for the default-path experiment; honor any explicit total resource or time/cost constraints. If those allow fewer than two active workers, mark the parallel scenario blocked rather than overriding them.
 
 Use disposable repositories with a complete local plan and initial ticket set stored in an ignored main-checkout directory:
 
@@ -60,7 +73,7 @@ Publish an evidence index with commands, run and worker IDs, initial and final s
 
 ## Run repair and closeout experiments
 
-Use [Integration repair](repair-and-closeout.md) and its brief for both cases below. Establish current runtime authorization and complete initial inputs as above. Use disposable repositories; real workers implement original tickets and new workers implement repairs. Fixture setup may prepare seed files and an unrelated branch before the experiment, but the coordinator only observes, records, dispatches, and performs normal target merges once workers start.
+Use [Integration repair](repair-and-closeout.md) and its brief for both cases below. Resolve current configuration and complete initial inputs as above. Use disposable repositories; real workers implement original tickets and new workers implement repairs. Fixture setup may prepare seed files and an unrelated branch before the experiment, but the coordinator only observes, records, dispatches, and performs normal target merges once workers start.
 
 ### Text conflict
 
@@ -85,7 +98,7 @@ Also exercise or explicitly label unexecuted branches: unsafe/unowned abort, abo
 
 During the A/B/C experiment, also check the following lifecycle behavior. Use the current [Operations](operations.md) interface and preserve raw responses in the validation project's evidence directory.
 
-- **Quota:** with A and B active and the run cap set to two, a third launch is refused without registering a worker.
+- **Quota:** in a separate explicit-cap run, with A and B active and the run cap set to two, a third launch is refused without registering a worker. For the omitted-quota run, verify the saved default limit; testing refusal requires filling that limit within the user's aggregate constraints. If resources do not permit this, retain the deterministic race evidence and mark the real refusal scenario unexecuted.
 - **Terminal release:** valid delivery with a clean worktree releases the registered terminal while retaining branch, worktree, result, logs, and materials. Uncommitted content retains the terminal with a reason under `status --worker`.
 - **Cleanup:** after `stop` confirms `business_stopped: true`, cleanup without an uncommitted-content decision refuses a dirty worktree. Explicit `--archive-uncommitted` preserves the content before removing registered resources; branches and evidence remain. Repeated stop and cleanup are idempotent. If cleanup already succeeded, inspect the saved cleanup result and archive instead of trying to reproduce a refusal on a removed worktree.
 - **Outcome semantics:** an idle worker without a valid result is not delivered. An investigation-only ticket produces an existing findings artifact without an empty commit.

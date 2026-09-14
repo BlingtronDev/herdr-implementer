@@ -13,15 +13,19 @@ from test_implementer import RUNTIMES, branch_exists, make_harness  # noqa: F401
 
 
 @pytest.mark.parametrize("kind", RUNTIMES)
-def test_master_integrates_a_then_starts_c_while_b_runs_after_handoff(make_harness, kind):
+@pytest.mark.parametrize("max_workers", [None, 2])
+def test_master_integrates_a_then_starts_c_while_b_runs_after_handoff(make_harness, kind, max_workers):
     h = make_harness("slow")
     h.env["HI_FAKE_CONTEXT_COUNTER"] = "context-b"
-    run_id = h.ensure_run(kind=kind, max_workers=2)
+    run_id = "run-dynamic"
+    created = h.init_run(run_id=run_id, kind=kind, max_workers=max_workers)
+    assert created.returncode == 0, created.stderr
+    assert json.loads(created.stdout)["max_workers"] == (4 if max_workers is None else max_workers)
     b = h.start(kind=kind, run_id=run_id, ticket_id="B", worker_id="w-plan-b")
     assert b.returncode == 0, b.stderr
     h.wait_agent_status("w-plan-b", "working")
 
-    # A crosses sessions while B continues; the same run still has only two slots.
+    # A crosses sessions while B continues; handoff still occupies just one slot.
     h.env.update({
         "HI_FAKE_SCENARIO_BEHAVIOR": "handoff",
         "HI_FAKE_CONTEXT_COUNTER": "context-a",

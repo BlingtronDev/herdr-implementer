@@ -61,17 +61,24 @@ def test_new_store_does_not_adopt_or_move_old_records(tmp_path):
 
 
 @pytest.mark.parametrize("legacy", [False, True])
-def test_both_entries_deliver_and_preserve_their_namespaces(monkeypatch, make_harness, legacy):
+@pytest.mark.parametrize("max_workers,expected", [(None, 4), (1, 1)])
+def test_both_entries_deliver_and_preserve_their_namespaces(monkeypatch, make_harness, legacy, max_workers, expected):
     entry = REPO_ROOT / "bin" / ("plan_manager.py" if legacy else "implementer.py")
     monkeypatch.setattr(harness_module, "IMPLEMENTER", entry)
     h = make_harness("deliver-code")
-    proc = h.start(worker_id="w-rename-01")
+    created = h.init_run(run_id="run-compat", max_workers=max_workers)
+    assert created.returncode == 0, created.stderr
+    assert json.loads(created.stdout)["max_workers"] == expected
+    proc = h.start(worker_id="w-rename-01", run_id="run-compat")
     assert proc.returncode == 0, proc.stderr
     started = json.loads(proc.stdout)
     prefix = "hpm" if legacy else "hi"
     namespace = "herdr-plan-manager" if legacy else "herdr-implementer"
     assert started["branch"] == f"{prefix}/w-rename-01"
     state_root = h.repo / ".git" / namespace
+    assert started["max_workers"] == expected
+    saved = json.loads((state_root / "runs/run-compat/run.json").read_text())
+    assert saved["max_workers"] == expected
     assert Path(started["worktree"]) == state_root / "worktrees" / "w-rename-01"
     assert Path(started["management_dir"]) == state_root / "workers" / "w-rename-01"
     facts = h.wait_state("w-rename-01", {"delivered"})

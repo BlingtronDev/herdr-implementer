@@ -2,25 +2,29 @@
 
 Use this reference when executing the [herdr-implementer workflow](../../SKILL.md). The product entry is `bin/implementer.py`; consult `<operation> --help` for current parameters. This tool handles lifecycle mechanics, not scheduling.
 
-Shell variables below are placeholders for confirmed values, never defaults inferred from historical smoke tests. Resolve `HI` to the absolute path of `../../bin/implementer.py` relative to this document. Set `REPO` to the absolute target checkout path.
+Shell variables below are placeholders for resolved values, never defaults inferred from historical smoke tests. Resolve `HI` to the absolute path of `../../bin/implementer.py` relative to this document. Set `REPO` to the absolute target checkout path.
 
 ## Prepare and register
 
-Verify `HERDR_ENV=1` and a populated `HERDR_WORKSPACE_ID`. Discover the installed CLI through `herdr --help` and `herdr agent --help`; use the installed help to inspect the selected runtime's official integration. If the environment is unavailable, report the blocker rather than substituting an execution protocol.
+Reuse confirmed configuration or an unambiguous, verifiable persistent source. Resolve missing or conflicting values before registration; use `pi --list-models` or `opencode models <provider> --verbose` only when selection information is missing or validation fails. Never silently select another model/provider.
 
-Use `pi --list-models` or `opencode models --verbose` to assist selection. Validate the provider/model pair and the selected model's ability to express the requested thinking level. A global list of reasoning levels is not proof that every model supports them. The tool validates at registration and launch.
+The tool validates model-catalog membership at registration and launch. Pi validation checks the global thinking-level names and the model's thinking capability flag; OpenCode checks the exact model's advertised variant. It does not prove Pi's per-level behavior, provider credentials, service availability, or the effective runtime configuration. Retain reliable runtime documentation/configuration evidence for the requested Pi level; if unavailable, resolve that gap before launch rather than treating the global list as proof. Verify effective configuration from runtime-produced evidence when execution begins.
+
+`start` checks `HERDR_ENV=1` and a populated `HERDR_WORKSPACE_ID`, plus repository, base commit, and material inputs. It does not preflight the installed Herdr/runtime integration or the context helper dependencies. Reuse current installation evidence; when missing or after an installation change, inspect `herdr --help` and `herdr agent --help` for the selected runtime's official integration, and verify its installation and context-helper dependencies (including Node for Pi). Registration alone is not environment readiness. Report unavailable prerequisites or runtime errors as blockers, not grounds to substitute an execution protocol.
 
 ```bash
 python3 "$HI" init-run --repo "$REPO" --run-id "$RUN" \
   --kind "$KIND" --provider "$PROVIDER" --model "$MODEL" \
-  --thinking "$THINKING" --max-workers "$MAX_WORKERS"
+  --thinking "$THINKING"
 ```
+
+Omitting `--max-workers` saves the tool default of 4. To override, append `--max-workers <positive-integer>`; zero and negative values are rejected, not unlimited. `init-run --help` is the current parameter reference.
 
 Save a reference to the returned run and its registered configuration. Registration does not launch a worker and does not overwrite an existing run. `RUN` accepts up to 64 lowercase letters, digits, or hyphens, beginning with a letter or digit.
 
-**Configuration and quota scope.** One run binds one confirmed configuration. `start` inherits it; explicitly repeated fields must match. Replacement sessions keep the same configuration. A confirmed configuration change requires a new run and a recorded reason. The tool enforces concurrency per run: the coordinator must enforce the user's total cap across related runs. Creating another run cannot bypass that cap. Separate sequential runs are suitable for testing both runtimes.
+**Configuration and quota scope.** One run binds one confirmed configuration. `start` inherits it; explicitly repeated fields must match. Replacement sessions keep the same configuration. A confirmed configuration change requires a new run and a recorded reason. The tool enforces concurrency per run, not globally across runs or nested agents: the coordinator must honor the user's aggregate resource constraints and explicit time/cost budgets. Creating another run cannot bypass those constraints; there is no global scheduler. Existing runs keep their saved positive integer limit; a missing or invalid saved limit blocks startup rather than acquiring today's default. Separate sequential runs are suitable for testing both runtimes.
 
-**OpenCode permissions.** The adapter injects model and reasoning selection through the new pane's `OPENCODE_CONFIG_CONTENT`, without editing repository configuration. It currently starts OpenCode with `--auto`: permissions not explicitly denied are automatically approved; explicit denies remain. Confirm authorization for this behavior before launch. The lifecycle tool has no per-launch switch to disable it.
+**OpenCode configuration.** Follow the entry's [Permissions](../../SKILL.md#permissions). The adapter injects model and reasoning selection through the new pane's `OPENCODE_CONFIG_CONTENT`, without editing repository configuration.
 
 **Management directory.** The default is `herdr-implementer/` under the target repository's Git common directory. To override it, pass `--state-root <absolute-path>` consistently on every operation for that execution. Examples below use the default.
 

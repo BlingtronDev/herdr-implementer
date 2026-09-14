@@ -9,7 +9,7 @@ Worker result JSON and its evidence are the authoritative source for completed w
 - Goal, scope, input paths and revisions; complete authoritative ticket index (including dependencies):
 - Target repository, target branch, and initial target SHA:
 - Run and management-record references; additional runs and reasons:
-- Authorization and constraints not already expressed by those sources, including the user's aggregate resource cap and applicable OpenCode `--auto` authorization:
+- Authorization and constraints not already expressed by those sources, including the user's aggregate resource cap and explicit time/cost budgets:
 
 Reference registered configuration and worker paths rather than copying their fields. This template does not change configuration or launch authorization requirements.
 

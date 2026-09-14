@@ -34,6 +34,7 @@ from typing import Any, Iterator
 STATE_VERSION = 3
 DEFAULT_STATE_DIR = "herdr-implementer"
 DEFAULT_BRANCH_PREFIX = "hi"
+DEFAULT_MAX_WORKERS = 4
 IMPLEMENTER_PATH = Path(__file__).resolve()
 SKILL_DIR = IMPLEMENTER_PATH.parent.parent
 THINKING_LEVELS = ("off", "minimal", "low", "medium", "high", "xhigh", "max")
@@ -3952,7 +3953,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         epilog=(
             "Example:\n"
             "  implementer.py init-run --repo /repo --run-id plan-01 --kind pi --provider <p> --model <m> "
-            "--thinking <t> --max-workers 2\n"
+            "--thinking <t>\n"
             "  implementer.py start --repo /repo --run plan-01 --ticket-id 05 --base <full-sha> "
             "--material /path/ticket.md\n"
             "  implementer.py status --repo /repo --run plan-01\n"
@@ -3976,7 +3977,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     init_run.add_argument("--provider", required=True)
     init_run.add_argument("--model", required=True)
     init_run.add_argument("--thinking", required=True)
-    init_run.add_argument("--max-workers", type=int, required=True, help="maximum active workers for this run")
+    init_run.add_argument(
+        "--max-workers", type=int, default=DEFAULT_MAX_WORKERS,
+        help="maximum active workers for this run; positive integer (default: %(default)s)",
+    )
     init_run.set_defaults(func=cmd_init_run)
 
     start = sub.add_parser("start", help="start one isolated worker from an explicit base SHA")

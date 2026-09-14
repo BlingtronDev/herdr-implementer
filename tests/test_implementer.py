@@ -152,7 +152,7 @@ class Harness:
         provider: str = "opencode-go",
         model: str = "deepseek-v4.1-flash",
         thinking: str = "max",
-        max_workers: int = 8,
+        max_workers: int | str | None = 8,
         timeout: float = 30,
     ) -> subprocess.CompletedProcess[str]:
         return self.run(
@@ -169,8 +169,7 @@ class Harness:
             model,
             "--thinking",
             thinking,
-            "--max-workers",
-            str(max_workers),
+            *([] if max_workers is None else ["--max-workers", str(max_workers)]),
             timeout=timeout,
         )
 
@@ -1054,6 +1053,97 @@ def test_handoff_retry_reuses_valid_document(make_harness):
 # ---------------------------------------------------------------------------
 
 
+def test_init_run_default_and_help_share_authoritative_constant(monkeypatch, capsys):
+    tool = load_implementer()
+    assert tool.DEFAULT_MAX_WORKERS == 4
+    # A changed constant must drive both parsing and help, not just happen to match today.
+    monkeypatch.setattr(tool, "DEFAULT_MAX_WORKERS", 7)
+    args = tool.parse_args([
+        "init-run", "--repo", "/repo", "--kind", "pi", "--provider", "p",
+        "--model", "m", "--thinking", "off",
+    ])
+    assert args.max_workers == 7
+    with pytest.raises(SystemExit) as exc:
+        tool.parse_args(["init-run", "--help"])
+    assert exc.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "[--max-workers MAX_WORKERS]" in help_text
+    assert "default: 7" in help_text
+    assert "positive integer" in help_text
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+@pytest.mark.parametrize("value,expected", [(None, 4), (1, 1), (6, 6)])
+def test_init_run_persists_resolved_max_workers(make_harness, kind, value, expected):
+    h = make_harness("slow")
+    created = h.init_run(run_id="run-resolved", kind=kind, max_workers=value)
+    assert created.returncode == 0, created.stderr
+    path = h.repo / ".git/herdr-implementer/runs/run-resolved/run.json"
+    saved = json.loads(path.read_text())
+    assert saved == json.loads(created.stdout)
+    assert saved["max_workers"] == expected
+    assert saved["version"] == 1
+    before = path.read_bytes()
+    # Start inherits the registered runtime, with no repeated configuration flags.
+    started = h.run("start", "--repo", str(h.repo), "--run", "run-resolved",
+                    "--ticket-id", "03", "--base", h.base, "--material", str(h.material))
+    assert started.returncode == 0, started.stderr
+    payload = json.loads(started.stdout)
+    h.started.append(payload["worker_id"])
+    assert payload["max_workers"] == expected
+    assert payload["runtime"]["kind"] == kind
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("value", [0, -1, "1.5", "invalid"])
+def test_init_run_rejects_invalid_max_workers_without_registration(make_harness, value):
+    h = make_harness("slow")
+    created = h.init_run(run_id="run-invalid", max_workers=value)
+    assert created.returncode == 2
+    assert "positive integer" in created.stderr if isinstance(value, int) else "invalid int value" in created.stderr
+    assert not (h.repo / ".git/herdr-implementer/runs/run-invalid").exists()
+    assert not (h.fake / "herdr.log.jsonl").exists()
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+@pytest.mark.parametrize("saved_limit", ["missing", None, 0, -1, True, False, "2", 1.5])
+def test_start_rejects_old_run_without_valid_saved_limit(make_harness, kind, saved_limit):
+    h = make_harness("slow")
+    created = h.init_run(run_id="run-old-invalid", kind=kind, max_workers=2)
+    assert created.returncode == 0, created.stderr
+    path = h.repo / ".git/herdr-implementer/runs/run-old-invalid/run.json"
+    saved = json.loads(path.read_text())
+    if saved_limit == "missing":
+        saved.pop("max_workers")
+    else:
+        saved["max_workers"] = saved_limit
+    path.write_text(json.dumps(saved))
+    before = path.read_bytes()
+    started = h.start(run_id="run-old-invalid", kind=kind)
+    assert started.returncode == 2
+    assert "no usable max_workers" in started.stderr
+    assert path.read_bytes() == before
+    assert not list((h.repo / ".git/herdr-implementer/workers").glob("*"))
+    assert not (h.fake / "herdr.log.jsonl").exists()
+
+
+@pytest.mark.parametrize("kind", RUNTIMES)
+def test_start_preserves_old_saved_limit_instead_of_current_default(make_harness, kind):
+    h = make_harness("slow")
+    created = h.init_run(run_id="run-old-valid", kind=kind, max_workers=1)
+    assert created.returncode == 0, created.stderr
+    path = h.repo / ".git/herdr-implementer/runs/run-old-valid/run.json"
+    before = path.read_bytes()
+    first = h.start(run_id="run-old-valid", kind=kind, worker_id="w-old-first")
+    assert first.returncode == 0, first.stderr
+    assert json.loads(first.stdout)["max_workers"] == 1
+    second = h.start(run_id="run-old-valid", kind=kind, worker_id="w-old-second")
+    assert second.returncode == 2
+    assert "max_workers=1" in second.stderr
+    assert path.read_bytes() == before
+    assert h.run_status("run-old-valid")["worker_count"] == 1
+
+
 def test_init_run_registers_confirmed_configuration_and_quota(make_harness):
     h = make_harness("deliver-code")
     created = h.init_run(run_id="run-quota", max_workers=2)
@@ -1084,9 +1174,12 @@ def test_init_run_registers_confirmed_configuration_and_quota(make_harness):
     assert not (h.fake / "herdr.log.jsonl").exists()
 
 
-def test_concurrent_starts_cannot_exceed_max_workers(make_harness):
+@pytest.mark.parametrize("kind", RUNTIMES)
+@pytest.mark.parametrize("max_workers,limit", [(None, 4), (1, 1)])
+def test_concurrent_starts_cannot_exceed_max_workers(make_harness, kind, max_workers, limit):
     h = make_harness("slow")
-    h.init_run(run_id="run-race", max_workers=1)
+    created = h.init_run(run_id="run-race", kind=kind, max_workers=max_workers)
+    assert created.returncode == 0, created.stderr
     common = [
         sys.executable,
         str(IMPLEMENTER),
@@ -1104,7 +1197,7 @@ def test_concurrent_starts_cannot_exceed_max_workers(make_harness):
         "--material",
         str(h.material),
         "--kind",
-        "pi",
+        kind,
         "--provider",
         "opencode-go",
         "--model",
@@ -1121,24 +1214,25 @@ def test_concurrent_starts_cannot_exceed_max_workers(make_harness):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        for worker_id in ("w-race-a", "w-race-b")
+        for worker_id in (f"w-race-{index}" for index in range(limit + 1))
     ]
     results = [(proc, *proc.communicate(timeout=30)) for proc in procs]
     accepted = [(proc, out) for proc, out, err in results if proc.returncode == 0]
     refused = [(proc, err) for proc, out, err in results if proc.returncode != 0]
-    assert len(accepted) == 1, [(proc.returncode, out, err) for proc, out, err in results]
+    accepted_workers = [json.loads(out)["worker_id"] for _, out in accepted]
+    h.started.extend(accepted_workers)
+    assert len(accepted) == limit, [(proc.returncode, out, err) for proc, out, err in results]
     assert len(refused) == 1
     assert "concurrency limit" in refused[0][1]
-    accepted_worker = json.loads(accepted[0][1])["worker_id"]
-    assert json.loads(accepted[0][1])["max_workers"] == 1
-    h.started.append(accepted_worker)
+    assert all(json.loads(out)["max_workers"] == limit for _, out in accepted)
 
     facts = h.run_status("run-race")
-    assert facts["active_count"] == 1
-    assert facts["active_worker_ids"] == [accepted_worker]
-    assert facts["worker_count"] == 1
-    stopped = h.stop(accepted_worker)
-    assert stopped.returncode == 0, stopped.stderr
+    assert facts["active_count"] == limit
+    assert set(facts["active_worker_ids"]) == set(accepted_workers)
+    assert facts["worker_count"] == limit
+    for worker_id in accepted_workers:
+        stopped = h.stop(worker_id)
+        assert stopped.returncode == 0, stopped.stderr
     assert h.run_status("run-race")["active_count"] == 0
 
 

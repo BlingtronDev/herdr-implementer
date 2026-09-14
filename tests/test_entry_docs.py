@@ -130,6 +130,32 @@ def test_execution_record_has_three_authoritative_sections():
         assert "if saving fails" in entry.lower()
 
 
+def test_configuration_defaults_and_permission_policy_have_a_use_entry():
+    """Document contract only; this does not measure coordinator/model behavior."""
+    skill = SKILL.read_text(encoding="utf-8")
+    assert "## Permissions" in skill
+    assert "--auto" in skill and "explicit denies remain" in skill
+    assert "not a security sandbox" in skill
+    assert "stop before launch and explain the incompatibility" in skill
+    assert "does not expand task scope" in skill
+    assert "max_workers" in skill and "optional" in skill
+    assert "explicit time, cost, and aggregate resource constraints" in skill
+    assert "verifiable persistent configuration" in skill
+    assert "Keep task-duration and cost budgets out" not in skill
+    for name in ("operations.md", "validation.md"):
+        text = (ROOT / "docs/implementation" / name).read_text(encoding="utf-8")
+        assert "../../SKILL.md#permissions" in text
+        assert "authorization for OpenCode `--auto`" not in text
+        assert "Confirm authorization for this behavior" not in text
+    operations = (ROOT / "docs/implementation/operations.md").read_text(encoding="utf-8")
+    assert '--thinking "$THINKING" --max-workers "$MAX_WORKERS"' not in operations
+    assert "nested agents" in operations
+    assert "missing or invalid saved limit" in operations
+    assert "does not preflight" in operations
+    record = (ROOT / "docs/implementation/execution-record.md").read_text(encoding="utf-8")
+    assert "OpenCode `--auto` authorization" not in record
+
+
 def test_runtime_distribution_is_self_contained(tmp_path):
     """The installable resources work without the source checkout's evidence."""
     for name in ("SKILL.md", "README.md", "bin", "docs"):
