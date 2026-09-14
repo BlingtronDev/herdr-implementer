@@ -29,9 +29,10 @@ CLI_OPERATIONS = ["init-run", "start", "status", "wait", "ack", "read", "handoff
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 CODE_SPAN = re.compile(r"`([^`\n]+)`")
 PATH_PREFIXES = (".scratch/", "docs/", "bin/", "prompts/", "tests/", "README.md", "SKILL.md", "CONTEXT.md")
-# The acceptance map deliberately names the removed preview entry when
-# explaining what the migration replaced; it is not a live reference.
-HISTORICAL_TOKENS = {"docs/plan-management/SKILL.md"}
+# The acceptance map deliberately names entries that were removed after the migration
+# (the preview skill entry and the root CONTEXT.md glossary); they are historical
+# mentions, not live references.
+HISTORICAL_TOKENS = {"docs/plan-management/SKILL.md", "CONTEXT.md"}
 
 
 def _documented_evidence_tokens() -> list[str]:
