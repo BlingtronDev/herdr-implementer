@@ -1,6 +1,6 @@
 """Migration guards: skill entry, documentation references, and CLI surface.
 
-Structural checks for the herdr-plan-manager migration. They keep one
+Structural checks for the herdr-implementer migration. They keep one
 discoverable skill entry, make every live reference and evidence citation in
 the acceptance map resolve, and confirm the documented CLI operations exist.
 """
@@ -23,7 +23,7 @@ SKILL = ROOT / "SKILL.md"
 # checkout, which is the only place that keeps the record.
 ACCEPTANCE_MAP = ROOT / ".scratch" / "herdr-plan-manager" / "evidence" / "09-end-to-end-and-migration" / "final-acceptance.md"
 EVIDENCE_DOCS = [ACCEPTANCE_MAP] if ACCEPTANCE_MAP.is_file() else []
-ENTRY_DOCS = [SKILL, ROOT / "README.md", *sorted((ROOT / "docs" / "plan-management").glob("*.md"))]
+ENTRY_DOCS = [SKILL, ROOT / "README.md", *sorted((ROOT / "docs" / "implementation").glob("*.md"))]
 CLI_OPERATIONS = ["init-run", "start", "status", "wait", "ack", "read", "handoff", "stop", "cleanup"]
 
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
@@ -35,12 +35,21 @@ PATH_PREFIXES = (".scratch/", "docs/", "bin/", "prompts/", "tests/", "README.md"
 HISTORICAL_TOKENS = {"docs/plan-management/SKILL.md", "CONTEXT.md"}
 
 
+def _renamed_historical_reference(value: str) -> str:
+    """Resolve old citations without rewriting evidence for its tested revision."""
+    return (value.replace("docs/plan-management/", "docs/implementation/")
+            .replace("tests/test_plan_manager.py", "tests/test_implementer.py")
+            .replace("tests/test_plan_management_workflow.py", "tests/test_implementation_workflow.py"))
+
+
 def _documented_evidence_tokens() -> list[str]:
     tokens: list[str] = []
     for document in [*ENTRY_DOCS, *EVIDENCE_DOCS]:
         for span in CODE_SPAN.findall(document.read_text(encoding="utf-8")):
             token = span.split()[0].rstrip(".,;:")
             if token.startswith(PATH_PREFIXES) and not any(char in token for char in "<>*[]"):
+                if document == ACCEPTANCE_MAP and token not in HISTORICAL_TOKENS:
+                    token = _renamed_historical_reference(token)
                 tokens.append(token)
     return tokens
 
@@ -65,10 +74,10 @@ def _test_node_exists(node_id: str) -> bool:
     return True
 
 
-def test_skill_entry_is_the_single_herdr_plan_manager_skill():
+def test_skill_entry_is_the_single_herdr_implementer_skill():
     text = SKILL.read_text(encoding="utf-8")
     frontmatter = text.split("---", 2)[1]
-    assert re.search(r"^name: herdr-plan-manager$", frontmatter, re.MULTILINE)
+    assert re.search(r"^name: herdr-implementer$", frontmatter, re.MULTILINE)
     assert re.search(r"^disable-model-invocation: true$", frontmatter, re.MULTILINE)
     assert "HERDR_ENV=1" in frontmatter
     nested = [path for path in ROOT.rglob("SKILL.md") if path != SKILL]
@@ -82,6 +91,8 @@ def test_documented_relative_references_resolve():
             if target.startswith(("http://", "https://", "#", "mailto:")):
                 continue
             path = target.split("#", 1)[0]
+            if document == ACCEPTANCE_MAP:
+                path = _renamed_historical_reference(path)
             if path and not (document.parent / path).resolve().exists():
                 missing.append(f"{document.relative_to(ROOT)} -> {target}")
     assert missing == [], f"unresolvable references: {missing}"
@@ -105,10 +116,10 @@ def test_runtime_distribution_is_self_contained(tmp_path):
             assert resolved.is_relative_to(tmp_path), (document, target)
             assert resolved.exists(), (document, target)
     subprocess.run(
-        [sys.executable, str(tmp_path / "bin" / "plan_manager.py"), "--help"],
+        [sys.executable, str(tmp_path / "bin" / "implementer.py"), "--help"],
         check=True, capture_output=True, text=True,
     )
-    template = tmp_path / "docs" / "plan-management" / "plan-worker.md"
+    template = tmp_path / "docs" / "implementation" / "plan-worker.md"
     assert template.is_file()
 
 
@@ -124,7 +135,7 @@ def test_development_assets_are_excluded_from_export():
 
 def test_documented_cli_operations_exist():
     proc = subprocess.run(
-        [sys.executable, str(ROOT / "bin" / "plan_manager.py"), "--help"],
+        [sys.executable, str(ROOT / "bin" / "implementer.py"), "--help"],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

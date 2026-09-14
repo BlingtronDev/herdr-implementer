@@ -1,6 +1,6 @@
 # Repair or Verification Brief
 
-The coordinator creates an ordinary ticket in the target repository (for example `<target-repo>/.scratch/<slug>/issues/<ticket-id>.md`) from this read-only template and supplies its absolute path via `--material`. Omit fields that do not apply; keep immutable SHAs and concrete acceptance requirements. The manager's rendered worker contract remains authoritative for workspace, runtime, and result publication.
+The coordinator creates an ordinary ticket in the target repository (for example `<target-repo>/.scratch/<slug>/issues/<ticket-id>.md`) from this read-only template and supplies its absolute path via `--material`. Omit fields that do not apply; keep immutable SHAs and concrete acceptance requirements. The lifecycle tool's rendered worker contract remains authoritative for workspace, runtime, and result publication.
 
 ## Goal and inputs
 
@@ -17,7 +17,7 @@ The coordinator creates an ordinary ticket in the target repository (for example
 
 ## Worker scope and acceptance
 
-- Reproduce the recorded problem in your assigned isolated worktree. For text conflicts, merge the pinned incoming commit into the manager-assigned branch using repository policy; resolve both documented intents there.
+- Reproduce the recorded problem in your assigned isolated worktree. For text conflicts, merge the pinned incoming commit into the lifecycle tool-assigned branch using repository policy; resolve both documented intents there.
 - Implement the repair (or investigate/verify if that is the assigned type). Preserve original acceptance behavior and cover the combined case with concrete checks. Record exact commands, observed exit codes, and evidence, including the initial reproduction.
 - Required checks and expected outcomes: <fill with task-specific checks>.
 - Report requirement ambiguity or a changed assumption through the normal result protocol. Keep the coordinator's target checkout, shared plan, and other worker scenes read-only.

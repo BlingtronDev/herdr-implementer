@@ -1,42 +1,50 @@
-# Herdr Plan Manager
+# Herdr Implementer
 
-Plan management skill for Herdr: the calling agent (the coordinator) reads a confirmed spec or plan with its complete initial ticket set, dispatches one isolated Pi or OpenCode worker per ticket, handles deliveries and exceptions as they arrive, performs normal merges, dispatches repair or verification workers when needed, and reports completion only when the overall goal is met.
+Plan and spec implementation skill for Herdr: the calling agent (the coordinator) reads a confirmed spec or plan with its complete initial ticket set, dispatches one isolated Pi or OpenCode worker per ticket, handles deliveries and exceptions as they arrive, performs normal merges, dispatches repair or verification workers when needed, and reports completion only when the overall goal is met.
 
-`SKILL.md` is the user-invoked workflow entry. `bin/plan_manager.py` is the lifecycle tool; it creates worktrees, renders the worker contract, starts background supervision, observes context, performs standard worker handoff, records results durably, and manages stops and cleanup. Details live in `docs/plan-management/`:
+`SKILL.md` is the user-invoked workflow entry. `bin/implementer.py` is the lifecycle tool; it creates worktrees, renders the worker contract, starts background supervision, observes context, performs standard worker handoff, records results durably, and manages stops and cleanup. Details live in `docs/implementation/`:
 
 | Reference | Use |
 | --- | --- |
-| [operations.md](docs/plan-management/operations.md) | Register, dispatch, observe, wait/ack, handoff, stop, cleanup |
-| [execution-record.md](docs/plan-management/execution-record.md) | Coordinator-owned record template |
-| [plan-worker.md](docs/plan-management/plan-worker.md) | Worker contract template rendered by the lifecycle tool |
-| [repair-and-closeout.md](docs/plan-management/repair-and-closeout.md) | Conflict/behavior repair and overall completion |
-| [repair-brief.md](docs/plan-management/repair-brief.md) | Repair or verification ticket template |
-| [validation.md](docs/plan-management/validation.md) | Source-checkout tests and repeatable real-runtime validation |
+| [operations.md](docs/implementation/operations.md) | Register, dispatch, observe, wait/ack, handoff, stop, cleanup |
+| [execution-record.md](docs/implementation/execution-record.md) | Coordinator-owned record template |
+| [plan-worker.md](docs/implementation/plan-worker.md) | Worker contract template rendered by the lifecycle tool |
+| [repair-and-closeout.md](docs/implementation/repair-and-closeout.md) | Conflict/behavior repair and overall completion |
+| [repair-brief.md](docs/implementation/repair-brief.md) | Repair or verification ticket template |
+| [validation.md](docs/implementation/validation.md) | Source-checkout tests and repeatable real-runtime validation |
+
+## Responsibility boundaries
+
+- **Coordinator:** interpret confirmed requirements, select eligible tickets, inspect evidence, integrate results, and decide whether the overall goal is met.
+- **Workers:** implement, investigate, verify, and repair individual tickets in isolated worktrees.
+- **Lifecycle tool:** enforce registered configuration and per-run concurrency, snapshot inputs, supervise sessions and handoffs, collect durable results, and safely stop or clean up owned resources.
+
+The product delivers the implementation, not merely an updated plan or a collection of finished workers. Scheduling remains a coordinator decision; acceptance and integration are not inferred from terminal status or acknowledgement.
 
 ## Requirements
 
 - Run inside Herdr with `HERDR_ENV=1` and a populated `HERDR_WORKSPACE_ID`.
 - Pi and/or OpenCode installed, with the current Herdr integration for each runtime used.
-- Python 3 for `bin/plan_manager.py`; `node` for the retained Pi context helper (`bin/pi_context.mjs`).
+- Python 3 for `bin/implementer.py`; `node` for the retained Pi context helper (`bin/pi_context.mjs`).
 - One explicit configuration per run: `kind` (`pi` or `opencode`), `provider`, `model`, `thinking`, and `max_workers`. The tool validates the pair and rejects silent fallback.
 
 ## Usage
 
 ```bash
-HPM="<skill-dir>/bin/plan_manager.py"   # absolute path to this repository's bin/plan_manager.py
+HI="<skill-dir>/bin/implementer.py"   # absolute path to this repository's bin/implementer.py
 REPO="<target repository>"
 
-python3 "$HPM" init-run --repo "$REPO" --run-id plan-01 \
+python3 "$HI" init-run --repo "$REPO" --run-id plan-01 \
   --kind pi --provider <provider> --model <model> --thinking <thinking> --max-workers 3
 
-python3 "$HPM" start --repo "$REPO" --run plan-01 --ticket-id 05 \
+python3 "$HI" start --repo "$REPO" --run plan-01 --ticket-id 05 \
   --base <full-base-sha> --material <ticket.md> --material <spec.md> --instructions "<task context>"
 
-python3 "$HPM" status --repo "$REPO" --run plan-01
-python3 "$HPM" wait --repo "$REPO" --run plan-01            # default waits until an item appears
-python3 "$HPM" ack --repo "$REPO" --item <worker-id>/<item-id> --note "<decision>"
-python3 "$HPM" stop --repo "$REPO" --worker <worker-id>
-python3 "$HPM" cleanup --repo "$REPO" --worker <worker-id> --integrated <integration-sha>
+python3 "$HI" status --repo "$REPO" --run plan-01
+python3 "$HI" wait --repo "$REPO" --run plan-01            # default waits until an item appears
+python3 "$HI" ack --repo "$REPO" --item <worker-id>/<item-id> --note "<decision>"
+python3 "$HI" stop --repo "$REPO" --worker <worker-id>
+python3 "$HI" cleanup --repo "$REPO" --worker <worker-id> --integrated <integration-sha>
 ```
 
 The coordinator merges delivered branches itself, following repository policy. Delivery, acknowledgement, and terminal idleness are not integration.
@@ -45,13 +53,13 @@ The coordinator merges delivered branches itself, following repository policy. D
 
 Read templates and tools from the installed skill. Write plans, tickets, execution records, and acceptance reports in the target repository, for example `<target-repo>/.scratch/<slug>/`. Resolve these paths against the target repository and pass absolute paths to the CLI. Installed templates remain read-only.
 
-Tool state lives in the target repository's Git common directory by default: `<common-dir>/herdr-plan-manager/` with `runs/<run-id>/run.json` and `workers/<worker-id>/` (state, result, contract, material snapshots, handoffs, archives). Override with `--management-root`, consistently on every operation of that run.
+Tool state lives in the target repository's Git common directory by default: `<common-dir>/herdr-implementer/` with `runs/<run-id>/run.json` and `workers/<worker-id>/` (state, result, contract, material snapshots, handoffs, archives). Override with `--state-root`, consistently on every operation of that run.
 
-Worker branches default to `hpm/<worker-id>`. Worktree location is selected in this order:
+Worker branches default to `hi/<worker-id>`. Worktree location is selected in this order:
 
 1. An explicit `start --worktree <absolute-path>`.
-2. `<management-root>/worktrees/<worker-id>` when `--management-root` is supplied.
-3. `<common-dir>/herdr-plan-manager/worktrees/<worker-id>` otherwise, normally `<target-repo>/.git/herdr-plan-manager/worktrees/<worker-id>`.
+2. `<state-root>/worktrees/<worker-id>` when `--state-root` is supplied.
+3. `<common-dir>/herdr-implementer/worktrees/<worker-id>` otherwise, normally `<target-repo>/.git/herdr-implementer/worktrees/<worker-id>`.
 
 Linked worktrees share their repository's Git common directory. To use `<target-repo>/.worktrees/<worker-id>`, supply `--worktree` and ignore `.worktrees/` in that project; this changes the worker checkout location independently of tool state.
 
@@ -63,9 +71,13 @@ Linked worktrees share their repository's Git common directory. To use `<target-
 - No conversion layer for the removed fixed-batch dispatcher: old run records, branches, and worktrees are neither interpreted as new state nor automatically adopted or deleted.
 - Cleanup requires an explicit coordinator decision; branches are retained by default and uncommitted content is archived or discarded only on request.
 
+## Rename and existing executions
+
+See [Rename compatibility](docs/implementation/rename-compatibility.md) before upgrading an installation with existing runs. New executions use `bin/implementer.py`, `HI_*` settings, the `herdr-implementer/` state directory, and `hi/` branches. Existing state and worktrees are never moved automatically.
+
 ## Distribution and development
 
-Keep the source checkout separate from the installed skill when a runtime-only installation is desired. From a committed release revision, export with `git archive --format=tar --prefix=herdr-plan-manager/ <revision> -o <absolute-output.tar>`. The export attributes omit development history, tests, and source-only configuration; the archive retains the root skill entry, README, tools, and runtime references/templates. `git archive` exports committed content, so commit the intended release changes before packaging.
+Keep the source checkout separate from the installed skill when a runtime-only installation is desired. From a committed release revision, export with `git archive --format=tar --prefix=herdr-implementer/ <revision> -o <absolute-output.tar>`. The export attributes omit development history, tests, and source-only configuration; the archive retains the root skill entry, README, tools, and runtime references/templates. `git archive` exports committed content, so commit the intended release changes before packaging.
 
 Install the exported directory in the runtime's skill location and start a fresh agent session to discover it. The source checkout retains `tests/`; the skill's own development evidence, including the historical migration acceptance, lives in the untracked `.scratch/` directory, so a fresh clone does not carry it. Older revisions still do, and `git show <revision>:.scratch/...` reads those records. Those records describe development of this skill; each managed project owns its own execution records.
 

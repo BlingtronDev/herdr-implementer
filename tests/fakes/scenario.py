@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Deterministic fake worker driven by HPM_FAKE_SCENARIO_BEHAVIOR.
+"""Deterministic fake worker driven by HI_FAKE_SCENARIO_BEHAVIOR.
 
 The scenario is started by the fake herdr on the first processed prompt,
-parses the worker contract written by plan_manager, and simulates the
+parses the worker contract written by implementer, and simulates the
 requested worker behavior against the real temporary git repository used by
 the tests.
 """
@@ -18,9 +18,9 @@ from pathlib import Path
 
 NAME = sys.argv[1]
 PROMPT_FILE = Path(sys.argv[2])
-ROOT = Path(os.environ["HPM_FAKE_DIR"])
-BEHAVIOR = os.environ.get("HPM_FAKE_SCENARIO_BEHAVIOR", "deliver-code")
-DELAY = float(os.environ.get("HPM_SCENARIO_DELAY", "0.2"))
+ROOT = Path(os.environ["HI_FAKE_DIR"])
+BEHAVIOR = os.environ.get("HI_FAKE_SCENARIO_BEHAVIOR", "deliver-code")
+DELAY = float(os.environ.get("HI_SCENARIO_DELAY", "0.2"))
 
 
 def status_file():
@@ -129,7 +129,7 @@ def deliver_then_work():
         )
     )
     set_status("working")
-    deadline = time.time() + float(os.environ.get("HPM_SCENARIO_EXTRA_WORK_SECONDS", "6"))
+    deadline = time.time() + float(os.environ.get("HI_SCENARIO_EXTRA_WORK_SECONDS", "6"))
     while time.time() < deadline and current_status() == "working":
         time.sleep(0.1)
     settle_to_idle()
@@ -154,7 +154,7 @@ def deliver_noncode():
 
 def settle_to_idle():
     """Keep the turn visibly running for a moment so delivery confirmation sees it."""
-    time.sleep(float(os.environ.get("HPM_SCENARIO_SETTLE_DELAY", "0.25")))
+    time.sleep(float(os.environ.get("HI_SCENARIO_SETTLE_DELAY", "0.25")))
     set_status("idle")
 
 
@@ -211,8 +211,8 @@ def write_document(path, text):
 
 def handle_handoff_prompt(text):
     doc_path = document_path_from_prompt(text)
-    mode = os.environ.get("HPM_SCENARIO_HANDOFF_MODE", "valid")
-    delay = float(os.environ.get("HPM_SCENARIO_HANDOFF_DELAY", "0"))
+    mode = os.environ.get("HI_SCENARIO_HANDOFF_MODE", "valid")
+    delay = float(os.environ.get("HI_SCENARIO_HANDOFF_DELAY", "0"))
     if delay > 0:
         time.sleep(delay)
     if mode == "missing":
@@ -220,7 +220,7 @@ def handle_handoff_prompt(text):
         return
     if mode == "working":
         set_status("working")
-        busy_until = time.time() + float(os.environ.get("HPM_SCENARIO_HANDOFF_BUSY_SECONDS", "30"))
+        busy_until = time.time() + float(os.environ.get("HI_SCENARIO_HANDOFF_BUSY_SECONDS", "30"))
         while time.time() < busy_until and status_file().is_file():
             time.sleep(0.1)
         set_status("idle")
@@ -246,7 +246,7 @@ def continuation_window():
     Returns False when the turn was settled (interrupted) before the window
     elapsed, meaning the scenario must not write anything else.
     """
-    delay = float(os.environ.get("HPM_SCENARIO_CONTINUATION_DELAY", "0"))
+    delay = float(os.environ.get("HI_SCENARIO_CONTINUATION_DELAY", "0"))
     if delay <= 0:
         return True
     deadline = time.time() + delay

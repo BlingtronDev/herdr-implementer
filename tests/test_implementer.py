@@ -14,15 +14,15 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLAN_MANAGER = REPO_ROOT / "bin" / "plan_manager.py"
+IMPLEMENTER = REPO_ROOT / "bin" / "implementer.py"
 FAKE_BIN = REPO_ROOT / "tests" / "fakes" / "bin"
 SCENARIO = REPO_ROOT / "tests" / "fakes" / "scenario.py"
 MATERIAL_TEXT = "SPEC MATERIAL 42\n"
 RUNTIMES = ["pi", "opencode"]
 
 
-def load_plan_manager():
-    spec = importlib.util.spec_from_file_location("plan_manager_under_test", PLAN_MANAGER)
+def load_implementer():
+    spec = importlib.util.spec_from_file_location("implementer_under_test", IMPLEMENTER)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader
     spec.loader.exec_module(module)
@@ -30,7 +30,7 @@ def load_plan_manager():
 
 
 def test_worker_template_matches_dispatch_fields():
-    pm = load_plan_manager()
+    pm = load_implementer()
     tree = ast.parse(inspect.getsource(pm.cmd_start))
     calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
              and isinstance(node.func, ast.Name) and node.func.id == "render_contract"]
@@ -38,7 +38,7 @@ def test_worker_template_matches_dispatch_fields():
     fields = calls[0].args[1]
     assert isinstance(fields, ast.Dict)
     values = {ast.literal_eval(key): f"value-for-{ast.literal_eval(key)}" for key in fields.keys}
-    rendered = pm.render_contract(pm.SKILL_DIR / "docs" / "plan-management" / "plan-worker.md", values)
+    rendered = pm.render_contract(pm.SKILL_DIR / "docs" / "implementation" / "plan-worker.md", values)
     assert all(value in rendered for value in values.values())
     assert "{{" not in rendered
 
@@ -52,15 +52,15 @@ def test_worker_template_matches_dispatch_fields():
     "{{TASK}} broken}}",
 ])
 def test_contract_rejects_invalid_template_interface(tmp_path, template):
-    pm = load_plan_manager()
+    pm = load_implementer()
     path = tmp_path / "contract.md"
     path.write_text(template, encoding="utf-8")
-    with pytest.raises(pm.ManagerError, match="placeholder mismatch"):
+    with pytest.raises(pm.ImplementerError, match="placeholder mismatch"):
         pm.render_contract(path, {"TASK": "Implement the ticket"})
 
 
 def test_contract_substitution_preserves_literal_task_content(tmp_path):
-    pm = load_plan_manager()
+    pm = load_implementer()
     path = tmp_path / "contract.md"
     path.write_text("{{TASK}} / {{OTHER}} / {{TASK}}", encoding="utf-8")
     assert pm.render_contract(path, {"TASK": "Document {{OTHER}} and {{user}}", "OTHER": "ok"}) == (
@@ -110,21 +110,21 @@ class Harness:
                 "PATH": f"{FAKE_BIN}{os.pathsep}{self.env.get('PATH', '')}",
                 "HERDR_ENV": "1",
                 "HERDR_WORKSPACE_ID": "test-ws",
-                "HPM_FAKE_DIR": str(self.fake),
-                "HPM_FAKE_SCENARIO": str(SCENARIO),
-                "HPM_FAKE_SCENARIO_BEHAVIOR": behavior,
-                "HPM_CONTEXT_HELPER": str(FAKE_BIN / "get_context.py"),
-                "HPM_CONTEXT_POLL_SECONDS": "0.2",
-                "HPM_HANDOFF_SETTLE_SECONDS": "0.5",
-                "HPM_HANDOFF_SETTLE_TIMEOUT_SECONDS": "1.0",
-                "HPM_HANDOFF_WAIT_SECONDS": "6",
-                "HPM_HANDOFF_CORRECTION_SECONDS": "1.5",
-                "HPM_POLL_SECONDS": "0.2",
-                "HPM_SETTLE_GRACE_SECONDS": "0.6",
-                "HPM_REPORT_WAIT_SECONDS": "1.5",
-                "HPM_SCENARIO_DELAY": "0.3",
-                "HPM_PROMPT_CONFIRM_SECONDS": "0.5",
-                "HPM_PROMPT_ATTEMPTS": "3",
+                "HI_FAKE_DIR": str(self.fake),
+                "HI_FAKE_SCENARIO": str(SCENARIO),
+                "HI_FAKE_SCENARIO_BEHAVIOR": behavior,
+                "HI_CONTEXT_HELPER": str(FAKE_BIN / "get_context.py"),
+                "HI_CONTEXT_POLL_SECONDS": "0.2",
+                "HI_HANDOFF_SETTLE_SECONDS": "0.5",
+                "HI_HANDOFF_SETTLE_TIMEOUT_SECONDS": "1.0",
+                "HI_HANDOFF_WAIT_SECONDS": "6",
+                "HI_HANDOFF_CORRECTION_SECONDS": "1.5",
+                "HI_POLL_SECONDS": "0.2",
+                "HI_SETTLE_GRACE_SECONDS": "0.6",
+                "HI_REPORT_WAIT_SECONDS": "1.5",
+                "HI_SCENARIO_DELAY": "0.3",
+                "HI_PROMPT_CONFIRM_SECONDS": "0.5",
+                "HI_PROMPT_ATTEMPTS": "3",
                 "TMPDIR": str(os_temp),
             }
         )
@@ -136,7 +136,7 @@ class Harness:
 
     def run(self, *args: str, timeout: float = 30) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(PLAN_MANAGER), *args],
+            [sys.executable, str(IMPLEMENTER), *args],
             cwd=self.repo,
             env=self.env,
             text=True,
@@ -547,9 +547,9 @@ def test_invalid_configuration_fails_before_delivery(make_harness):
     bad_run = h.init_run(run_id="run-bad-thinking", thinking="turbo")
     assert bad_run.returncode == 2
     assert "unsupported thinking level" in bad_run.stderr
-    assert not (h.repo / ".git" / "herdr-plan-manager" / "runs" / "run-bad-thinking").exists()
+    assert not (h.repo / ".git" / "herdr-implementer" / "runs" / "run-bad-thinking").exists()
     assert not (h.fake / "herdr.log.jsonl").exists()
-    assert not list((h.repo / ".git" / "herdr-plan-manager").glob("workers/*"))
+    assert not list((h.repo / ".git" / "herdr-implementer").glob("workers/*"))
 
 
 def test_registered_worker_and_branch_are_not_reused(make_harness):
@@ -559,7 +559,7 @@ def test_registered_worker_and_branch_are_not_reused(make_harness):
     duplicated = h.start(worker_id="w-fixed-01")
     assert duplicated.returncode == 2
     assert "already registered" in duplicated.stderr
-    branch_taken = h.start(worker_id="w-other-01", branch="hpm/w-fixed-01")
+    branch_taken = h.start(worker_id="w-other-01", branch="hi/w-fixed-01")
     assert branch_taken.returncode == 2
     assert "already exists" in branch_taken.stderr
 
@@ -664,7 +664,7 @@ def test_opencode_rejects_unsupported_configuration_before_delivery(make_harness
     assert "does not list model" in unknown.stderr
 
     assert not (h.fake / "herdr.log.jsonl").exists()
-    assert not list((h.repo / ".git" / "herdr-plan-manager").glob("workers/*"))
+    assert not list((h.repo / ".git" / "herdr-implementer").glob("workers/*"))
 
 
 def test_opencode_blocked_is_an_exception_not_delivery(make_harness):
@@ -725,7 +725,7 @@ def test_context_observation_records_interpretable_sample(make_harness):
 
 def test_stale_context_sample_never_triggers_a_handoff(make_harness):
     h = make_harness("slow")
-    h.env["HPM_FAKE_CONTEXT_MODE"] = "stale"
+    h.env["HI_FAKE_CONTEXT_MODE"] = "stale"
     proc = h.start(handoff_tokens=1, handoff_pct=0.001)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -775,7 +775,7 @@ def test_stale_context_sample_never_triggers_a_handoff(make_harness):
 
 def test_unobservable_context_is_an_exception_not_zero_usage(make_harness):
     h = make_harness("missing-result")
-    h.env["HPM_FAKE_CONTEXT_MODE"] = "error"
+    h.env["HI_FAKE_CONTEXT_MODE"] = "error"
     proc = h.start(handoff_tokens=1, handoff_pct=0.001)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -790,8 +790,8 @@ def test_unobservable_context_is_an_exception_not_zero_usage(make_harness):
 @pytest.mark.parametrize("kind", RUNTIMES)
 def test_context_threshold_triggers_automatic_handoff(make_harness, kind):
     h = make_harness("handoff")
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     proc = h.start(kind=kind, handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -826,8 +826,8 @@ def test_context_threshold_triggers_automatic_handoff(make_harness, kind):
 
 def test_multiple_handoffs_stay_one_worker(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "2"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "2"
     (h.fake / "handoff_repeat").write_text("1", encoding="utf-8")
     proc = h.start(handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
@@ -846,9 +846,9 @@ def test_multiple_handoffs_stay_one_worker(make_harness):
 
 def test_handoff_document_is_copied_from_os_temp(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "temp"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_SCENARIO_HANDOFF_MODE"] = "temp"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     proc = h.start(handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -860,9 +860,9 @@ def test_handoff_document_is_copied_from_os_temp(make_harness):
 
 def test_invalid_handoff_document_gets_one_correction(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "invalid-first"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_SCENARIO_HANDOFF_MODE"] = "invalid-first"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     proc = h.start(handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -876,9 +876,9 @@ def test_invalid_handoff_document_gets_one_correction(make_harness):
 
 def test_handoff_document_failure_is_a_pending_exception(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "invalid"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_SCENARIO_HANDOFF_MODE"] = "invalid"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     proc = h.start(handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -897,11 +897,11 @@ def test_handoff_document_failure_is_a_pending_exception(make_harness):
 
 def test_handoff_document_timeout_retains_scene(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_SCENARIO_HANDOFF_MODE"] = "working"
-    h.env["HPM_SCENARIO_HANDOFF_BUSY_SECONDS"] = "3"
-    h.env["HPM_HANDOFF_WAIT_SECONDS"] = "2"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_SCENARIO_HANDOFF_MODE"] = "working"
+    h.env["HI_SCENARIO_HANDOFF_BUSY_SECONDS"] = "3"
+    h.env["HI_HANDOFF_WAIT_SECONDS"] = "2"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     proc = h.start(handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -914,8 +914,8 @@ def test_handoff_document_timeout_retains_scene(make_harness):
 @pytest.mark.parametrize("kind", RUNTIMES)
 def test_replacement_start_failure_retains_scene_and_old_session(make_harness, kind):
     h = make_harness("handoff")
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     (h.fake / "start_hard_fail_at").write_text("2", encoding="utf-8")
     proc = h.start(kind=kind, handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
@@ -935,9 +935,9 @@ def test_replacement_start_failure_retains_scene_and_old_session(make_harness, k
 
 def test_stop_during_handoff_aborts_without_replacement(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_SCENARIO_HANDOFF_DELAY"] = "3"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_SCENARIO_HANDOFF_DELAY"] = "3"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     proc = h.start(handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
     worker_id = json.loads(proc.stdout)["worker_id"]
@@ -979,7 +979,7 @@ def test_handoff_request_rejected_for_terminal_worker(make_harness):
 
 
 def test_context_trigger_and_staleness_rules():
-    module = load_plan_manager()
+    module = load_implementer()
     config = {"tokens": 300_000, "pct": 0.8}
     assert module.handoff_trigger_reason({"state": "current", "total": 300_000, "window": 1_000_000}, config) == "tokens"
     assert module.handoff_trigger_reason({"state": "current", "total": 800, "window": 1_000}, config) == "pct"
@@ -995,7 +995,7 @@ def test_context_trigger_and_staleness_rules():
 
 
 def test_stale_sample_guard_ignores_old_sessions():
-    module = load_plan_manager()
+    module = load_implementer()
     state = {"sessions": [{"index": 2, "context_ref": "ref-2"}]}
     assert module.sample_is_current({"session": 1, "context_ref": "ref-1"}, state) is False
     assert module.sample_is_current({"session": 2, "context_ref": "ref-3"}, state) is False
@@ -1005,7 +1005,7 @@ def test_stale_sample_guard_ignores_old_sessions():
 
 
 def test_handoff_document_validation_requires_structure(tmp_path):
-    module = load_plan_manager()
+    module = load_implementer()
     valid = tmp_path / "valid.md"
     valid.write_text(
         "# Handoff\n\n## Progress\nwork\n## Decisions\ndecision\n## Verification\nnone\n"
@@ -1029,8 +1029,8 @@ def test_handoff_document_validation_requires_structure(tmp_path):
 
 def test_handoff_retry_reuses_valid_document(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     (h.fake / "start_hard_fail_at").write_text("2", encoding="utf-8")
     proc = h.start(handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
@@ -1089,7 +1089,7 @@ def test_concurrent_starts_cannot_exceed_max_workers(make_harness):
     h.init_run(run_id="run-race", max_workers=1)
     common = [
         sys.executable,
-        str(PLAN_MANAGER),
+        str(IMPLEMENTER),
         "start",
         "--repo",
         str(h.repo),
@@ -1175,9 +1175,9 @@ def test_stopped_worker_frees_its_slot(make_harness):
 
 def test_session_handoff_does_not_consume_an_extra_slot(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
-    h.env["HPM_SCENARIO_HANDOFF_DELAY"] = "1.5"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_SCENARIO_HANDOFF_DELAY"] = "1.5"
     h.init_run(run_id="run-handoff-slot", max_workers=1)
     proc = h.start(run_id="run-handoff-slot", worker_id="w-handoff-slot", handoff_tokens=50)
     assert proc.returncode == 0, proc.stderr
@@ -1199,7 +1199,7 @@ def test_wait_returns_the_first_item_without_waiting_for_slow_workers(make_harne
     started = h.start(run_id=run_id, worker_id="w-slow-01")
     assert started.returncode == 0, started.stderr
     h.wait_agent_status("w-slow-01", "working")
-    h.env["HPM_FAKE_SCENARIO_BEHAVIOR"] = "deliver-code"
+    h.env["HI_FAKE_SCENARIO_BEHAVIOR"] = "deliver-code"
     fast = h.start(run_id=run_id, worker_id="w-fast-01")
     assert fast.returncode == 0, fast.stderr
     h.wait_state("w-fast-01", {"delivered"})
@@ -1232,7 +1232,7 @@ def test_wait_returns_a_result_recorded_before_the_call(make_harness):
 
 def test_wait_waits_for_change_instead_of_external_polling(make_harness):
     h = make_harness("deliver-code")
-    h.env["HPM_SCENARIO_DELAY"] = "1.2"
+    h.env["HI_SCENARIO_DELAY"] = "1.2"
     run_id = h.ensure_run()
     started = h.start(run_id=run_id, worker_id="w-change-01")
     assert started.returncode == 0, started.stderr
@@ -1303,7 +1303,7 @@ def test_ack_hides_a_handled_item_and_new_items_still_appear(make_harness):
     assert h.run_status(run_id)["pending_items"] == []
     assert h.status("w-ack-01")["items"][0]["acked"] is True
 
-    h.env["HPM_FAKE_SCENARIO_BEHAVIOR"] = "needs-decision"
+    h.env["HI_FAKE_SCENARIO_BEHAVIOR"] = "needs-decision"
     second = h.start(run_id=run_id, worker_id="w-ack-02")
     assert second.returncode == 0, second.stderr
     later = h.wait(run_id, wait_seconds=15)
@@ -1384,7 +1384,7 @@ def test_stalled_start_is_a_pending_exception(make_harness):
     dead = subprocess.Popen(["sleep", "60"])
     dead.kill()
     dead.wait()
-    worker_dir = h.repo / ".git" / "herdr-plan-manager" / "workers" / "w-stalled-01"
+    worker_dir = h.repo / ".git" / "herdr-implementer" / "workers" / "w-stalled-01"
     worker_dir.mkdir(parents=True)
     now = "2026-09-12T00:00:00Z"
     state = {
@@ -1399,7 +1399,7 @@ def test_stalled_start_is_a_pending_exception(make_harness):
             "thinking": "max",
         },
         "repo": {"root": str(h.repo), "common_dir": str(h.repo / ".git"), "base": h.base},
-        "branch": "hpm/w-stalled-01",
+        "branch": "hi/w-stalled-01",
         "worktree": str(h.repo),
         "herdr": {"workspace": "test-ws", "agent": "w-stalled-01", "tab": None, "pane": None},
         "paths": {"result": str(worker_dir / "result.json")},
@@ -1584,7 +1584,7 @@ def test_cleanup_never_removes_unowned_paths(make_harness):
     foreign.mkdir()
     (foreign / "keep-me.txt").write_text("not ours\n", encoding="utf-8")
     now = "2026-09-12T00:00:00Z"
-    worker_dir = h.repo / ".git" / "herdr-plan-manager" / "workers" / "w-clean-05"
+    worker_dir = h.repo / ".git" / "herdr-implementer" / "workers" / "w-clean-05"
     worker_dir.mkdir(parents=True)
     state = {
         "version": 3,
@@ -1593,7 +1593,7 @@ def test_cleanup_never_removes_unowned_paths(make_harness):
         "ticket": {"id": "06", "title": "foreign path"},
         "runtime": {"kind": "pi", "provider": "opencode-go", "model": "deepseek-v4.1-flash", "thinking": "max"},
         "repo": {"root": str(h.repo), "common_dir": str(h.repo / ".git"), "base": h.base},
-        "branch": "hpm/w-clean-05",
+        "branch": "hi/w-clean-05",
         "worktree": str(foreign),
         "herdr": {"workspace": "test-ws", "agent": "w-clean-05", "tab": None, "pane": None},
         "paths": {
@@ -1651,9 +1651,9 @@ def test_cleanup_refuses_worker_that_was_never_stopped(make_harness):
 
 def test_delivery_stops_automatic_handoff(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
-    h.env["HPM_FAKE_CONTEXT_TOTAL"] = "100"
-    h.env["HPM_CONTEXT_POLL_SECONDS"] = "0.2"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_FAKE_CONTEXT_TOTAL"] = "100"
+    h.env["HI_CONTEXT_POLL_SECONDS"] = "0.2"
     proc = h.start(worker_id="w-clean-07", handoff_tokens=50, timeout=60)
     assert proc.returncode == 0, proc.stderr
 
@@ -1727,7 +1727,7 @@ def test_delivered_worker_releases_its_tab(make_harness, kind):
 
 def test_early_result_does_not_close_a_working_session(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-02", timeout=60)
     assert proc.returncode == 0, proc.stderr
 
@@ -1808,7 +1808,7 @@ def test_dirty_worktree_retains_the_delivered_tab(make_harness, kind):
 
 def test_tab_close_failure_keeps_delivery_and_releases_on_retry(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-05", timeout=60)
     assert proc.returncode == 0, proc.stderr
 
@@ -1842,7 +1842,7 @@ def test_tab_close_failure_keeps_delivery_and_releases_on_retry(make_harness):
 
 def test_foreign_pane_retains_the_tab(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-06", timeout=60)
     assert proc.returncode == 0, proc.stderr
 
@@ -1918,7 +1918,7 @@ def test_stop_releases_a_delivered_record_without_a_release(make_harness):
 
 def test_unknown_agent_query_is_not_exit_evidence(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-11", timeout=60)
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_result_file("w-release-11")
@@ -1944,7 +1944,7 @@ def test_unknown_agent_query_is_not_exit_evidence(make_harness):
 
 def test_registered_agent_listed_as_working_blocks_release(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-12", timeout=60)
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_result_file("w-release-12")
@@ -1972,7 +1972,7 @@ def test_registered_agent_listed_as_working_blocks_release(make_harness):
 
 def test_foreign_pane_added_during_exit_retains_the_tab(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-13", timeout=60)
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_result_file("w-release-13")
@@ -1997,7 +1997,7 @@ def test_foreign_pane_added_during_exit_retains_the_tab(make_harness):
 
 def test_uncommitted_content_added_during_exit_retains_the_tab(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-14", timeout=60)
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_result_file("w-release-14")
@@ -2111,7 +2111,7 @@ def test_stop_does_not_take_over_from_a_live_supervisor(make_harness):
         state = json.loads(state_path.read_text(encoding="utf-8"))
         state["supervisor"].update(pid=holder.pid, host=os.uname().nodename, state="running")
         state_path.write_text(json.dumps(state), encoding="utf-8")
-        h.env["HPM_STOP_WAIT_SECONDS"] = "0.5"
+        h.env["HI_STOP_WAIT_SECONDS"] = "0.5"
 
         refused = h.stop("w-release-16")
         assert refused.returncode == 3, refused.stderr
@@ -2147,7 +2147,7 @@ def test_concurrent_stops_without_a_supervisor_serialize(make_harness):
     h.reopen_tab(tab, pane, facts["worktree"])
     closes_before = len(herdr_calls(h, ("tab", "close")))
 
-    command = [sys.executable, str(PLAN_MANAGER), "stop", "--repo", str(h.repo), "--worker", "w-release-17"]
+    command = [sys.executable, str(IMPLEMENTER), "stop", "--repo", str(h.repo), "--worker", "w-release-17"]
     first = subprocess.Popen(command, cwd=h.repo, env=h.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     second = subprocess.Popen(command, cwd=h.repo, env=h.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out_one, err_one = first.communicate(timeout=60)
@@ -2165,7 +2165,7 @@ def test_concurrent_stops_without_a_supervisor_serialize(make_harness):
 
 def test_foreign_pane_in_second_tab_blocks_its_close(make_harness):
     h = make_harness("deliver-then-work")
-    h.env["HPM_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
+    h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-18", timeout=60)
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_state("w-release-18", {"delivered"})
@@ -2255,9 +2255,9 @@ def test_cleanup_after_a_failed_worker_keeps_the_evidence(make_harness):
 
 def test_stop_wins_handoff_race_without_a_new_writer(make_harness):
     h = make_harness("handoff")
-    h.env["HPM_SCENARIO_CONTINUATION_DELAY"] = "8"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
-    h.env["HPM_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
+    h.env["HI_SCENARIO_CONTINUATION_DELAY"] = "8"
+    h.env["HI_FAKE_CONTEXT_SPIKE_TOTAL"] = "100"
+    h.env["HI_FAKE_CONTEXT_SPIKE_CALLS"] = "1"
     proc = h.start(worker_id="w-clean-09", handoff_tokens=50, timeout=60)
     assert proc.returncode == 0, proc.stderr
 

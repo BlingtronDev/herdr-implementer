@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic fake of the OpenCode CLI for plan_manager validation tests.
+"""Deterministic fake of the OpenCode CLI for implementer validation tests.
 
 Emits the `opencode models <provider> --verbose` shape used by the adapter:
 a `provider/model` marker line followed by a pretty-printed JSON block.
@@ -35,7 +35,7 @@ CATALOG = {
 
 
 def record(argv):
-    root = os.environ.get("HPM_FAKE_DIR")
+    root = os.environ.get("HI_FAKE_DIR")
     if not root:
         return
     log = Path(root) / "opencode.log.jsonl"

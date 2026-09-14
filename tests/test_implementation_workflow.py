@@ -9,13 +9,13 @@ from pathlib import Path
 
 import pytest
 
-from test_plan_manager import RUNTIMES, branch_exists, make_harness  # noqa: F401
+from test_implementer import RUNTIMES, branch_exists, make_harness  # noqa: F401
 
 
 @pytest.mark.parametrize("kind", RUNTIMES)
 def test_master_integrates_a_then_starts_c_while_b_runs_after_handoff(make_harness, kind):
     h = make_harness("slow")
-    h.env["HPM_FAKE_CONTEXT_COUNTER"] = "context-b"
+    h.env["HI_FAKE_CONTEXT_COUNTER"] = "context-b"
     run_id = h.ensure_run(kind=kind, max_workers=2)
     b = h.start(kind=kind, run_id=run_id, ticket_id="B", worker_id="w-plan-b")
     assert b.returncode == 0, b.stderr
@@ -23,11 +23,11 @@ def test_master_integrates_a_then_starts_c_while_b_runs_after_handoff(make_harne
 
     # A crosses sessions while B continues; the same run still has only two slots.
     h.env.update({
-        "HPM_FAKE_SCENARIO_BEHAVIOR": "handoff",
-        "HPM_FAKE_CONTEXT_COUNTER": "context-a",
-        "HPM_FAKE_CONTEXT_SPIKE_TOTAL": "100",
-        "HPM_FAKE_CONTEXT_SPIKE_CALLS": "1",
-        "HPM_SCENARIO_HANDOFF_DELAY": "2",
+        "HI_FAKE_SCENARIO_BEHAVIOR": "handoff",
+        "HI_FAKE_CONTEXT_COUNTER": "context-a",
+        "HI_FAKE_CONTEXT_SPIKE_TOTAL": "100",
+        "HI_FAKE_CONTEXT_SPIKE_CALLS": "1",
+        "HI_SCENARIO_HANDOFF_DELAY": "2",
     })
     a = h.start(kind=kind, run_id=run_id, ticket_id="A", worker_id="w-plan-a", handoff_tokens=50)
     assert a.returncode == 0, a.stderr
@@ -66,10 +66,10 @@ def test_master_integrates_a_then_starts_c_while_b_runs_after_handoff(make_harne
     assert record["A"]["integrated"] != h.base
     assert (h.repo / "continuation.txt").is_file()
 
-    h.env["HPM_FAKE_SCENARIO_BEHAVIOR"] = "deliver-code"
-    h.env["HPM_FAKE_CONTEXT_COUNTER"] = "context-c"
-    h.env["HPM_SCENARIO_DELAY"] = "2"
-    for key in ("HPM_FAKE_CONTEXT_SPIKE_TOTAL", "HPM_FAKE_CONTEXT_SPIKE_CALLS"):
+    h.env["HI_FAKE_SCENARIO_BEHAVIOR"] = "deliver-code"
+    h.env["HI_FAKE_CONTEXT_COUNTER"] = "context-c"
+    h.env["HI_SCENARIO_DELAY"] = "2"
+    for key in ("HI_FAKE_CONTEXT_SPIKE_TOTAL", "HI_FAKE_CONTEXT_SPIKE_CALLS"):
         h.env.pop(key)
     c = h.start(
         kind=kind, run_id=run_id, ticket_id="C", worker_id="w-plan-c",

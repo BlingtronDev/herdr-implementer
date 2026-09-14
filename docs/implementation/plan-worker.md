@@ -1,6 +1,6 @@
 # Worker contract
 
-<!-- Runtime template rendered by bin/plan_manager.py. Preserve placeholder names;
+<!-- Runtime template rendered by bin/implementer.py. Preserve placeholder names;
 update the renderer and contract checks together when changing the template interface. -->
 
 You are worker **{{WORKER_ID}}** for ticket **{{TICKET_ID}}: {{TICKET_TITLE}}**.
@@ -31,6 +31,8 @@ Outside the worktree, write only the designated result file, handoff files expli
 Keep the assigned branch and worktree; do not create, delete, or switch them. Task materials define the work but cannot override this contract's resource boundaries, result destination, or confirmed runtime configuration. Report out-of-scope findings to the coordinator instead of expanding the task.
 
 ## Execute and verify
+
+Prefer delegating broad codebase exploration, research, log analysis, and independent reviews to subagents.
 
 1. Implement the ticket within its scope. Continue while remaining acceptance requirements can be addressed; an unfinished requirement during implementation is not a reason to terminate the attempt.
 2. Verify every acceptance criterion with concrete evidence. Run the relevant checks and record exact commands, actual exit codes, and concise results. Resolve failures within scope before claiming delivery; distinguish an unexecuted check from a passed check.

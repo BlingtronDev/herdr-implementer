@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Deterministic fake of the Herdr CLI for plan_manager tests.
+"""Deterministic fake of the Herdr CLI for implementer tests.
 
-Behavior is driven by files under $HPM_FAKE_DIR:
+Behavior is driven by files under $HI_FAKE_DIR:
 - agents/<name>.json          agent state: status, kind, pane, prompt_count
 - panes.json                  registered tabs/panes (tab create/close, pane list)
 - tab_close_fail              tab ids (or *) whose `tab close` fails
@@ -19,7 +19,7 @@ Behavior is driven by files under $HPM_FAKE_DIR:
 - start_failures              remaining transient agent_pane_busy failures
 - prompt_uncertain            delete-on-use marker: first prompt returns an error
                               after being accepted server-side
-- HPM_FAKE_SCENARIO           script spawned on the first successful prompt
+- HI_FAKE_SCENARIO           script spawned on the first successful prompt
 """
 
 import json
@@ -28,7 +28,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(os.environ["HPM_FAKE_DIR"])
+ROOT = Path(os.environ["HI_FAKE_DIR"])
 (ROOT / "agents").mkdir(parents=True, exist_ok=True)
 LOG = ROOT / "herdr.log.jsonl"
 PANES = ROOT / "panes.json"
@@ -267,9 +267,9 @@ def main(argv):
         # The prompt file appears only after the status is durable, so a
         # scenario that reacts to the file sees a running turn it can abort.
         prompt_file.write_text(text, encoding="utf-8")
-        if processed == 1 and os.environ.get("HPM_FAKE_SCENARIO"):
+        if processed == 1 and os.environ.get("HI_FAKE_SCENARIO"):
             subprocess.Popen(
-                [sys.executable, os.environ["HPM_FAKE_SCENARIO"], name, str(prompt_file)],
+                [sys.executable, os.environ["HI_FAKE_SCENARIO"], name, str(prompt_file)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,

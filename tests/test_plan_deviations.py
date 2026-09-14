@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 
-from test_plan_manager import load_plan_manager
+from test_implementer import load_implementer
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def result_context(tmp_path):
         "verification": [{"command": "test -f findings.md", "exit_code": 0, "summary": "exists"}],
         "head": None, "artifacts": ["findings.md"], "remaining": "", "plan_deviations": [],
     }
-    return load_plan_manager(), state, payload
+    return load_implementer(), state, payload
 
 
 def deviation(needs_decision=False):
@@ -58,7 +58,7 @@ def test_missing_or_invalid_deviation_declarations(result_context, status, bad):
         del payload["plan_deviations"]
     else:
         payload["plan_deviations"] = bad
-    with pytest.raises(pm.ManagerError, match="plan_deviations"):
+    with pytest.raises(pm.ImplementerError, match="plan_deviations"):
         pm.validate_result(payload, state)
 
 
@@ -69,7 +69,7 @@ def test_deviation_fields_are_required_and_typed(result_context, field, bad):
     entry = deviation()
     entry[field] = bad
     payload["plan_deviations"] = [entry]
-    with pytest.raises(pm.ManagerError, match=field):
+    with pytest.raises(pm.ImplementerError, match=field):
         pm.validate_result(payload, state)
 
 
@@ -78,7 +78,7 @@ def test_unresolved_deviation_prevents_delivery(result_context, status):
     pm, state, payload = result_context
     payload.update(status=status, plan_deviations=[deviation(True)])
     if status == "delivered":
-        with pytest.raises(pm.ManagerError, match="needing a decision"):
+        with pytest.raises(pm.ImplementerError, match="needing a decision"):
             pm.validate_result(payload, state)
     else:
         assert pm.validate_result(payload, state)["plan_deviations"][0]["needs_decision"] is True
@@ -86,9 +86,9 @@ def test_unresolved_deviation_prevents_delivery(result_context, status):
 
 def test_contract_outcome_examples_include_deviations():
     import re
-    from test_plan_manager import REPO_ROOT
+    from test_implementer import REPO_ROOT
 
-    text = (REPO_ROOT / "docs/plan-management/plan-worker.md").read_text()
+    text = (REPO_ROOT / "docs/implementation/plan-worker.md").read_text()
     outcomes = [json.loads(block) for block in re.findall(r"```json\n(.*?)\n```", text, re.S)]
     outcomes = [entry for entry in outcomes if "status" in entry]
     assert {entry["status"] for entry in outcomes} == {"delivered", "needs-decision"}

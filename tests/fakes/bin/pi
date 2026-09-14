@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic fake of the Pi CLI for plan_manager validation tests."""
+"""Deterministic fake of the Pi CLI for implementer validation tests."""
 
 import sys
 

@@ -2,11 +2,11 @@
 
 ## Load the intended workflow
 
-Load the [herdr-plan-manager entry](../../SKILL.md). In Pi, use `--skill <SKILL_DIR>/SKILL.md`. The manager is `bin/plan_manager.py`. Record the tested skill revision, environment, scenarios, evidence, and limits in a fresh acceptance report in the validation project's record directory, for example `<validation-repo>/.scratch/<slug>/acceptance.md`.
+Load the [herdr-implementer entry](../../SKILL.md). In Pi, use `--skill <SKILL_DIR>/SKILL.md`. The lifecycle tool is `bin/implementer.py`. Record the tested skill revision, environment, scenarios, evidence, and limits in a fresh acceptance report in the validation project's record directory, for example `<validation-repo>/.scratch/<slug>/acceptance.md`.
 
 Keep two evidence levels separate:
 
-- **Deterministic integration tests** exercise the real manager and Git against simulated runtimes.
+- **Deterministic integration tests** exercise the real lifecycle tool and Git against simulated runtimes.
 - **Real-runtime smoke tests** establish that installed runtimes execute the worker lifecycle under coordinator control.
 
 Simulation cannot substitute for real-runtime evidence. Neither layer guarantees that a model will always follow the coordinator instructions. After rewriting prompts, identify which checks were rerun; historical smoke results remain evidence for the revision actually exercised.
@@ -16,7 +16,7 @@ Simulation cannot substitute for real-runtime evidence. Neither layer guarantees
 From this skill's source checkout (tests are development assets, omitted from the runtime distribution):
 
 ```bash
-python3 -m pytest tests/test_plan_management_workflow.py -v
+python3 -m pytest tests/test_implementation_workflow.py -v
 python3 -m pytest tests/ -q
 ```
 

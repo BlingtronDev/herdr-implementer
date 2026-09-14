@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Deterministic context adapter for plan_manager tests.
+"""Deterministic context adapter for implementer tests.
 
 Environment:
-- HPM_FAKE_DIR               marker/counter directory (required for counters)
-- HPM_FAKE_CONTEXT_COUNTER   counter filename, shared across sessions (default context_calls)
-- HPM_FAKE_CONTEXT_MODE      ok (default) | stale | error
-- HPM_FAKE_CONTEXT_TOTAL     baseline current-context tokens (default 10)
-- HPM_FAKE_CONTEXT_WINDOW    model context window (default 1000)
-- HPM_FAKE_CONTEXT_SPIKE_TOTAL   token value for the first spike calls
-- HPM_FAKE_CONTEXT_SPIKE_CALLS   number of calls that report the spike value
-- HPM_FAKE_CONTEXT_ERROR     error text used in error mode
+- HI_FAKE_DIR               marker/counter directory (required for counters)
+- HI_FAKE_CONTEXT_COUNTER   counter filename, shared across sessions (default context_calls)
+- HI_FAKE_CONTEXT_MODE      ok (default) | stale | error
+- HI_FAKE_CONTEXT_TOTAL     baseline current-context tokens (default 10)
+- HI_FAKE_CONTEXT_WINDOW    model context window (default 1000)
+- HI_FAKE_CONTEXT_SPIKE_TOTAL   token value for the first spike calls
+- HI_FAKE_CONTEXT_SPIKE_CALLS   number of calls that report the spike value
+- HI_FAKE_CONTEXT_ERROR     error text used in error mode
 """
 
 from __future__ import annotations
@@ -36,12 +36,12 @@ def arg_value(flag: str) -> str | None:
 def main() -> int:
     kind = sys.argv[1] if len(sys.argv) > 1 else "pi"
     ref = sys.argv[2] if len(sys.argv) > 2 else ""
-    mode = os.environ.get("HPM_FAKE_CONTEXT_MODE", "ok")
+    mode = os.environ.get("HI_FAKE_CONTEXT_MODE", "ok")
     if mode == "error":
         payload = {
             "kind": kind,
             "context_ref": ref,
-            "error": os.environ.get("HPM_FAKE_CONTEXT_ERROR", "fake: no completed assistant usage"),
+            "error": os.environ.get("HI_FAKE_CONTEXT_ERROR", "fake: no completed assistant usage"),
             "observed_at": now(),
         }
         print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
@@ -49,19 +49,19 @@ def main() -> int:
         return 1
 
     calls = 0
-    root = os.environ.get("HPM_FAKE_DIR")
+    root = os.environ.get("HI_FAKE_DIR")
     if root:
-        counter = Path(root) / os.environ.get("HPM_FAKE_CONTEXT_COUNTER", "context_calls")
+        counter = Path(root) / os.environ.get("HI_FAKE_CONTEXT_COUNTER", "context_calls")
         calls = int(counter.read_text()) + 1 if counter.is_file() else 1
         counter.write_text(str(calls))
 
-    base_total = int(os.environ.get("HPM_FAKE_CONTEXT_TOTAL", "10"))
-    spike_total = int(os.environ.get("HPM_FAKE_CONTEXT_SPIKE_TOTAL", str(base_total)))
-    spike_calls = int(os.environ.get("HPM_FAKE_CONTEXT_SPIKE_CALLS", "0"))
+    base_total = int(os.environ.get("HI_FAKE_CONTEXT_TOTAL", "10"))
+    spike_total = int(os.environ.get("HI_FAKE_CONTEXT_SPIKE_TOTAL", str(base_total)))
+    spike_calls = int(os.environ.get("HI_FAKE_CONTEXT_SPIKE_CALLS", "0"))
     total = spike_total if calls and calls <= spike_calls else base_total
 
     override = arg_value("--window")
-    window = int(override) if override else int(os.environ.get("HPM_FAKE_CONTEXT_WINDOW", "1000"))
+    window = int(override) if override else int(os.environ.get("HI_FAKE_CONTEXT_WINDOW", "1000"))
     payload = {
         "kind": kind,
         "context_ref": ref,
