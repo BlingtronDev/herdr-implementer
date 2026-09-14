@@ -2664,6 +2664,19 @@ def validate_result(payload: Any, state: dict[str, Any]) -> dict[str, Any]:
     status = payload.get("status")
     if status not in RESULT_STATUSES:
         raise ManagerError(f"result status must be one of {', '.join(RESULT_STATUSES)}; got {status!r}")
+    deviations = payload.get("plan_deviations")
+    if not isinstance(deviations, list):
+        raise ManagerError("result needs a plan_deviations list (empty means no deviations)")
+    for entry in deviations:
+        if not isinstance(entry, dict):
+            raise ManagerError("plan_deviations entries must be objects")
+        for field in ("planned", "actual", "reason", "impact"):
+            if not isinstance(entry.get(field), str) or not entry[field].strip():
+                raise ManagerError(f"plan_deviations entry needs a non-empty {field}")
+        if not isinstance(entry.get("needs_decision"), bool):
+            raise ManagerError("plan_deviations entry needs a boolean needs_decision")
+        if status == "delivered" and entry["needs_decision"]:
+            raise ManagerError("delivered declaration cannot contain a deviation needing a decision")
     if status in ("failed", "needs-decision"):
         reason = payload.get("reason")
         if not isinstance(reason, str) or not reason.strip():

@@ -48,6 +48,24 @@ Choose the declaration that describes this attempt:
 
 For any declaration, write valid JSON to a temporary sibling of the result file and rename it over the result path. Once published, stop business writes and end your turn; perform only a result-report correction if the lifecycle tool requests one. A quiet terminal alone is not delivery.
 
+### Plan deviations (required for every outcome)
+
+Include `plan_deviations` in every declaration. Use `[]` to explicitly declare no deviations found against the assigned plan and ticket. Otherwise include every changed assumption, implementation departure, or unexpected finding affecting the plan:
+
+```json
+{
+  "planned": "<original requirement, approach, or assumption; cite the plan/ticket section>",
+  "actual": "<actual implementation or observed finding; cite evidence>",
+  "reason": "<why the departure occurred>",
+  "impact": "<affected scope, acceptance, dependencies, risks, and follow-up work>",
+  "needs_decision": true
+}
+```
+
+Set `needs_decision` to true when coordinator disposition is still required. Use `needs-decision` rather than `delivered` in that case, with the exact question and options in `reason`. For an already authorized departure, set it to false and cite the authorization in the entry's `reason`. A deviation declaration does not authorize scope expansion or waive an unmet acceptance criterion. Failed attempts also report known deviations; ordinary unfinished work belongs in `remaining`.
+
+The coordinator records the outcome and deviation disposition in the shared Markdown execution record. Keep that record read-only; an optional worker findings artifact does not replace this required JSON declaration.
+
 ### Delivered result
 
 ```json
@@ -56,6 +74,7 @@ For any declaration, write valid JSON to a temporary sibling of the result file 
   "worker_id": "{{WORKER_ID}}",
   "status": "delivered",
   "summary": "<completed work>",
+  "plan_deviations": [],
   "acceptance": [
     {"criterion": "<acceptance item>", "met": true, "evidence": "<concrete verification evidence>"}
   ],
@@ -81,6 +100,7 @@ Artifact paths must exist and resolve inside the worktree or the management dire
   "ticket_id": "{{TICKET_ID}}",
   "worker_id": "{{WORKER_ID}}",
   "status": "needs-decision",
+  "plan_deviations": [],
   "reason": "<decision needed, options, and why it cannot be inferred>",
   "remaining": "<progress, uncommitted work, evidence locations, and next steps>"
 }

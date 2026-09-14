@@ -81,7 +81,7 @@ def write_result(payload):
 
 
 def base_result(status, **extra):
-    payload = {"ticket_id": TICKET_ID, "worker_id": WORKER_ID, "status": status}
+    payload = {"ticket_id": TICKET_ID, "worker_id": WORKER_ID, "status": status, "plan_deviations": []}
     payload.update(extra)
     return payload
 

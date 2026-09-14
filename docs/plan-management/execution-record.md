@@ -27,6 +27,18 @@ Replace the example rows with the complete initial ticket set. Preserve links to
 
 `delivered` is the worker's declaration. Record actual integration evidence before unlocking code dependents; acknowledgement is not that evidence. For investigation or verification tickets, record accepted durable artifacts instead of manufacturing empty commits.
 
+## Outcome and plan-deviation backfill
+
+Before acknowledging each delivered, failed, or needs-decision outcome, append an entry here (or link to the authoritative ticket record containing it):
+
+- Ticket, worker/attempt, and durable result JSON reference:
+- Completed work or preserved partial progress; acceptance/verification evidence and its limits:
+- Plan deviations: explicitly record **none declared** for `plan_deviations: []`; otherwise preserve each entry's planned vs actual behavior, reason, impact, and decision requirement:
+- Coordinator disposition for each deviation: accepted within authorization (cite it), repair/follow-up ticket, or pending decision with owner and next action:
+- Remaining work and integration state; use **pending integration** until integration is evidenced:
+
+Compare the declaration with the assigned plan and evidence; tool validation checks the structure, not whether all departures were disclosed. Missing deviation information is **not reported**, never “no deviations”; obtain clarification before accepting the outcome, including for results from older contracts. Link detailed decisions below rather than duplicating them. The coordinator writes this Markdown backfill; the lifecycle tool neither generates it nor verifies its presence.
+
 ## Decisions and unexpected findings
 
 Append an entry when a decision or finding affects execution:

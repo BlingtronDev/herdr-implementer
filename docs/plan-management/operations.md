@@ -73,7 +73,7 @@ python3 "$HPM" handoff --repo "$REPO" --worker "$WORKER" --reason "$REASON"
 
 The response confirms a request, not successful replacement; inspect subsequent status. A successful handoff keeps the ticket, worktree, branch, and configuration. Results end eligibility for further handoff. A failed replacement preserves the scene and durable handoff document for disposition. Do not send ad hoc continuation prompts or create a second writer in that worktree.
 
-After recording how an item was handled, acknowledge its returned `item_id` (`<worker-id>/<item-id>`):
+For each outcome, first complete [outcome and plan-deviation backfill](execution-record.md#outcome-and-plan-deviation-backfill) in the shared Markdown record. For other items, record how they were handled. Then acknowledge the returned `item_id` (`<worker-id>/<item-id>`):
 
 ```bash
 python3 "$HPM" ack --repo "$REPO" --item "$ITEM" --note "$DECISION"
