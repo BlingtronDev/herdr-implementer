@@ -1,9 +1,0 @@
-[w-smoke05-a] run=smoke-05 lifecycle=delivered sessions=1 items=[('i001', 'delivered', None)]
-  result.status=delivered head=fe101354b17e0f85c49770af37bb4f97f406eee8
-  ack.json=present
-[w-smoke05-b] run=smoke-05 lifecycle=delivered sessions=1 items=[('i001', 'delivered', None)]
-  result.status=delivered head=13a2245958c8c6792a5b5b1bb2609f20928f4195
-  ack.json=present
-[w-smoke05-c] run=smoke-05 lifecycle=stopped sessions=1 items=[]
-  result.status=None head=None
-  ack.json=absent

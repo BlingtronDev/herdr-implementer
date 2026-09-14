@@ -1,7 +1,0 @@
-2026-09-12T14:44:33.773648Z supervisor started
-2026-09-12T14:45:33.313351Z context threshold (tokens) reached for session 1
-2026-09-12T14:45:33.321060Z handoff (tokens) requested for session 1 (w07-opencode-a): context threshold reached (tokens)
-2026-09-12T14:46:20.117649Z handoff document validated for session 1: /tmp/hpm07-real-l6liisu5/opencode/.git/herdr-plan-manager/workers/w07-opencode-a/handoffs/handoff-001.md
-2026-09-12T14:46:42.369204Z prompt attempt 1 to w07-opencode-a-s2 was not picked up (status idle); retrying
-2026-09-12T14:46:43.945915Z handoff complete: session 1 -> 2 agent w07-opencode-a-s2
-2026-09-12T14:47:39.057015Z terminal settled; result recorded

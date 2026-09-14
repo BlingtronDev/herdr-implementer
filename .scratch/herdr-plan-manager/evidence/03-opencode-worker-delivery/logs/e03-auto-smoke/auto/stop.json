@@ -1,8 +1,0 @@
-{
-  "already_terminal": true,
-  "branch": "hpm/w-e03-auto",
-  "lifecycle": "delivered",
-  "stopped": true,
-  "worker_id": "w-e03-auto",
-  "worktree": "/tmp/oc-auto-check/repo/.git/herdr-plan-manager/worktrees/w-e03-auto"
-}

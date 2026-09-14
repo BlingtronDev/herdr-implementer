@@ -1,7 +1,0 @@
-{
-  "command": "python3 .scratch/herdr-plan-manager/evidence/08-integration-repair-and-closeout/smoke.py checks",
-  "outcome": "caller tool terminated command at 240000 ms before pytest completed; no test conclusion",
-  "evidence_already_saved": ["docs-syntax.json", "verify-evidence.json"],
-  "prior_suite_duration": "07 logs/test-all.txt: 113 passed in 284.07s",
-  "next_action": "confirm runner exited, stop only orphan fake scenario processes from pytest-74, rerun with a 600000 ms caller window"
-}

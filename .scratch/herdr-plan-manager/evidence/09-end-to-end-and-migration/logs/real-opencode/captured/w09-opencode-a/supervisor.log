@@ -1,8 +1,0 @@
-2026-09-13T03:11:06.889242Z supervisor started
-2026-09-13T03:11:46.962612Z context threshold (tokens) reached for session 1
-2026-09-13T03:11:46.969026Z handoff (tokens) requested for session 1 (w09-opencode-a): context threshold reached (tokens)
-2026-09-13T03:12:34.730925Z handoff document validated for session 1: /tmp/opencode/hpm09-migration-lawoi34f/opencode/.git/herdr-plan-manager/workers/w09-opencode-a/handoffs/handoff-001.md
-2026-09-13T03:12:55.973515Z prompt attempt 1 to w09-opencode-a-s2 was not picked up (status idle); retrying
-2026-09-13T03:12:57.678983Z handoff complete: session 1 -> 2 agent w09-opencode-a-s2
-2026-09-13T03:13:44.424198Z terminal settled; result recorded
-2026-09-13T03:13:44.558266Z tab release uncommitted-content: retained

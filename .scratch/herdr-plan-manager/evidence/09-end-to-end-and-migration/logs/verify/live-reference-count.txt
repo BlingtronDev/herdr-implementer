@@ -1,3 +1,0 @@
-live reference paths: 129
-test node IDs: 53
-all resolve: yes (tests/test_entry_docs.py::test_acceptance_map_evidence_and_tests_exist passed)

@@ -1,9 +1,0 @@
-{
-  "agent": "w-smoke04-pi2-5d1f27",
-  "note": "the supervisor performs the standard handoff process; inspect status for progress",
-  "reason": "single proactive handoff demo",
-  "request_id": "44249921f8414613b049daf36ad71b42",
-  "requested": true,
-  "session": 1,
-  "worker_id": "w-smoke04-pi2-5d1f27"
-}

@@ -14,9 +14,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "SKILL.md"
+# Development-only evidence. `.scratch/` is untracked and gitignored, so a fresh clone has no
+# acceptance map; every check that cites it is skipped there and stays meaningful on a source
+# checkout, which is the only place that keeps the record.
 ACCEPTANCE_MAP = ROOT / ".scratch" / "herdr-plan-manager" / "evidence" / "09-end-to-end-and-migration" / "final-acceptance.md"
+EVIDENCE_DOCS = [ACCEPTANCE_MAP] if ACCEPTANCE_MAP.is_file() else []
 ENTRY_DOCS = [SKILL, ROOT / "README.md", *sorted((ROOT / "docs" / "plan-management").glob("*.md"))]
 CLI_OPERATIONS = ["init-run", "start", "status", "wait", "ack", "read", "handoff", "stop", "cleanup"]
 
@@ -30,7 +36,7 @@ HISTORICAL_TOKENS = {"docs/plan-management/SKILL.md"}
 
 def _documented_evidence_tokens() -> list[str]:
     tokens: list[str] = []
-    for document in [*ENTRY_DOCS, ACCEPTANCE_MAP]:
+    for document in [*ENTRY_DOCS, *EVIDENCE_DOCS]:
         for span in CODE_SPAN.findall(document.read_text(encoding="utf-8")):
             token = span.split()[0].rstrip(".,;:")
             if token.startswith(PATH_PREFIXES) and not any(char in token for char in "<>*[]"):
@@ -70,7 +76,7 @@ def test_skill_entry_is_the_single_herdr_plan_manager_skill():
 
 def test_documented_relative_references_resolve():
     missing: list[str] = []
-    for document in [*ENTRY_DOCS, ACCEPTANCE_MAP]:
+    for document in [*ENTRY_DOCS, *EVIDENCE_DOCS]:
         for target in MD_LINK.findall(document.read_text(encoding="utf-8")):
             if target.startswith(("http://", "https://", "#", "mailto:")):
                 continue
@@ -136,6 +142,8 @@ def test_documented_cli_operations_exist():
 
 
 def test_acceptance_map_evidence_and_tests_exist():
+    if not EVIDENCE_DOCS:
+        pytest.skip("the untracked .scratch/ acceptance map is absent from this checkout")
     missing: list[str] = []
     nodes: list[str] = []
     for token in _documented_evidence_tokens():

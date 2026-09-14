@@ -1,8 +1,0 @@
-{
-  "base": "7e057ac4b4ed841bb26a83c17bb0110ac662a75c",
-  "a": "4ab1ac23f004a32142e9f727f0c3e055ad6a8b2d",
-  "b": "1664e77b194ca7712603c9d5be36ab50627cc883",
-  "goal": "executing",
-  "affected_dependents": "blocked until compatible repair integrated",
-  "reason": "all initial deliveries accepted and merged, but combined verification failed"
-}

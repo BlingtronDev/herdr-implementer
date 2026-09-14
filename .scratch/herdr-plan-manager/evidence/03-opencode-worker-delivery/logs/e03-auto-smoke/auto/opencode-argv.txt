@@ -1,1 +1,0 @@
-pid=2488385 cwd=/tmp/oc-auto-check/repo/.git/herdr-plan-manager/worktrees/w-e03-auto argv=opencode --auto 

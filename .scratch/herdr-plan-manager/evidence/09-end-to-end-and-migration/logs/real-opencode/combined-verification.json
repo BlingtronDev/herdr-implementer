@@ -1,9 +1,0 @@
-{
-  "files": {
-    "api.txt": "HPM09_API_V1\n",
-    "resumed.txt": "HPM09_RESUMED_OK\n",
-    "consumer.txt": "consumer:HPM09_API_V1\n",
-    "b.txt": "HPM09_B_OK\n"
-  },
-  "result": "all four integrated outputs match"
-}

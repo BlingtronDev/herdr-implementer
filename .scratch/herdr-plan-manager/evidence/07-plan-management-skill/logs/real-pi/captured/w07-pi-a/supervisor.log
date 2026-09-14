@@ -1,6 +1,0 @@
-2026-09-12T14:39:22.020016Z supervisor started
-2026-09-12T14:40:17.823852Z context threshold (tokens) reached for session 1
-2026-09-12T14:40:17.831649Z handoff (tokens) requested for session 1 (w07-pi-a): context threshold reached (tokens)
-2026-09-12T14:41:01.851560Z handoff document validated for session 1: /tmp/hpm07-real-l6liisu5/pi/.git/herdr-plan-manager/workers/w07-pi-a/handoffs/handoff-001.md
-2026-09-12T14:41:15.819251Z handoff complete: session 1 -> 2 agent w07-pi-a-s2
-2026-09-12T14:42:16.311517Z terminal settled; result recorded

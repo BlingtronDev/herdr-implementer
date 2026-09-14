@@ -1,9 +1,0 @@
-{
-  "agent": "w-smoke06-handoff",
-  "note": "the supervisor performs the standard handoff process; inspect status for progress",
-  "reason": "ticket 06 smoke: explicit handoff compatibility",
-  "request_id": "badcc28217c54c19b3fe6da3b7ac7583",
-  "requested": true,
-  "session": 1,
-  "worker_id": "w-smoke06-handoff"
-}

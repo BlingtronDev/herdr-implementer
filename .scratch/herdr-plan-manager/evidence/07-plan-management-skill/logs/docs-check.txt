@@ -1,7 +1,0 @@
-local links OK: docs/plan-management/SKILL.md
-local links OK: docs/plan-management/execution-record.md
-local links OK: docs/plan-management/operations.md
-local links OK: docs/plan-management/validation.md
-preview frontmatter OK
-documented manager flags present in current CLI: --archive-uncommitted, --base, --context-window, --delete-branch, --discard-uncommitted, --disposition, --force-branch, --handoff-pct, --handoff-tokens, --help, --instructions, --integrated, --item, --kind, --lines, --management-root, --material, --max-workers, --model, --note, --provider, --reason, --repo, --run, --run-id, --thinking, --ticket-id, --timeout, --title, --worker
-Scope: links/frontmatter/flag existence only; not runtime acceptance or behavioral proof.

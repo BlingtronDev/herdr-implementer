@@ -1,1 +1,0 @@
-{"verified": "w09-pi-a", "archive": "/tmp/opencode/hpm09-migration-lawoi34f/pi/.git/herdr-plan-manager/workers/w09-pi-a/cleanup/uncommitted-20260913T030642Z"}

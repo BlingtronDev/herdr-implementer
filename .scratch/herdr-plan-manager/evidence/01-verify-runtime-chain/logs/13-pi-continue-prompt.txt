@@ -1,4 +1,0 @@
-09:32:21Z
-{"id":"cli:agent:prompt","result":{"agent":{"agent":"pi","agent_session":{"agent":"pi","kind":"path","source":"herdr:pi","value":"/home/blingtron/.pi/agent/sessions/--tmp-opencode-hpm-exp01-repo--/2026-09-11T09-32-10-581Z_01a08fcf-6bd4-731c-8b90-d3e15a052136.jsonl"},"agent_status":"done","cwd":"/tmp/opencode/hpm-exp01/repo","focused":false,"foreground_cwd":"/tmp/opencode/hpm-exp01/repo","interactive_ready":true,"name":"exp01pi2","pane_id":"wJ:p4","revision":4,"screen_detection_skipped":true,"state_change_seq":220,"tab_id":"wJ:t4","terminal_id":"term_65b31b09a4f221f","terminal_title":"π - repo","terminal_title_stripped":"π - repo","workspace_id":"wJ"},"type":"agent_prompted"}}
-prompt_exit=0
-09:32:39Z

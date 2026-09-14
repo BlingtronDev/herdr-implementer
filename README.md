@@ -67,7 +67,7 @@ Linked worktrees share their repository's Git common directory. To use `<target-
 
 Keep the source checkout separate from the installed skill when a runtime-only installation is desired. From a committed release revision, export with `git archive --format=tar --prefix=herdr-plan-manager/ <revision> -o <absolute-output.tar>`. The export attributes omit development history, tests, and source-only configuration; the archive retains the root skill entry, README, tools, and runtime references/templates. `git archive` exports committed content, so commit the intended release changes before packaging.
 
-Install the exported directory in the runtime's skill location and start a fresh agent session to discover it. The source checkout retains tests and the skill's own development evidence under `.scratch/`, including the historical migration acceptance. Those records describe development of this skill; each managed project owns its own execution records.
+Install the exported directory in the runtime's skill location and start a fresh agent session to discover it. The source checkout retains `tests/`; the skill's own development evidence, including the historical migration acceptance, lives in the untracked `.scratch/` directory, so a fresh clone does not carry it. Older revisions still do, and `git show <revision>:.scratch/...` reads those records. Those records describe development of this skill; each managed project owns its own execution records.
 
 For a machine that only runs the skill and never develops it, keep the clone and trim its working tree to the runtime files:
 
@@ -75,4 +75,4 @@ For a machine that only runs the skill and never develops it, keep the clone and
 git sparse-checkout set --no-cone '/SKILL.md' '/README.md' '/bin' '/docs'
 ```
 
-The working tree then holds those entries only. The skipped development assets (`tests/`, `.scratch/`, `CONTEXT.md`) remain in the local object store, readable with `git show HEAD:<path>`, and later `git pull` operations keep honoring the selection; a plain deletion would be restored by the next checkout instead. The leading slashes and `--no-cone` are required, because cone mode cannot select an individual file at the repository root. Do not apply this on a machine that develops the skill: it hides the test suite there too.
+The working tree then holds those entries only. The skipped development asset (`tests/`) remains in the local object store, readable with `git show HEAD:<path>`, and later `git pull` operations keep honoring the selection; a plain deletion would be restored by the next checkout instead. The untracked `.scratch/` directory sits outside this selection and stays untouched. The leading slashes and `--no-cone` are required, because cone mode cannot select an individual file at the repository root. Do not apply this on a machine that develops the skill: it hides the test suite there too.
