@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -23,7 +24,11 @@ SKILL = ROOT / "SKILL.md"
 # checkout, which is the only place that keeps the record.
 ACCEPTANCE_MAP = ROOT / ".scratch" / "herdr-plan-manager" / "evidence" / "09-end-to-end-and-migration" / "final-acceptance.md"
 EVIDENCE_DOCS = [ACCEPTANCE_MAP] if ACCEPTANCE_MAP.is_file() else []
-ENTRY_DOCS = [SKILL, ROOT / "README.md", *sorted((ROOT / "docs" / "implementation").glob("*.md"))]
+RUNTIME_DOCS = [SKILL, *sorted((ROOT / "docs" / "implementation").glob("*.md"))]
+REFERENCE_DOCS = [*sorted((ROOT / "docs" / "development").glob("*.md")),
+                  *sorted((ROOT / "docs" / "migrations").glob("*.md"))]
+ENTRY_DOCS = [*RUNTIME_DOCS, ROOT / "README.md", *REFERENCE_DOCS]
+TRANSLATIONS = sorted((ROOT / "zh-CN").rglob("*.md"))
 CLI_OPERATIONS = ["init-run", "start", "status", "wait", "ack", "read", "handoff", "stop", "cleanup"]
 
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
@@ -38,6 +43,8 @@ HISTORICAL_TOKENS = {"docs/plan-management/SKILL.md", "CONTEXT.md"}
 def _renamed_historical_reference(value: str) -> str:
     """Resolve old citations without rewriting evidence for its tested revision."""
     return (value.replace("docs/plan-management/", "docs/implementation/")
+            .replace("docs/implementation/validation.md", "docs/development/validation.md")
+            .replace("docs/implementation/rename-compatibility.md", "docs/migrations/rename-compatibility.md")
             .replace("tests/test_plan_manager.py", "tests/test_implementer.py")
             .replace("tests/test_plan_management_workflow.py", "tests/test_implementation_workflow.py"))
 
@@ -86,7 +93,7 @@ def test_skill_entry_is_the_single_herdr_implementer_skill():
 
 def test_documented_relative_references_resolve():
     missing: list[str] = []
-    for document in [*ENTRY_DOCS, *EVIDENCE_DOCS]:
+    for document in [*ENTRY_DOCS, *TRANSLATIONS, *EVIDENCE_DOCS]:
         for target in MD_LINK.findall(document.read_text(encoding="utf-8")):
             if target.startswith(("http://", "https://", "#", "mailto:")):
                 continue
@@ -100,7 +107,7 @@ def test_documented_relative_references_resolve():
 
 def test_live_document_heading_anchors_resolve():
     """Include local translations when present; they are not distributed in Git."""
-    documents = [*ENTRY_DOCS, *sorted((ROOT / "zh-CN").rglob("*.md"))]
+    documents = [*ENTRY_DOCS, *TRANSLATIONS]
     for document in documents:
         for target in MD_LINK.findall(document.read_text(encoding="utf-8")):
             if target.startswith(("http://", "https://", "mailto:")) or "#" not in target:
@@ -111,6 +118,61 @@ def test_live_document_heading_anchors_resolve():
             headings = re.findall(r"^#{1,6}\s+(.+)$", destination.read_text(encoding="utf-8"), re.MULTILINE)
             anchors = {re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-") for heading in headings}
             assert anchor in anchors, (document.relative_to(ROOT), target)
+
+
+def _workflow_steps(document: Path) -> dict[int, str]:
+    text = document.read_text(encoding="utf-8")
+    parts = re.split(r"^## ([1-5])\. (.+)$", text, flags=re.MULTILINE)
+    assert len(parts) == 16, "the entry must expose exactly five ordered steps"
+    assert parts[1::3] == ["1", "2", "3", "4", "5"]
+    return {int(parts[i]): parts[i + 2] for i in range(1, len(parts), 3)}
+
+
+@pytest.mark.parametrize("relative_path", ["SKILL.md", "zh-CN/SKILL.zh-CN.md"])
+def test_five_step_entry_has_local_completion_gates_and_reference_routes(relative_path):
+    """Structural routing checks, not an assertion about model execution."""
+    document = ROOT / relative_path
+    if not document.is_file():
+        pytest.skip("local translation is not distributed in Git")
+    steps = _workflow_steps(document)
+    expected_routes = {
+        1: ("operations.md#", "execution-record.md"),
+        2: ("operations.md#",),
+        3: ("operations.md#", "execution-record.md#"),
+        4: ("execution-record.md#", "repair-and-closeout.md"),
+        5: ("execution-record.md#", "operations.md#"),
+    }
+    for number, body in steps.items():
+        assert re.search(r"^\*\*[^*]+[：:]\*\*", body, re.MULTILINE), number
+        for route in expected_routes[number]:
+            assert route in body, (number, route)
+        assert "```" not in body, "CLI/schema recipes belong behind pointers"
+        assert "plan-worker.md" not in body, "the tool injects the worker contract"
+        if number != 4:
+            assert "repair-and-closeout.md" not in body
+        assert "docs/development/" not in body and "docs/migrations/" not in body
+
+
+def test_five_step_entry_preserves_decision_and_ownership_boundaries():
+    steps = _workflow_steps(SKILL)
+    for required in ("complete initial ticket set", "semantic dependencies",
+                     "tool's default", "prerequisites the tool does not cover"):
+        assert required in steps[1]
+    for required in ("actual integration into the target branch", "full baseline SHA",
+                     "do not recursively collect", "one business writer",
+                     "ends business writes after final result publication",
+                     "coordinator alone updates shared"):
+        assert required in steps[2]
+    for required in ("without a batch barrier", "each returned item",
+                     "pending integration and its next action", "Preserve attempt history",
+                     "stopped business writes before replacement", "owner or follow-up ticket"):
+        assert required in steps[3]
+    for required in ("**serially**", "preserve unexplained user changes",
+                     "actual integration mapping", "compatibility evidence"):
+        assert required in steps[4]
+    for required in ("every in-scope goal", "All workers delivered is not overall completion",
+                     "Cleanup is optional and independent", "uncommitted, unintegrated, or non-code"):
+        assert required in steps[5]
 
 
 def test_execution_record_has_three_authoritative_sections():
@@ -142,8 +204,8 @@ def test_configuration_defaults_and_permission_policy_have_a_use_entry():
     assert "explicit time, cost, and aggregate resource constraints" in skill
     assert "verifiable persistent configuration" in skill
     assert "Keep task-duration and cost budgets out" not in skill
-    for name in ("operations.md", "validation.md"):
-        text = (ROOT / "docs/implementation" / name).read_text(encoding="utf-8")
+    for name in ("implementation/operations.md", "development/validation.md"):
+        text = (ROOT / "docs" / name).read_text(encoding="utf-8")
         assert "../../SKILL.md#permissions" in text
         assert "authorization for OpenCode `--auto`" not in text
         assert "Confirm authorization for this behavior" not in text
@@ -179,6 +241,68 @@ def test_runtime_distribution_is_self_contained(tmp_path):
     )
     template = tmp_path / "docs" / "implementation" / "plan-worker.md"
     assert template.is_file()
+    subprocess.run(
+        [sys.executable, str(tmp_path / "bin" / "plan_manager.py"), "--help"],
+        check=True, capture_output=True, text=True,
+    )
+    # All linked guides remain distributable even though development tests do not.
+    paths = [str(path.relative_to(ROOT)) for path in ENTRY_DOCS]
+    attrs = subprocess.run(
+        ["git", "check-attr", "export-ignore", "--", *paths],
+        cwd=ROOT, check=True, capture_output=True, text=True,
+    )
+    assert all(line.endswith(": unspecified") for line in attrs.stdout.splitlines())
+
+
+def test_progressive_reading_boundaries():
+    """Guard routing, not a claimed measurement of model token savings."""
+    for document in RUNTIME_DOCS:
+        for target in MD_LINK.findall(document.read_text(encoding="utf-8")):
+            if target.startswith(("http://", "https://", "#", "mailto:")):
+                continue
+            destination = (document.parent / target.split("#", 1)[0]).resolve()
+            assert destination not in REFERENCE_DOCS, (document, target)
+    skill = SKILL.read_text(encoding="utf-8")
+    assert "implementation/plan-worker.md" not in skill
+    operations = (ROOT / "docs/implementation/operations.md").read_text(encoding="utf-8")
+    assert "troubleshooting.md#observation-or-handoff-exceptions" in operations
+    assert "troubleshooting.md#stop-or-cleanup-blockers" in operations
+    assert "copying Markdown does not recursively collect" in operations
+    assert "timed_out: true" in operations
+    assert "successful handoff keeps the ticket" in operations
+    assert "Acknowledgement neither stops a worker" in operations
+    assert "business_stopped: true" in operations
+    assert "under `release`" in operations
+    for implementation_detail in ("supervisor PID", "per-worker lock", "agent_not_found",
+                                  "occupancy listing", "conditional close", "--handoff-pct"):
+        assert implementation_detail not in operations
+    for path in ("docs/development/validation.md", "docs/migrations/rename-compatibility.md",
+                 "docs/development/lifecycle.md"):
+        assert path in (ROOT / "README.md").read_text(encoding="utf-8")
+    for name in ("validation.md", "rename-compatibility.md"):
+        assert not (ROOT / "docs/implementation" / name).exists()
+
+
+@pytest.mark.parametrize("kind", ["pi", "opencode"])
+@pytest.mark.parametrize("relative_path", ["docs/implementation/operations.md",
+                                          "zh-CN/docs/implementation/operations.md"])
+def test_operations_recipes_parse_with_current_cli(kind, relative_path):
+    from test_implementer import load_implementer
+
+    tool = load_implementer()
+    document = ROOT / relative_path
+    if not document.is_file():
+        pytest.skip("local translation is not distributed in Git")
+    text = document.read_text(encoding="utf-8")
+    operations = set()
+    for block in re.findall(r"```bash\n(.*?)```", text, re.DOTALL):
+        for line in block.replace("\\\n", " ").splitlines():
+            if not line.startswith('python3 "$HI" '):
+                continue
+            args = [kind if arg == "$KIND" else arg for arg in shlex.split(line)[2:]]
+            tool.parse_args(args)
+            operations.add(args[0])
+    assert operations == set(CLI_OPERATIONS)
 
 
 def test_development_assets_are_excluded_from_export():

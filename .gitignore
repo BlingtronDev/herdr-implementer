@@ -4,3 +4,10 @@ __pycache__/
 .venv/
 .scratch/
 zh-CN
+
+# Source-only development config: local to this checkout, never part of the distributed skill.
+/AGENTS.md
+/CONTEXT.md
+/CONTEXT-MAP.md
+/docs/agents/
+/docs/adr/

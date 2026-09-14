@@ -1,26 +1,18 @@
 # Repair or Verification Brief
 
-The coordinator creates an ordinary ticket in the target repository (for example `<target-repo>/.scratch/<slug>/issues/<ticket-id>.md`) from this read-only template and supplies its absolute path via `--material`. Omit fields that do not apply; keep immutable SHAs and concrete acceptance requirements. The lifecycle tool's rendered worker contract remains authoritative for workspace, runtime, and result publication.
+Create a ticket from this read-only template in the target repository and supply its absolute path via `--material`. Fill only applicable inputs; supply linked materials explicitly because snapshots do not collect links recursively. The injected worker contract owns execution and reporting rules; [Integration repair](repair-and-closeout.md) owns coordinator decisions.
 
-## Goal and inputs
+## Goal and pinned inputs
 
-- Ticket ID, type (text-conflict repair / behavior repair / investigation / verification):
-- Authorized goal and reason this work is necessary:
-- Original ticket IDs, plan references, and required acceptance behavior from each side:
-- Explicit `--base` SHA and intended target branch:
-- Incoming branch and pinned SHA; previous repair SHA if applicable:
-- Source of each commit or patch; accessible material paths:
-- Captured conflict or behavior failure evidence, exact reproduction command, actual exit code, expected/actual result:
-- Target status: restored after coordinator-owned abort, or blocked scene retained at location:
-- Changes since an earlier repair baseline and compatibility questions:
-- Affected dependents and evidence needed to unblock them:
+- Ticket ID and type: text-conflict repair / behavior repair / investigation / verification.
+- Authorized goal, original tickets and requirements; behavior that must survive from **each side**:
+- Target branch and full base SHA; incoming SHA or controlled patch with provenance; previous repair SHA when relevant:
+- Accessible source materials and durable failure evidence:
+- Exact reproduction command, observed exit code, expected versus actual behavior:
+- Changes since the previous baseline and compatibility questions, if any:
 
-## Worker scope and acceptance
+## Required evidence
 
-- Reproduce the recorded problem in your assigned isolated worktree. For text conflicts, merge the pinned incoming commit into the lifecycle tool-assigned branch using repository policy; resolve both documented intents there.
-- Implement the repair (or investigate/verify if that is the assigned type). Preserve original acceptance behavior and cover the combined case with concrete checks. Record exact commands, observed exit codes, and evidence, including the initial reproduction.
-- Required checks and expected outcomes: <fill with task-specific checks>.
-- Report requirement ambiguity or a changed assumption through the normal result protocol. Keep the coordinator's target checkout, shared plan, and other worker scenes read-only.
-- Commit code results on the assigned branch, account for uncommitted content, and report the final HEAD and verification under the existing worker contract. A verification-only task produces an artifact without an empty commit.
-
-The coordinator will judge baseline freshness, perform the target merge, update dependencies, and decide overall completion after delivery.
+- Task-specific checks and expected outcomes covering original requirements and the combined behavior:
+- Required reproduction evidence and regression coverage; for a text conflict, reproduce by merging the pinned incoming SHA before resolving both intents:
+- Findings artifact and questions to answer for investigation or verification-only work:

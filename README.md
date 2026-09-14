@@ -2,16 +2,16 @@
 
 Plan and spec implementation skill for Herdr: the calling agent (the coordinator) reads a confirmed spec or plan with its complete initial ticket set, dispatches one isolated Pi or OpenCode worker per ticket, handles deliveries and exceptions as they arrive, performs normal merges, dispatches repair or verification workers when needed, and reports completion only when the overall goal is met.
 
-`SKILL.md` is the user-invoked workflow entry. `bin/implementer.py` is the lifecycle tool; it creates worktrees, renders the worker contract, starts background supervision, observes context, performs standard worker handoff, records results durably, and manages stops and cleanup. Details live in `docs/implementation/`:
+[SKILL.md](SKILL.md) is the user-invoked five-step workflow: read/register, select/dispatch, handle outcomes, integrate, and check/report/optionally clean up. `bin/implementer.py` is the lifecycle tool; it creates worktrees, renders the worker contract, starts background supervision, observes context, performs standard worker handoff, records results durably, and manages stops and cleanup. Details live in `docs/implementation/`:
 
 | Reference | Use |
 | --- | --- |
 | [operations.md](docs/implementation/operations.md) | Register, dispatch, observe, wait/ack, handoff, stop, cleanup |
 | [execution-record.md](docs/implementation/execution-record.md) | Coordinator-owned record template |
 | [plan-worker.md](docs/implementation/plan-worker.md) | Worker contract template rendered by the lifecycle tool |
-| [repair-and-closeout.md](docs/implementation/repair-and-closeout.md) | Conflict/behavior repair and overall completion |
-| [repair-brief.md](docs/implementation/repair-brief.md) | Repair or verification ticket template |
-| [validation.md](docs/implementation/validation.md) | Source-checkout tests and repeatable real-runtime validation |
+| [repair-and-closeout.md](docs/implementation/repair-and-closeout.md) | Merge conflicts, behavioral failures, or target changes during repair; normal closeout stays in the entry/record |
+| [repair-brief.md](docs/implementation/repair-brief.md) | Task-specific inputs for repair or related verification |
+| [troubleshooting.md](docs/implementation/troubleshooting.md) | Launch uncertainty, observation/handoff exceptions, deliberate context tuning, or stop/cleanup blockers |
 
 ## Responsibility boundaries
 
@@ -76,11 +76,15 @@ Linked worktrees share their repository's Git common directory. To use `<target-
 
 ## Rename and existing executions
 
-See [Rename compatibility](docs/implementation/rename-compatibility.md) before upgrading an installation with existing runs. New executions use `bin/implementer.py`, `HI_*` settings, the `herdr-implementer/` state directory, and `hi/` branches. Existing state and worktrees are never moved automatically.
+See [Rename compatibility](docs/migrations/rename-compatibility.md) before upgrading an installation with existing runs. New executions use `bin/implementer.py`, `HI_*` settings, the `herdr-implementer/` state directory, and `hi/` branches. Existing state and worktrees are never moved automatically.
 
 ## Distribution and development
 
-Keep the source checkout separate from the installed skill when a runtime-only installation is desired. From a committed release revision, export with `git archive --format=tar --prefix=herdr-implementer/ <revision> -o <absolute-output.tar>`. The export attributes omit development history, tests, and source-only configuration; the archive retains the root skill entry, README, tools, and runtime references/templates. `git archive` exports committed content, so commit the intended release changes before packaging.
+For workflow development or validation, read [Validation](docs/development/validation.md); for lifecycle safety changes, read [Lifecycle implementation notes](docs/development/lifecycle.md). These are not prerequisites for executing a user plan. Upgrade guidance is linked separately above.
+
+**Reading paths:** normal execution uses `SKILL.md`, the relevant Operations sections, and the execution record; the tool injects the worker contract without a coordinator template read. Merge conflicts, behavioral failures, or target changes during repair open the repair reference; ordinary integration and closeout stay in the entry/record. Exceptions or deliberate tuning open only the matching Troubleshooting section. Development and migration references stay outside that normal path. Moving an already-unloaded file does not itself save tokens; assess the documents actually read and injected, not directory names or line counts.
+
+Keep the source checkout separate from the installed skill when a runtime-only installation is desired. From a committed release revision, export with `git archive --format=tar --prefix=herdr-implementer/ <revision> -o <absolute-output.tar>`. The export attributes omit development history, tests, and source-only configuration; the archive retains the root skill entry, README, tools, and all linked references/templates, including on-demand development and migration guides (but not the test suite). Keeping those guides distributed makes README links usable without making them runtime reading requirements. `git archive` exports committed content, so commit the intended release changes before packaging.
 
 Install the exported directory in the runtime's skill location and start a fresh agent session to discover it. The source checkout retains `tests/`; the skill's own development evidence, including the historical migration acceptance, lives in the untracked `.scratch/` directory, so a fresh clone does not carry it. Older revisions still do, and `git show <revision>:.scratch/...` reads those records. Those records describe development of this skill; each managed project owns its own execution records.
 
