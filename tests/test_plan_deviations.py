@@ -154,6 +154,19 @@ def test_worker_contract_keeps_publication_and_acceptance_boundaries():
     assert "An artifact reference grants no write permission" in text
 
 
+def test_worker_contract_scopes_delegation_to_read_only_non_interactive_work():
+    """A nested agent must not stall invisibly or take over business writes."""
+    text = CONTRACT.read_text()
+    assert "Prefer delegating" not in text
+    assert "Delegation is optional" in text
+    assert "keep it read-only" in text
+    assert "must not write business files" in text
+    assert "change branches or worktrees" in text
+    assert "blocking interactive question UI" in text
+    assert "invisible to the coordinator" in text
+    assert "stay the single writer" in text
+
+
 def test_local_translation_preserves_contract_interface():
     translation = REPO_ROOT / "zh-CN/docs/implementation/plan-worker.md"
     if not translation.is_file():
@@ -171,3 +184,5 @@ def test_local_translation_preserves_contract_interface():
     assert [shape(item) for item in contract_examples(english)] == [
         shape(item) for item in contract_examples(chinese)
     ]
+    assert "委派是可选的" in chinese
+    assert "唯一写入者" in chinese
