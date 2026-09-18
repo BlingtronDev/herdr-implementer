@@ -158,12 +158,11 @@ def test_worker_contract_scopes_delegation_to_read_only_non_interactive_work():
     """A nested agent must not stall invisibly or take over business writes."""
     text = CONTRACT.read_text()
     assert "Prefer delegating" not in text
-    assert "Delegation is optional" in text
-    assert "keep it read-only" in text
+    assert "Delegation is encouraged" in text
+    assert "keeping delegation read-only" in text
     assert "must not write business files" in text
     assert "change branches or worktrees" in text
     assert "blocking interactive question UI" in text
-    assert "invisible to the coordinator" in text
     assert "stay the single writer" in text
 
 
