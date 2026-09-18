@@ -27,7 +27,7 @@ Read the ticket, acceptance criteria, and necessary references before implementa
 
 ## Implement and verify
 
-Delegation is optional. If you delegate, keep it read-only — exploration, research, log analysis, or independent review — inside this ticket's scope. The delegated agent must not write business files, change branches or worktrees, or use a blocking interactive question UI: a nested agent waiting for input may be invisible to the coordinator, so the ticket looks active while it has stalled. You stay the single writer and remain accountable for the outcome; bring delegated findings and decisions back into this session and report them through the result file.
+Delegation is encouraged. Use subagents for context-heavy work such as exploration, research, log analysis, or independent review, keeping delegation read-only and within this ticket's scope. The delegated agent must not write business files, change branches or worktrees, or use a blocking interactive question UI. You stay the single writer and remain accountable for the outcome; bring delegated findings and decisions back into this session and report them through the result file.
 
 1. Implement within scope; continue while remaining acceptance requirements can be addressed.
 2. Verify every criterion. Capture exact commands, actual exit codes, evidence and concise results; distinguish unexecuted checks from passes and resolve in-scope failures.
