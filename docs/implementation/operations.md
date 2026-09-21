@@ -89,7 +89,7 @@ python3 "$HI" stop --repo "$REPO" --worker "$WORKER" --reason "$REASON"
 
 Require `business_stopped: true` before treating write ownership as free. Stop preserves worktrees, branches, results, and handoff documents. If stopping is incomplete, preserve the scene and follow [Stop or cleanup blockers](troubleshooting.md#stop-or-cleanup-blockers).
 
-**Automatic release after delivery.** A valid delivery releases the registered terminal when the tool's safety conditions are met; the branch, worktree, result, logs, and materials remain. Release does not wait for ack or integration. If retained, inspect `status --worker` under `release` and follow [Stop or cleanup blockers](troubleshooting.md#stop-or-cleanup-blockers), rather than forcing a close. Disk cleanup is a separate decision.
+**Automatic release after completion.** A valid delivery closes the registered terminal after session exit and exclusive ownership are confirmed. Successful handoff closes only the replaced session's tab; the new session continues. The branch, worktree, result, logs, materials, and uncommitted files remain. Release does not require a clean worktree, ack, or integration. If retained, inspect `status --worker` under `release` (or `sessions[].release` for handoff) and follow [Stop or cleanup blockers](troubleshooting.md#stop-or-cleanup-blockers), rather than forcing a close. Disk cleanup is a separate decision.
 
 After confirming stopping and resource ownership, supply an explicit cleanup decision:
 

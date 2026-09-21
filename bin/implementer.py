@@ -1314,21 +1314,6 @@ def settle_session_for_control(herdr: Herdr, agent: str, adapter: RuntimeAdapter
     return False
 
 
-def end_session(herdr: Herdr, adapter: RuntimeAdapter, session: dict[str, Any]) -> bool:
-    """End the replaced TUI session so it can no longer write to the worktree."""
-    agent = str(session.get("agent") or "")
-    if not agent or not herdr.agent_exists(agent):
-        return True
-    for keys in adapter.exit_sequences():
-        try:
-            herdr.send_keys(agent, keys)
-        except ImplementerError:
-            break
-        if herdr.wait_agent_gone(agent, timeout=10.0):
-            return True
-    return not herdr.agent_exists(agent)
-
-
 def result_declared(state: dict[str, Any]) -> bool:
     """True once the worker has written its result file; delivery stops auto-handoff."""
     raw = str((state.get("paths") or {}).get("result") or "")
@@ -1552,25 +1537,6 @@ def registered_tab_facts(state: dict[str, Any]) -> list[dict[str, Any]]:
     return list(tabs.values())
 
 
-def worktree_status_facts(worktree: Path) -> dict[str, Any]:
-    """Uncommitted content for the release decision; an unreadable status is not clean."""
-    if not worktree.exists():
-        return {"confirmed": False, "entries": [], "error": f"worktree {worktree} does not exist"}
-    proc = git(worktree, "status", "--porcelain=v1", check=False)
-    if proc.returncode != 0:
-        return {
-            "confirmed": False,
-            "entries": [],
-            "error": proc.stderr.strip() or proc.stdout.strip() or "git status failed",
-        }
-    entries = [
-        {"code": line[:2].strip() or "??", "path": line[3:]}
-        for line in proc.stdout.splitlines()
-        if line.strip()
-    ]
-    return {"confirmed": True, "entries": entries, "error": None}
-
-
 def registered_agent_facts(herdr: Herdr, state: dict[str, Any]) -> dict[str, Any]:
     """Strictly classify the worker's registered agents for release decisions.
 
@@ -1698,17 +1664,35 @@ def release_delivered_tabs(
     *,
     timeout: float = DEFAULT_SESSION_CLOSE_TIMEOUT,
 ) -> dict[str, Any]:
-    """Release a delivered worker's terminals without touching its other resources.
+    """Release terminals only after a valid delivery has been durably recorded."""
+    recorded = state.get("result")
+    if not (isinstance(recorded, dict) and recorded.get("status") == "delivered"):
+        previous = state.get("release") or {}
+        if previous.get("reason") != "no-valid-delivery":
+            state["release"] = {
+                "state": "retained", "reason": "no-valid-delivery",
+                "message": "no valid delivered result is recorded; the terminal is retained",
+                "at": utc_now(), "first_at": previous.get("first_at") or utc_now(),
+                "attempts": int(previous.get("attempts") or 0) + 1,
+                "tabs": {"closed": [], "registered": [t["tab"] for t in registered_tab_facts(state)]},
+            }
+        return {"attempted": False, "closed": False, "reason": "no-valid-delivery"}
+    return release_terminal_tabs(herdr, adapter, state, timeout=timeout)
 
-    This runs only after a valid delivery is durable, and `stop` reuses the
-    same path for records whose supervisor already exited. A tab is closed
-    only when every registered session is confirmed exited, the assigned
-    worktree status is confirmable and clean, and the tab still holds only
-    this worker's panes and agents. Those checks are repeated after the exit
-    waits, because that state ages while a TUI shuts down. Unknown agent
-    queries are never exit evidence. Otherwise the scene stays and the reason
-    is recorded in `state['release']` for `status`. A close failure never
-    changes the delivery or retries on its own.
+
+def release_terminal_tabs(
+    herdr: Herdr,
+    adapter: RuntimeAdapter,
+    state: dict[str, Any],
+    *,
+    timeout: float = DEFAULT_SESSION_CLOSE_TIMEOUT,
+) -> dict[str, Any]:
+    """Release a completed scope's tabs, never its files or branch.
+
+    Callers persist delivery or handoff evidence first. For a handoff, the
+    scope contains only the replaced session, not the working replacement.
+    Confirm session exit and exclusive occupancy again at each close. Git
+    cleanliness belongs to disk cleanup, not terminal release.
     """
     previous = state.get("release") if isinstance(state.get("release"), dict) else {}
     tabs = registered_tab_facts(state)
@@ -1731,15 +1715,6 @@ def release_delivered_tabs(
         state["release"] = record
         return {"attempted": True, "closed": outcome == "closed", "reason": reason, "tabs": tabs, "record": record}
 
-    recorded = state.get("result") if isinstance(state.get("result"), dict) else None
-    if not (recorded and recorded.get("status") == "delivered"):
-        if previous.get("reason") == "no-valid-delivery":
-            return {"attempted": False, "closed": False, "reason": "no-valid-delivery", "tabs": tabs}
-        return remember(
-            "retained",
-            "no-valid-delivery",
-            message="no valid delivered result is recorded; the terminal is retained",
-        )
     if not tabs:
         return remember("not-applicable", "no-registered-tab", message="the worker has no registered tab")
 
@@ -1775,21 +1750,6 @@ def release_delivered_tabs(
             "session-not-settled",
             message="a registered session has not settled after delivery; the terminal is retained",
             sessions=sessions["busy"],
-        )
-    status = worktree_status_facts(Path(state["worktree"]))
-    if not status["confirmed"]:
-        return remember(
-            "retained",
-            "worktree-status-unverified",
-            message="the worktree status cannot be confirmed; the terminal is retained",
-            error=status["error"],
-        )
-    if status["entries"]:
-        return remember(
-            "retained",
-            "uncommitted-content",
-            message="the worktree has uncommitted or untracked content; the terminal is retained",
-            uncommitted=status["entries"][:50],
         )
     occupancy = tab_occupancy_facts(herdr, tabs)
     if not occupancy["confirmed"]:
@@ -1841,8 +1801,8 @@ def release_delivered_tabs(
             remaining_sessions=remaining,
         )
 
-    # The exit waits took time: re-verify ownership and the worktree on the
-    # state that exists now, not the one observed before the exits.
+    # The exit waits took time: re-verify ownership on the state that exists
+    # now, not the one observed before the exits.
     after = registered_agent_facts(herdr, state)
     if after["unknown"]:
         return remember(
@@ -1859,23 +1819,6 @@ def release_delivered_tabs(
             message="a registered session is still present after the exit attempt; the terminal is retained",
             phase="post-exit",
             remaining_sessions=after["busy"],
-        )
-    status_after = worktree_status_facts(Path(state["worktree"]))
-    if not status_after["confirmed"]:
-        return remember(
-            "retained",
-            "worktree-status-unverified",
-            message="the worktree status cannot be confirmed after the exit attempt; the terminal is retained",
-            phase="post-exit",
-            error=status_after["error"],
-        )
-    if status_after["entries"]:
-        return remember(
-            "retained",
-            "uncommitted-content",
-            message="the worktree gained uncommitted content during the exit; the terminal is retained",
-            phase="post-exit",
-            uncommitted=status_after["entries"][:50],
         )
     occupancy_after = tab_occupancy_facts(herdr, tabs)
     if not occupancy_after["confirmed"]:
@@ -1928,23 +1871,6 @@ def release_delivered_tabs(
                 "tab": tab,
                 "remaining_sessions": fresh["busy"],
             }
-        fresh_status = worktree_status_facts(Path(state["worktree"]))
-        if not fresh_status["confirmed"]:
-            return {
-                "reason": "worktree-status-unverified",
-                "message": "the worktree status cannot be confirmed before closing a tab; the tab is retained",
-                "phase": "pre-close",
-                "tab": tab,
-                "error": fresh_status["error"],
-            }
-        if fresh_status["entries"]:
-            return {
-                "reason": "uncommitted-content",
-                "message": "the worktree gained uncommitted content before closing a tab; the tab is retained",
-                "phase": "pre-close",
-                "tab": tab,
-                "uncommitted": fresh_status["entries"][:50],
-            }
         fresh_occupancy = tab_occupancy_facts(herdr, [entry for entry in tabs if entry["tab"] == tab])
         if not fresh_occupancy["confirmed"]:
             return {
@@ -1992,8 +1918,8 @@ def release_delivered_tabs(
         )
     return remember(
         "closed",
-        "delivered-worktree-clean",
-        message="the delivered worker tab was closed; branch, worktree and result are retained",
+        "completed-session-released",
+        message="completed session tabs were closed; branch, worktree and evidence are retained",
         closed_tabs=closed,
     )
 
@@ -2386,15 +2312,16 @@ def attempt_handoff(
             state="running", reason=f"session {session['index']} handed off to {replacement['index']}"
         )
         store.save_state(worker_id, state)
-        if not end_session(herdr, adapter, session):
-            append_item(
-                state,
-                "exception",
-                "handoff-old-session-exit-failed",
-                "the replaced session is still alive; stop or clean it up deliberately",
-                {"session": session["index"], "agent": session["agent"], "tab": session["tab"]},
-            )
-            store.save_state(worker_id, state)
+        # Completion is durable. Release only the old tab: the replacement
+        # may already be writing to their shared worktree.
+        scope = {"sessions": [session], "release": session.get("release")}
+        release = release_terminal_tabs(herdr, adapter, scope)
+        session["release"] = scope["release"]
+        record["phase"] = "completed"
+        store.save_state(worker_id, state)
+        supervisor_log(
+            f"handoff tab release {release['reason']}: {'closed' if release['closed'] else 'retained'}"
+        )
         supervisor_log(
             f"handoff complete: session {session['index']} -> {replacement['index']} agent {replacement['agent']}"
         )

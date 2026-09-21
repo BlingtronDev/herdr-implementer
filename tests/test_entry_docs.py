@@ -46,6 +46,10 @@ def _renamed_historical_reference(value: str) -> str:
             .replace("docs/implementation/validation.md", "docs/development/validation.md")
             .replace("docs/implementation/rename-compatibility.md", "docs/migrations/rename-compatibility.md")
             .replace("tests/test_plan_manager.py", "tests/test_implementer.py")
+            # The terminal-only policy supersedes dirty-worktree retention;
+            # resolve its successor test without rewriting historical evidence.
+            .replace("test_dirty_worktree_retains_the_delivered_tab",
+                     "test_dirty_worktree_does_not_block_terminal_release")
             .replace("tests/test_plan_management_workflow.py", "tests/test_implementation_workflow.py"))
 
 

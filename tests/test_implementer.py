@@ -1800,7 +1800,7 @@ def test_delivered_worker_releases_its_tab(make_harness, kind):
     facts = h.wait_release("w-release-01", "closed")
     facts = h.wait_supervisor_exit("w-release-01")
 
-    assert facts["release"]["reason"] == "delivered-worktree-clean"
+    assert facts["release"]["reason"] == "completed-session-released"
     assert facts["release"]["tabs"]["closed"] == [tab]
     assert not h.tab_open(tab), "the delivered worker tab must be closed"
     assert herdr_calls(h, ("tab", "close")) == [["tab", "close", tab]]
@@ -1873,21 +1873,20 @@ def test_no_valid_result_retains_the_tab(make_harness, kind, behavior):
 
 
 @pytest.mark.parametrize("kind", RUNTIMES)
-def test_dirty_worktree_retains_the_delivered_tab(make_harness, kind):
+def test_dirty_worktree_does_not_block_terminal_release(make_harness, kind):
     h = make_harness("deliver-noncode")
     proc = h.start(kind=kind, worker_id="w-release-04")
     assert proc.returncode == 0, proc.stderr
     facts = h.wait_state("w-release-04", {"delivered"})
     tab = facts["herdr"]["tab"]
-    facts = h.wait_release("w-release-04", "retained")
+    facts = h.wait_release("w-release-04", "closed")
 
-    assert facts["release"]["reason"] == "uncommitted-content"
-    assert any(entry["path"] == "findings.md" for entry in facts["release"]["uncommitted"])
-    assert h.tab_open(tab)
-    assert herdr_calls(h, ("tab", "close")) == []
+    assert (Path(facts["worktree"]) / "findings.md").is_file()
+    assert not h.tab_open(tab)
+    assert herdr_calls(h, ("tab", "close")) == [["tab", "close", tab]]
     assert facts["result"]["status"] == "delivered"
 
-    # Once the delivered artifact is committed the same stop path releases the tab.
+    # Committing the retained artifact and stopping again remain safe.
     subprocess.run(["git", "add", "findings.md"], cwd=facts["worktree"], check=True)
     subprocess.run(
         ["git", "commit", "-m", "record findings"], cwd=facts["worktree"], capture_output=True, check=True
@@ -2089,7 +2088,7 @@ def test_foreign_pane_added_during_exit_retains_the_tab(make_harness):
     assert not h.tab_open(tab)
 
 
-def test_uncommitted_content_added_during_exit_retains_the_tab(make_harness):
+def test_uncommitted_content_added_during_exit_survives_tab_release(make_harness):
     h = make_harness("deliver-then-work")
     h.env["HI_SCENARIO_EXTRA_WORK_SECONDS"] = "5"
     proc = h.start(worker_id="w-release-14", timeout=60)
@@ -2099,12 +2098,10 @@ def test_uncommitted_content_added_during_exit_retains_the_tab(make_harness):
     h.marker("release_race_dirty")
 
     facts = h.wait_state("w-release-14", {"delivered"})
-    facts = h.wait_release("w-release-14", "retained")
-    assert facts["release"]["reason"] == "uncommitted-content"
-    assert facts["release"]["phase"] == "post-exit"
+    facts = h.wait_release("w-release-14", "closed")
     late = Path(facts["worktree"]) / "late-write.txt"
-    assert late.is_file(), "the exit-time write must be detected"
-    assert h.tab_open(tab), "uncommitted content written during the exit must block the close"
+    assert late.is_file(), "terminal release must preserve the exit-time write"
+    assert not h.tab_open(tab)
 
     late.unlink()
     h.clear_marker("release_race_dirty")
