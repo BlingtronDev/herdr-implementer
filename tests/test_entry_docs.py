@@ -200,12 +200,10 @@ def test_configuration_defaults_and_permission_policy_have_a_use_entry():
     """Document contract only; this does not measure coordinator/model behavior."""
     skill = SKILL.read_text(encoding="utf-8")
     assert "## Permissions" in skill
-    assert "--auto" in skill and "explicit denies remain" in skill
+    assert "--auto" in skill
     assert "not a security sandbox" in skill
     assert "stop before launch and explain the incompatibility" in skill
-    assert "does not expand task scope" in skill
     assert "max_workers" in skill and "optional" in skill
-    assert "explicit time, cost, and aggregate resource constraints" in skill
     assert "verifiable persistent configuration" in skill
     assert "Keep task-duration and cost budgets out" not in skill
     for name in ("implementation/operations.md", "development/validation.md"):

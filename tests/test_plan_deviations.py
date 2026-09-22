@@ -164,6 +164,19 @@ def test_worker_contract_scopes_delegation_to_read_only_non_interactive_work():
     assert "change branches or worktrees" in text
     assert "blocking interactive question UI" in text
     assert "stay the single writer" in text
+    assert "authorized by this contract" in text
+    assert "Use parallel subagents for distinct questions" in text
+    assert "keeping delegation read-only and within this ticket's scope" in text
+    assert "bounded question and expected evidence" in text
+    assert "collect and assess delegated findings before final delivery" in text
+
+
+def test_coordinator_preserves_worker_delegation_authorization():
+    """Dispatch must not turn the single-writer boundary into a single-agent ban."""
+    text = (REPO_ROOT / "SKILL.md").read_text()
+    assert "This skill authorizes that worker-level delegation" in text
+    assert "a single business writer does not mean a single agent" in text
+    assert "Encourage workers to use read-only subagents" in text
 
 
 def test_local_translation_preserves_contract_interface():

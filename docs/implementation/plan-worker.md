@@ -27,7 +27,9 @@ Read the ticket, acceptance criteria, and necessary references before implementa
 
 ## Implement and verify
 
-Delegation is encouraged. Use subagents for context-heavy work such as exploration, research, log analysis, or independent review, keeping delegation read-only and within this ticket's scope. The delegated agent must not write business files, change branches or worktrees, or use a blocking interactive question UI. You stay the single writer and remain accountable for the outcome; bring delegated findings and decisions back into this session and report them through the result file.
+Delegation is encouraged and authorized by this contract. Actively use subagents for context-heavy work such as exploration, research, log analysis, or independent review, keeping delegation read-only and within this ticket's scope. Use parallel subagents for distinct questions when useful.
+
+Give each subagent a bounded question and expected evidence. The delegated agent must not write business files, change branches or worktrees, or use a blocking interactive question UI. You stay the single writer and remain accountable for the outcome; collect and assess delegated findings before final delivery, bring decisions back into this session, and report relevant evidence through the result file. A reviewer recommendation is input, not acceptance or permission to expand scope.
 
 1. Implement within scope; continue while remaining acceptance requirements can be addressed.
 2. Verify every criterion. Capture exact commands, actual exit codes, evidence and concise results; distinguish unexecuted checks from passes and resolve in-scope failures.

@@ -35,7 +35,7 @@ The test uses temporary Git repositories and simulated Herdr, worker behavior, a
 | Runtime selection | Registration and launch query the runtime catalog. Pi checks known thinking names plus a capability flag, not exact per-level semantics; OpenCode checks advertised variants. Consult runtime documentation for uncovered Pi level support. Catalog success does not establish credentials, network/service access, or effective runtime configuration. |
 | Environment | Launch checks Herdr environment variables and repository/base/material inputs. No installation/integration-version or context-helper dependency preflight is performed. Retain the conditional installation checks in [Prepare and register](../implementation/operations.md#prepare-and-register). |
 | OpenCode permissions | Fake tests assert `--auto`, model/variant environment injection, and unchanged repository deny configuration. They do not execute permission evaluation or prove deny enforcement in an installed runtime. Follow the entry's [Permissions](../../SKILL.md#permissions). |
-| Coordinator behavior | Document guards check prescribed default/configuration/conflict rules only. Real model observation is needed to establish no redundant questions, reuse of current configuration, stopping on permission conflicts, and respect for explicit budgets/aggregate caps. |
+| Coordinator behavior | Document guards check prescribed default/configuration/conflict rules only. Real model observation is needed to establish no redundant questions, reuse of current configuration, stopping on permission conflicts. |
 
 For a real configuration/permission check, record a normal omitted-quota launch, effective model/provider/thinking and permission configuration, and a harmless permission scenario showing explicit deny remains effective. Separately supply a user restriction incompatible with the default permission mode and verify the coordinator explains the incompatibility **without launching**. Capture configuration/authorization questions and responses; do not treat a walkthrough or fake test as model behavior evidence. Record unexecuted checks explicitly.
 
@@ -53,7 +53,7 @@ Use disposable repositories with a complete local plan and initial ticket set st
 
 Give each ticket concrete acceptance conditions. A coordinator-controlled observation checkpoint may keep B active for a repeatable experiment; document it as test instrumentation, not a production scheduling barrier. A wait-window expiry must never become B's failure condition.
 
-Create an [execution record](../implementation/execution-record.md) in the validation project's record directory. Run the same experiment for each runtime, preferably sequentially in separate repositories so the aggregate concurrency bound is unambiguous.
+Create an [execution record](../implementation/execution-record.md) in the validation project's record directory. Run the same experiment for each runtime, preferably sequentially in separate repositories.
 
 ### Observe handoff and dynamic integration
 
@@ -102,7 +102,7 @@ Also exercise or explicitly label unexecuted branches: unsafe/unowned abort, abo
 
 During the A/B/C experiment, also check the following lifecycle behavior. Use the current [Operations](../implementation/operations.md) interface and preserve raw responses in the validation project's evidence directory.
 
-- **Quota:** in a separate explicit-cap run, with A and B active and the run cap set to two, a third launch is refused without registering a worker. For the omitted-quota run, verify the saved default limit; testing refusal requires filling that limit within the user's aggregate constraints. If resources do not permit this, retain the deterministic race evidence and mark the real refusal scenario unexecuted.
+- **Quota:** in a separate explicit-cap run, with A and B active and the run cap set to two, a third launch is refused without registering a worker. For the omitted-quota run, verify the saved default limit; testing refusal requires filling that limit. If resources do not permit this, retain the deterministic race evidence and mark the real refusal scenario unexecuted.
 - **Terminal release:** valid delivery releases the registered terminal while retaining branch, worktree, result, logs, materials, and uncommitted files. Successful handoff closes the replaced session's tab while the replacement continues. Verify both runtimes with `tests/test_tab_completion.py`. Active sessions, unknown exit state, foreign occupancy, or close failures retain the tab with a reason under `release` (worker-level for delivery, per-session for handoff).
 - **Cleanup:** after `stop` confirms `business_stopped: true`, cleanup without an uncommitted-content decision refuses a dirty worktree. Explicit `--archive-uncommitted` preserves the content before removing registered resources; branches and evidence remain. Repeated stop and cleanup are idempotent. If cleanup already succeeded, inspect the saved cleanup result and archive instead of trying to reproduce a refusal on a removed worktree.
 - **Outcome semantics:** an idle worker without a valid result is not delivered. An investigation-only ticket produces an existing findings artifact without an empty commit.
