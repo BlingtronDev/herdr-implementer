@@ -30,7 +30,7 @@ Choose eligible tickets using accepted dependencies and available slots. Code de
 
 Reference the returned worker management record instead of copying tool facts. Each worktree has one business writer; the injected contract governs worker write scope and ends business writes after final result publication. The coordinator alone updates shared plans, ticket indexes, and execution decisions.
 
-Encourage workers to use read-only subagents for exploration, research, log analysis, and independent review, including parallel reviewers for distinct questions. This skill authorizes that worker-level delegation; a single business writer does not mean a single agent.
+Encourage workers to use read-only subagents for context-heavy work, including parallel reviewers for distinct questions. This skill authorizes that worker-level delegation; a single business writer does not mean a single agent.
 
 **Dispatched:** each launch is traceable to its ticket, baseline, and management record.
 

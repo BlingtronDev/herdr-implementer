@@ -143,7 +143,6 @@ def test_documented_deviation_entry_validates(result_context, status):
 def test_worker_contract_keeps_publication_and_acceptance_boundaries():
     """Text guards only; runtime tests separately exercise lifecycle mechanics."""
     text = CONTRACT.read_text()
-    assert "Prefer delegating" not in text
     assert "Unconstrained implementation details are ordinary engineering choices" in text
     assert "goal, acceptance, external behavior, dependencies, or an explicitly specified approach" in text
     assert "An unmet criterion cannot be relabeled as a follow-up" in text
@@ -158,16 +157,14 @@ def test_worker_contract_scopes_delegation_to_read_only_non_interactive_work():
     """A nested agent must not stall invisibly or take over business writes."""
     text = CONTRACT.read_text()
     assert "Prefer delegating" not in text
-    assert "Delegation is encouraged" in text
-    assert "keeping delegation read-only" in text
+    assert "Delegation is encouraged and authorized by this contract" in text
+    assert "read-only subagents within this ticket's scope" in text
+    assert "in parallel for distinct questions" in text
+    assert "bounded question and expected evidence" in text
     assert "must not write business files" in text
     assert "change branches or worktrees" in text
     assert "blocking interactive question UI" in text
     assert "stay the single writer" in text
-    assert "authorized by this contract" in text
-    assert "Use parallel subagents for distinct questions" in text
-    assert "keeping delegation read-only and within this ticket's scope" in text
-    assert "bounded question and expected evidence" in text
     assert "collect and assess delegated findings before final delivery" in text
 
 
@@ -196,5 +193,5 @@ def test_local_translation_preserves_contract_interface():
     assert [shape(item) for item in contract_examples(english)] == [
         shape(item) for item in contract_examples(chinese)
     ]
-    assert "委派是可选的" in chinese
+    assert "委派受本契约鼓励并授权" in chinese
     assert "唯一写入者" in chinese
