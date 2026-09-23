@@ -18,10 +18,28 @@ Simulation cannot substitute for real-runtime evidence. Neither layer guarantees
 From this skill's source checkout (tests are development assets, omitted from the runtime distribution):
 
 ```bash
+python3 -m pip install -r requirements-test.txt
 python3 -m pytest tests/test_entry_docs.py tests/test_rename_compatibility.py -q
 python3 -m pytest tests/test_implementer.py tests/test_implementation_workflow.py -q
-python3 -m pytest tests/ -q
+python3 -m pytest -q --durations=20
 ```
+
+`pytest.ini` runs the full suite with four pytest-xdist processes and work-stealing
+scheduling, so long lifecycle scenarios do not hold up an otherwise idle process.
+Each test owns its temporary repository, fake runtime state, and OS temporary
+directory; tests still exercise real subprocesses, waits, and cleanup. Four is a
+limit on test runners, not on all descendant processes: lifecycle/concurrency
+tests can launch several simulated workers each. No real model calls are made.
+
+Use `-n 2` on constrained machines, or `-n 0` for serial execution and debugging.
+For a small selection of fast checks, `-n 0` avoids parallel startup overhead.
+Install the test requirements before invoking pytest; xdist is a development-only
+dependency, not a requirement of the lifecycle tool. Avoid piping to `tail` while
+investigating slow tests: it hides progress until pytest exits. When using a shell
+pipeline in CI, enable `set -o pipefail` so a test failure or timeout is not masked.
+Simulated worker stdout/stderr is retained under each test's temporary
+`fake/agents/<agent>.scenario.log`; inspect it alongside `supervisor.log` when a
+lifecycle wait times out.
 
 The workflow test runs separately for Pi and OpenCode with omitted and explicit concurrency limits. It registers a run, keeps B active, triggers A's automatic handoff and delivery, handles wait and acknowledgement, merges A, and starts C from the integrated baseline. It then exercises stopping and uncommitted-work archival.
 

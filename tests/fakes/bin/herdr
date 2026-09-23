@@ -268,12 +268,15 @@ def main(argv):
         # scenario that reacts to the file sees a running turn it can abort.
         prompt_file.write_text(text, encoding="utf-8")
         if processed == 1 and os.environ.get("HI_FAKE_SCENARIO"):
-            subprocess.Popen(
-                [sys.executable, os.environ["HI_FAKE_SCENARIO"], name, str(prompt_file)],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            # Preserve scenario crashes instead of turning them into opaque
+            # wait_state timeouts, especially under parallel test execution.
+            with (ROOT / "agents" / f"{name}.scenario.log").open("ab") as log:
+                subprocess.Popen(
+                    [sys.executable, os.environ["HI_FAKE_SCENARIO"], name, str(prompt_file)],
+                    stdout=log,
+                    stderr=log,
+                    start_new_session=True,
+                )
         marker = ROOT / "prompt_uncertain"
         if marker.is_file():
             marker.unlink()

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Herdr Implementer
 
-Turn a confirmed plan or spec into verified, integrated results. The **coordinator** selects work, judges evidence, records decisions, and serially integrates. **Workers** implement and verify individual tickets under the tool-injected contract. **Tools** own configuration checks, lifecycle safety, and durable execution facts.
+You are the **coordinator**. Your goal is to implement a confirmed plan or spec, delivering verified, integrated results. You select work, judge evidence, record decisions, and serially integrate. **Workers** implement and verify individual tickets under the tool-injected contract. **Tools** own configuration checks, lifecycle safety, and durable execution facts.
 
 Resolve skill resources from this file's directory, and plan, ticket, and record paths from the confirmed target repository. Write execution records and repair inputs there; keep installed templates read-only. Pass absolute paths to `bin/implementer.py`.
 
