@@ -979,9 +979,19 @@ def test_handoff_request_rejected_for_terminal_worker(make_harness):
 
 def test_context_trigger_and_staleness_rules():
     module = load_implementer()
-    config = {"tokens": 300_000, "pct": 0.8}
+    args = module.parse_args([
+        "start", "--repo", "/repo", "--run", "run", "--ticket-id", "01",
+        "--base", "a" * 40, "--material", "/ticket.md",
+    ])
+    assert args.handoff_pct == 0.9
+    assert args.handoff_tokens == 300_000
+    config = {"tokens": args.handoff_tokens}
+    assert module.DEFAULT_HANDOFF_PCT == 0.9
     assert module.handoff_trigger_reason({"state": "current", "total": 300_000, "window": 1_000_000}, config) == "tokens"
-    assert module.handoff_trigger_reason({"state": "current", "total": 800, "window": 1_000}, config) == "pct"
+    assert module.handoff_trigger_reason({"state": "current", "total": 800, "window": 1_000}, config) is None
+    assert module.handoff_trigger_reason({"state": "current", "total": 899, "window": 1_000}, config) is None
+    assert module.handoff_trigger_reason({"state": "current", "total": 900, "window": 1_000}, config) == "pct"
+    assert module.handoff_trigger_reason({"state": "current", "total": 800, "window": 1_000}, {**config, "pct": 0.8}) == "pct"
     assert module.handoff_trigger_reason({"state": "stale", "total": 900_000, "window": 1_000}, config) is None
     assert module.handoff_trigger_reason({"state": "pending", "total": 0, "window": 1_000}, config) is None
     assert module.handoff_trigger_reason({"state": "unobservable", "error": "x"}, config) is None

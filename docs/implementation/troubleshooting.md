@@ -14,7 +14,7 @@ Persistent context-observation failures, missing supervision, or failed handoffs
 
 ## Deliberate context tuning
 
-Consult `start --help` for `--handoff-tokens`, `--handoff-pct`, and `--context-window`, including current defaults. Keep thresholds above the fresh session's seed context to avoid immediate repeated handoffs. Token thresholds are operational policy, not universal degradation boundaries. Override the context window only with reliable size evidence, never to conceal failed observation. Successful handoff remains the same worker, not a new business attempt.
+Consult `start --help` for `--handoff-tokens`, `--handoff-pct`, and `--context-window`. By default, handoff occurs at 300,000 tokens **or** 90% context-window occupancy, whichever comes first; existing workers retain their configured thresholds. Keep thresholds above the fresh session's seed context to avoid immediate repeated handoffs. Token thresholds are operational policy, not universal degradation boundaries. Override the context window only with reliable size evidence, never to conceal failed observation. Successful handoff remains the same worker, not a new business attempt.
 
 ## Stop or cleanup blockers
 
